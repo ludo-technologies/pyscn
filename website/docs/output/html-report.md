@@ -41,14 +41,14 @@ Score cards, summary cards, and tabs only appear for analyzers that ran. Archite
 
 | Tab | Contents |
 | --- | --- |
-| Functions | Complexity metrics strip, most complex functions (top 20), longest functions, dead code findings (top 20), and two collapsed sortable tables: all modules and directory complexity rollups. |
+| Functions | Function complexity metrics, most complex functions (top 20), executable class-scope complexity, longest functions, dead code findings across functions and class scopes (top 20), and two collapsed sortable tables: all modules and directory complexity rollups. |
 | Duplication | Clone statistics strip, clone groups (top 10) with fragments and optional code previews, or clone pairs when no groups formed. |
 | Classes | Coupling (CBO) and cohesion (LCOM4) strips with the most coupled and least cohesive classes (top 15 each). |
 | Architecture | Module dependency metrics, main sequence zones, circular dependencies, longest chains, layer rule violations, and community detection with the macro-architecture graph. |
 
 ## JavaScript
 
-Inline scripts switch tabs (the tab is mirrored into the URL hash so a link can open a specific tab), and route the module and directory tables through one shared sorter. No network requests are made.
+Inline scripts switch tabs (the tab is mirrored into the URL hash so a link can open a specific tab), and route the module and directory tables through one shared sorter. No network requests are made. The standalone complexity formatter renders the same directory metrics above separate function and class-scope tables.
 
 Module rollups use the full analyzer population before `min_complexity`, `report_unchanged`, or `min_severity` presentation filters. Directory complexity uses the reported function population after complexity filters, so its counts and averages reconcile with the Functions tab.
 

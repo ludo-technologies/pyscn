@@ -88,11 +88,13 @@ func (f *DeadCodeFormatterImpl) formatText(response *domain.DeadCodeResponse) (s
 
 	// Summary
 	stats := map[string]interface{}{
-		"Total Files":           response.Summary.TotalFiles,
-		"Files with Dead Code":  response.Summary.FilesWithDeadCode,
-		"Total Findings":        response.Summary.TotalFindings,
-		"Functions Analyzed":    response.Summary.TotalFunctions,
-		"Functions with Issues": response.Summary.FunctionsWithDeadCode,
+		"Total Files":              response.Summary.TotalFiles,
+		"Files with Dead Code":     response.Summary.FilesWithDeadCode,
+		"Total Findings":           response.Summary.TotalFindings,
+		"Functions Analyzed":       response.Summary.TotalFunctions,
+		"Functions with Issues":    response.Summary.FunctionsWithDeadCode,
+		"Class Scopes Analyzed":    response.Summary.TotalClassScopes,
+		"Class Scopes with Issues": response.Summary.ClassScopesWithDeadCode,
 	}
 	output.WriteString(utils.FormatSummaryStats(stats))
 
@@ -107,14 +109,14 @@ func (f *DeadCodeFormatterImpl) formatText(response *domain.DeadCodeResponse) (s
 		output.WriteString(utils.FormatSectionHeader("DETAILED FINDINGS"))
 
 		for _, file := range response.Files {
-			if len(file.Functions) > 0 {
+			if len(file.Functions) > 0 || len(file.ClassScopes) > 0 {
 				output.WriteString(utils.FormatLabelWithIndent(0, "File", file.FilePath))
 				output.WriteString(strings.Repeat("-", HeaderWidth) + "\n")
 
-				for _, function := range file.Functions {
-					if len(function.Findings) > 0 {
-						output.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Function", function.Name))
-						for _, finding := range function.Findings {
+				for _, scope := range file.ExecutionScopes() {
+					if len(scope.Findings) > 0 {
+						output.WriteString(utils.FormatLabelWithIndent(SectionPadding, "Scope", scope.ScopeLabel()))
+						for _, finding := range scope.Findings {
 							output.WriteString(f.formatFindingText(finding, utils) + "\n")
 						}
 						output.WriteString("\n")
@@ -182,15 +184,16 @@ func (f *DeadCodeFormatterImpl) formatCSV(response *domain.DeadCodeResponse) (st
 	writer := csv.NewWriter(&output)
 
 	// Write header
-	header := []string{"File", "Function", "Severity", "StartLine", "EndLine", "Reason", "Description"}
+	// Append scope kind so existing CSV column positions remain stable.
+	header := []string{"File", "Function", "Severity", "StartLine", "EndLine", "Reason", "Description", "Scope Kind", "Scope Label"}
 	if err := writer.Write(header); err != nil {
 		return "", domain.NewOutputError("failed to write CSV header", err)
 	}
 
 	// Write findings
 	for _, file := range response.Files {
-		for _, function := range file.Functions {
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			for _, finding := range scope.Findings {
 				record := []string{
 					finding.Location.FilePath,
 					finding.FunctionName,
@@ -199,6 +202,8 @@ func (f *DeadCodeFormatterImpl) formatCSV(response *domain.DeadCodeResponse) (st
 					fmt.Sprintf("%d", finding.Location.EndLine),
 					finding.Reason,
 					finding.Description,
+					string(scope.ScopeKind),
+					scope.ScopeLabel(),
 				}
 				if err := writer.Write(record); err != nil {
 					return "", domain.NewOutputError("failed to write CSV record", err)

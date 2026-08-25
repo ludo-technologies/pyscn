@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 )
 
 // OutputFormat represents the supported output formats
@@ -48,6 +49,30 @@ const (
 // own convention (e.g. tracebacks and `dis` output) and signal that this is not a real
 // function defined in the source.
 const ModuleFunctionName = "<module>"
+
+// AnalysisScopeKind identifies the Python execution scope that owns a
+// complexity result. Methods and nested functions are function scopes; class
+// suites are class scopes because Python executes their statements separately
+// while constructing the class object.
+type AnalysisScopeKind string
+
+const (
+	AnalysisScopeUnknown  AnalysisScopeKind = ""
+	AnalysisScopeModule   AnalysisScopeKind = "module"
+	AnalysisScopeFunction AnalysisScopeKind = "function"
+	AnalysisScopeClass    AnalysisScopeKind = "class"
+)
+
+// Validate reports whether the kind names a supported Python execution scope.
+// Analyzer-owned records must never use AnalysisScopeUnknown.
+func (k AnalysisScopeKind) Validate() error {
+	switch k {
+	case AnalysisScopeModule, AnalysisScopeFunction, AnalysisScopeClass:
+		return nil
+	default:
+		return fmt.Errorf("invalid analysis scope kind %q", k)
+	}
+}
 
 // ComplexityRequest represents a request for complexity analysis
 type ComplexityRequest struct {
@@ -116,20 +141,35 @@ type ComplexityMetrics struct {
 	SLOC int `json:"sloc" yaml:"sloc"`
 }
 
-// FunctionComplexity represents complexity analysis result for a single function
+// FunctionComplexity represents one executable Python scope. The historical
+// type and field names remain part of the public API; ScopeKind distinguishes
+// modules, functions, and class suites without duplicating the result model.
 type FunctionComplexity struct {
 	// Function identification
-	Name        string `json:"name" yaml:"name"`
-	FilePath    string `json:"file_path" yaml:"file_path"`
-	StartLine   int    `json:"start_line" yaml:"start_line"`
-	StartColumn int    `json:"start_column" yaml:"start_column"`
-	EndLine     int    `json:"end_line" yaml:"end_line"`
+	Name        string            `json:"name" yaml:"name"`
+	ScopeKind   AnalysisScopeKind `json:"scope_kind" yaml:"scope_kind"`
+	FilePath    string            `json:"file_path" yaml:"file_path"`
+	StartLine   int               `json:"start_line" yaml:"start_line"`
+	StartColumn int               `json:"start_column" yaml:"start_column"`
+	EndLine     int               `json:"end_line" yaml:"end_line"`
 
 	// Complexity metrics
 	Metrics ComplexityMetrics `json:"metrics" yaml:"metrics"`
 
 	// Risk assessment
 	RiskLevel RiskLevel `json:"risk_level" yaml:"risk_level"`
+}
+
+// ScopeLabel returns the canonical user-facing name for an executable scope.
+func (f FunctionComplexity) ScopeLabel() string {
+	return executionScopeLabel(f.ScopeKind, f.Name)
+}
+
+func executionScopeLabel(kind AnalysisScopeKind, name string) string {
+	if kind == AnalysisScopeClass {
+		return "class scope " + name
+	}
+	return name
 }
 
 // ValidateFunctionSLOCThresholds checks the long-function tiers against each
@@ -151,11 +191,10 @@ func ValidateFunctionSLOCThresholds(warn, critical int) error {
 }
 
 // ExceedsSLOC reports whether this function is longer than the given SLOC
-// threshold. Module-scope code never qualifies: its line span covers the whole
-// file, so a length verdict there would merely restate the file-level SLOC
-// metric. A non-positive threshold disables the check.
+// threshold. Module and class scopes never qualify because this is explicitly
+// a long-function rule. A non-positive threshold disables the check.
 func (f FunctionComplexity) ExceedsSLOC(threshold int) bool {
-	if threshold <= 0 || f.Name == ModuleFunctionName {
+	if threshold <= 0 || f.ScopeKind != AnalysisScopeFunction {
 		return false
 	}
 	return f.Metrics.SLOC > threshold
@@ -220,15 +259,24 @@ type RawMetricsSummary struct {
 	CommentRatio   float64 `json:"comment_ratio" yaml:"comment_ratio"`
 }
 
-// ComplexitySummary represents aggregate statistics.
-// Averages, min/max, risk counts, and the distribution are computed over every
-// analyzed function; min_complexity only limits which functions are reported.
+// ComplexitySummary represents aggregate function statistics. The established
+// module pseudo-record remains in this population; executable class suites are
+// reported separately and do not alter function counts or averages.
 type ComplexitySummary struct {
-	// TotalFunctions is the complete analyzed population used by all aggregate metrics.
+	// TotalFunctions is the complete analyzed function population used by all
+	// aggregate metrics, including the established module pseudo-record.
 	// Presentation filters only limit ComplexityResponse.Functions.
 	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
+	// TotalClassScopes is the complete executable class-suite population.
+	// Class maxima are published separately and do not alter function aggregates
+	// or health-score semantics.
+	TotalClassScopes            int `json:"total_class_scopes" yaml:"total_class_scopes"`
+	MaxClassComplexity          int `json:"max_class_complexity" yaml:"max_class_complexity"`
+	MaxClassCognitiveComplexity int `json:"max_class_cognitive_complexity" yaml:"max_class_cognitive_complexity"`
+	MaxClassNestingDepth        int `json:"max_class_nesting_depth" yaml:"max_class_nesting_depth"`
+	HighRiskClassScopes         int `json:"high_risk_class_scopes" yaml:"high_risk_class_scopes"`
 	// FunctionsParsed is retained for output compatibility and describes the same
-	// complete analyzed population as TotalFunctions.
+	// complete analyzed function population as TotalFunctions.
 	FunctionsParsed            int     `json:"functions_parsed" yaml:"functions_parsed"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
 	AverageCognitiveComplexity float64 `json:"average_cognitive_complexity" yaml:"average_cognitive_complexity"`
@@ -256,13 +304,19 @@ type ComplexitySummary struct {
 
 // ComplexityResponse represents the complete analysis result
 type ComplexityResponse struct {
-	// Analysis results
-	Functions   []FunctionComplexity           `json:"functions" yaml:"functions"`
+	// Functions retains the established module and function population.
+	Functions []FunctionComplexity `json:"functions" yaml:"functions"`
+	// ClassScopes is an additive collection of executable class-suite results.
+	// It uses the same typed metric record without changing function summaries.
+	ClassScopes []FunctionComplexity           `json:"class_scopes,omitempty" yaml:"class_scopes,omitempty"`
 	ByDirectory DirectoryComplexityMetricsList `json:"by_directory" yaml:"by_directory"`
 	Summary     ComplexitySummary              `json:"summary" yaml:"summary"`
 	// AnalyzedFunctions is the complete population before presentation filters.
 	// It is consumed by app-level aggregations and is not part of public output.
 	AnalyzedFunctions []FunctionComplexity `json:"-" yaml:"-"`
+	// AnalyzedClassScopes is the complete class-suite population before
+	// presentation filters and is not part of public output.
+	AnalyzedClassScopes []FunctionComplexity `json:"-" yaml:"-"`
 	// ModuleRollups are derived before report filters are applied. They are consumed
 	// by the unified analyze command and are not part of standalone complexity output.
 	ModuleRollups map[string]ModuleComplexityMetrics `json:"-" yaml:"-"`
@@ -280,6 +334,147 @@ type ComplexityResponse struct {
 	Version     string             `json:"version" yaml:"version"`
 	Config      interface{}        `json:"config" yaml:"config"` // Configuration used for analysis
 	Request     *ComplexityRequest `json:"request,omitempty"`    // Merged configuration request
+}
+
+// ReportedScopes returns the complete visible execution-scope population in
+// the requested order. The returned slice never aliases response storage.
+func (r *ComplexityResponse) ReportedScopes(sortBy SortCriteria) ([]FunctionComplexity, error) {
+	if r == nil {
+		return nil, fmt.Errorf("complexity response is nil")
+	}
+	return SortComplexityScopesBy(r.reportedScopes(), sortBy)
+}
+
+func (r *ComplexityResponse) reportedScopes() []FunctionComplexity {
+	scopes := make([]FunctionComplexity, 0, len(r.Functions)+len(r.ClassScopes))
+	scopes = append(scopes, r.Functions...)
+	scopes = append(scopes, r.ClassScopes...)
+	return scopes
+}
+
+// ReportedScopesByComplexity returns all visible scopes in a stable severity
+// order for presentation. It never mutates response storage.
+func (r *ComplexityResponse) ReportedScopesByComplexity() []FunctionComplexity {
+	if r == nil {
+		return nil
+	}
+	return SortComplexityScopes(r.reportedScopes())
+}
+
+// AnalyzedScopes returns an independently owned copy of the complete,
+// pre-filter population. Both collections must be initialized by the analysis
+// producer, including when either population is empty.
+func (r *ComplexityResponse) AnalyzedScopes() ([]FunctionComplexity, error) {
+	if err := r.ValidateAnalyzedScopes(); err != nil {
+		return nil, err
+	}
+
+	scopes := make([]FunctionComplexity, 0, len(r.AnalyzedFunctions)+len(r.AnalyzedClassScopes))
+	scopes = append(scopes, r.AnalyzedFunctions...)
+	scopes = append(scopes, r.AnalyzedClassScopes...)
+	return scopes, nil
+}
+
+// ValidateAnalyzedScopes enforces the producer-owned population contract
+// without allocating a combined result slice.
+func (r *ComplexityResponse) ValidateAnalyzedScopes() error {
+	if r == nil {
+		return fmt.Errorf("complexity response is nil")
+	}
+	if r.AnalyzedFunctions == nil {
+		return fmt.Errorf("analyzed function population is not initialized")
+	}
+	if r.AnalyzedClassScopes == nil {
+		return fmt.Errorf("analyzed class-scope population is not initialized")
+	}
+
+	for i, scope := range r.AnalyzedFunctions {
+		if err := scope.ScopeKind.Validate(); err != nil {
+			return fmt.Errorf("analyzed function %d: %w", i, err)
+		}
+		if scope.ScopeKind == AnalysisScopeClass {
+			return fmt.Errorf("analyzed function %d has class scope kind", i)
+		}
+	}
+	for i, scope := range r.AnalyzedClassScopes {
+		if err := scope.ScopeKind.Validate(); err != nil {
+			return fmt.Errorf("analyzed class scope %d: %w", i, err)
+		}
+		if scope.ScopeKind != AnalysisScopeClass {
+			return fmt.Errorf("analyzed class scope %d has %q scope kind", i, scope.ScopeKind)
+		}
+	}
+	return nil
+}
+
+// SortComplexityScopes returns an independently owned severity-ranked copy.
+// Ties use source identity so output is deterministic.
+func SortComplexityScopes(scopes []FunctionComplexity) []FunctionComplexity {
+	return sortComplexityScopes(scopes, SortByComplexity)
+}
+
+// SortComplexityScopesBy returns an independently owned copy ordered by one
+// of the complexity report's supported criteria. Ties use source identity so
+// independently collected scope kinds still produce deterministic output.
+func SortComplexityScopesBy(scopes []FunctionComplexity, sortBy SortCriteria) ([]FunctionComplexity, error) {
+	switch sortBy {
+	case SortByComplexity, SortByName, SortByRisk:
+		return sortComplexityScopes(scopes, sortBy), nil
+	default:
+		return nil, fmt.Errorf("unsupported complexity sort criteria: %s", sortBy)
+	}
+}
+
+func sortComplexityScopes(scopes []FunctionComplexity, sortBy SortCriteria) []FunctionComplexity {
+	scopes = append([]FunctionComplexity(nil), scopes...)
+	sort.SliceStable(scopes, func(i, j int) bool {
+		left, right := scopes[i], scopes[j]
+		switch sortBy {
+		case SortByName:
+			if left.Name != right.Name {
+				return left.Name < right.Name
+			}
+		case SortByRisk:
+			leftRisk, rightRisk := complexityRiskRank(left.RiskLevel), complexityRiskRank(right.RiskLevel)
+			if leftRisk != rightRisk {
+				return leftRisk > rightRisk
+			}
+			if left.Metrics.Complexity != right.Metrics.Complexity {
+				return left.Metrics.Complexity > right.Metrics.Complexity
+			}
+		default:
+			if left.Metrics.Complexity != right.Metrics.Complexity {
+				return left.Metrics.Complexity > right.Metrics.Complexity
+			}
+		}
+		if left.FilePath != right.FilePath {
+			return left.FilePath < right.FilePath
+		}
+		if left.StartLine != right.StartLine {
+			return left.StartLine < right.StartLine
+		}
+		if left.StartColumn != right.StartColumn {
+			return left.StartColumn < right.StartColumn
+		}
+		if left.ScopeKind != right.ScopeKind {
+			return left.ScopeKind < right.ScopeKind
+		}
+		return left.Name < right.Name
+	})
+	return scopes
+}
+
+func complexityRiskRank(risk RiskLevel) int {
+	switch risk {
+	case RiskLevelHigh:
+		return 3
+	case RiskLevelMedium:
+		return 2
+	case RiskLevelLow:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // ComplexityService defines the core business logic for complexity analysis

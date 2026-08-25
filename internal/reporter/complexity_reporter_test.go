@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/config"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -16,6 +18,8 @@ import (
 type mockComplexityResult struct {
 	complexity        int
 	functionName      string
+	scopeKind         domain.AnalysisScopeKind
+	sourceLocation    ComplexitySourceLocation
 	riskLevel         string
 	nodes             int
 	edges             int
@@ -27,7 +31,13 @@ type mockComplexityResult struct {
 
 func (m *mockComplexityResult) GetComplexity() int      { return m.complexity }
 func (m *mockComplexityResult) GetFunctionName() string { return m.functionName }
-func (m *mockComplexityResult) GetRiskLevel() string    { return m.riskLevel }
+func (m *mockComplexityResult) GetScopeKind() domain.AnalysisScopeKind {
+	return m.scopeKind
+}
+func (m *mockComplexityResult) GetSourceLocation() ComplexitySourceLocation {
+	return m.sourceLocation
+}
+func (m *mockComplexityResult) GetRiskLevel() string { return m.riskLevel }
 
 func (m *mockComplexityResult) GetDetailedMetrics() map[string]int {
 	return map[string]int{
@@ -45,6 +55,8 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        1,
 			functionName:      "simple_function",
+			scopeKind:         domain.AnalysisScopeModule,
+			sourceLocation:    ComplexitySourceLocation{FilePath: "a.py", StartLine: 1, StartColumn: 1, EndLine: 4},
 			riskLevel:         "low",
 			nodes:             1,
 			edges:             2,
@@ -55,6 +67,8 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        5,
 			functionName:      "medium_function",
+			scopeKind:         domain.AnalysisScopeFunction,
+			sourceLocation:    ComplexitySourceLocation{FilePath: "a.py", StartLine: 6, StartColumn: 1, EndLine: 12},
 			riskLevel:         "low",
 			nodes:             5,
 			edges:             8,
@@ -65,6 +79,8 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        15,
 			functionName:      "complex_function",
+			scopeKind:         domain.AnalysisScopeClass,
+			sourceLocation:    ComplexitySourceLocation{FilePath: "b.py", StartLine: 3, StartColumn: 1, EndLine: 24},
 			riskLevel:         "medium",
 			nodes:             15,
 			edges:             28,
@@ -75,6 +91,8 @@ func createTestResults() []ComplexityResult {
 		&mockComplexityResult{
 			complexity:        25,
 			functionName:      "very_complex_function",
+			scopeKind:         domain.AnalysisScopeFunction,
+			sourceLocation:    ComplexitySourceLocation{FilePath: "b.py", StartLine: 30, StartColumn: 1, EndLine: 64},
 			riskLevel:         "high",
 			nodes:             25,
 			edges:             48,
@@ -154,16 +172,34 @@ func TestGenerateReport(t *testing.T) {
 	if report == nil {
 		t.Fatal("Expected report, got nil")
 	}
-	if len(report.Results) != 4 {
-		t.Errorf("Expected 4 results, got %d", len(report.Results))
+	if len(report.Results) != 3 {
+		t.Errorf("Expected 3 legacy results, got %d", len(report.Results))
+	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("Result %q has no scope kind", result.FunctionName)
+		}
+		if result.FilePath == "" || result.StartLine == 0 {
+			t.Errorf("Result %q has no source location: %+v", result.FunctionName, result)
+		}
+	}
+	if len(report.ClassScopes) != 1 {
+		t.Fatalf("Expected 1 additive class scope, got %d", len(report.ClassScopes))
+	}
+	classScope := report.ClassScopes[0]
+	if classScope.FunctionName != "complex_function" || classScope.ScopeKind != domain.AnalysisScopeClass {
+		t.Fatalf("Unexpected class scope: %+v", classScope)
+	}
+	if classScope.FilePath != "b.py" || classScope.StartLine != 3 || classScope.StartColumn != 1 || classScope.EndLine != 24 {
+		t.Fatalf("Class source location was not preserved: %+v", classScope)
 	}
 
 	// Test summary
-	if report.Summary.TotalFunctions != 4 {
-		t.Errorf("Expected 4 total functions, got %d", report.Summary.TotalFunctions)
+	if report.Summary.TotalFunctions != 3 {
+		t.Errorf("Expected 3 total functions, got %d", report.Summary.TotalFunctions)
 	}
-	if report.Summary.AverageComplexity != 11.5 { // (1+5+15+25)/4
-		t.Errorf("Expected average complexity 11.5, got %.1f", report.Summary.AverageComplexity)
+	if report.Summary.AverageComplexity != float64(31)/3 {
+		t.Errorf("Expected average complexity %.2f, got %.2f", float64(31)/3, report.Summary.AverageComplexity)
 	}
 	if report.Summary.MaxComplexity != 25 {
 		t.Errorf("Expected max complexity 25, got %d", report.Summary.MaxComplexity)
@@ -176,8 +212,8 @@ func TestGenerateReport(t *testing.T) {
 	if report.Summary.RiskDistribution.Low != 2 {
 		t.Errorf("Expected 2 low risk functions, got %d", report.Summary.RiskDistribution.Low)
 	}
-	if report.Summary.RiskDistribution.Medium != 1 {
-		t.Errorf("Expected 1 medium risk function, got %d", report.Summary.RiskDistribution.Medium)
+	if report.Summary.RiskDistribution.Medium != 0 {
+		t.Errorf("Expected 0 medium risk functions, got %d", report.Summary.RiskDistribution.Medium)
 	}
 	if report.Summary.RiskDistribution.High != 1 {
 		t.Errorf("Expected 1 high risk function, got %d", report.Summary.RiskDistribution.High)
@@ -190,8 +226,8 @@ func TestGenerateReport(t *testing.T) {
 	if report.Summary.ComplexityDistribution["2-5"] != 1 {
 		t.Errorf("Expected 1 function with complexity 2-5, got %d", report.Summary.ComplexityDistribution["2-5"])
 	}
-	if report.Summary.ComplexityDistribution["11-20"] != 1 {
-		t.Errorf("Expected 1 function with complexity 11-20, got %d", report.Summary.ComplexityDistribution["11-20"])
+	if report.Summary.ComplexityDistribution["11-20"] != 0 {
+		t.Errorf("Expected class scopes to be excluded from function distribution, got %d", report.Summary.ComplexityDistribution["11-20"])
 	}
 	if report.Summary.ComplexityDistribution["21+"] != 1 {
 		t.Errorf("Expected 1 function with complexity 21+, got %d", report.Summary.ComplexityDistribution["21+"])
@@ -295,6 +331,54 @@ func TestFilterAndSortResults(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("TieBreakBySourceLocation", func(t *testing.T) {
+		tied := []ComplexityResult{
+			&mockComplexityResult{
+				complexity:     7,
+				functionName:   "duplicate",
+				scopeKind:      domain.AnalysisScopeFunction,
+				sourceLocation: ComplexitySourceLocation{FilePath: "z.py", StartLine: 1},
+				riskLevel:      "medium",
+			},
+			&mockComplexityResult{
+				complexity:     7,
+				functionName:   "duplicate",
+				scopeKind:      domain.AnalysisScopeFunction,
+				sourceLocation: ComplexitySourceLocation{FilePath: "a.py", StartLine: 10},
+				riskLevel:      "medium",
+			},
+			&mockComplexityResult{
+				complexity:     7,
+				functionName:   "duplicate",
+				scopeKind:      domain.AnalysisScopeFunction,
+				sourceLocation: ComplexitySourceLocation{FilePath: "a.py", StartLine: 2},
+				riskLevel:      "medium",
+			},
+		}
+		want := []ComplexitySourceLocation{
+			{FilePath: "a.py", StartLine: 2},
+			{FilePath: "a.py", StartLine: 10},
+			{FilePath: "z.py", StartLine: 1},
+		}
+
+		for _, sortBy := range []string{"complexity", "risk", "name"} {
+			cfg := config.DefaultConfig()
+			cfg.Output.SortBy = sortBy
+			var buffer bytes.Buffer
+			reporter, err := NewComplexityReporter(cfg, &buffer)
+			if err != nil {
+				t.Fatalf("Failed to create reporter: %v", err)
+			}
+
+			sorted := reporter.filterAndSortResults(tied)
+			for i, result := range sorted {
+				if got := result.GetSourceLocation(); got != want[i] {
+					t.Errorf("Sort %q location %d = %+v, want %+v", sortBy, i, got, want[i])
+				}
+			}
+		}
+	})
 }
 
 func TestGenerateWarnings(t *testing.T) {
@@ -356,6 +440,43 @@ func TestGenerateWarnings(t *testing.T) {
 	})
 }
 
+func TestGenerateReportClassWarningKeepsScopeIdentity(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Complexity.MaxComplexity = 20
+	reporter, err := NewComplexityReporter(cfg, &bytes.Buffer{})
+	if err != nil {
+		t.Fatalf("create reporter: %v", err)
+	}
+	classScope := &mockComplexityResult{
+		complexity:     25,
+		functionName:   "Config",
+		scopeKind:      domain.AnalysisScopeClass,
+		sourceLocation: ComplexitySourceLocation{FilePath: "config.py", StartLine: 3},
+		riskLevel:      "high",
+	}
+
+	report := reporter.GenerateReport([]ComplexityResult{classScope}, 1)
+	if report.Summary.TotalFunctions != 0 || len(report.Results) != 0 || len(report.ClassScopes) != 1 {
+		t.Fatalf("class scope changed legacy function populations: %+v", report)
+	}
+	if len(report.Warnings) != 2 {
+		t.Fatalf("warnings = %+v", report.Warnings)
+	}
+	var warning ReportWarning
+	for _, candidate := range report.Warnings {
+		if candidate.Type == "max_complexity_exceeded" {
+			warning = candidate
+			break
+		}
+	}
+	if warning.ScopeKind != domain.AnalysisScopeClass || warning.FilePath != "config.py" || warning.StartLine != 3 {
+		t.Fatalf("class warning lost identity: %+v", warning)
+	}
+	if !strings.Contains(warning.Message, "Class scope complexity") || strings.Contains(warning.Message, "Function complexity") {
+		t.Fatalf("class warning label = %q", warning.Message)
+	}
+}
+
 func TestOutputJSON(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Output.Format = "json"
@@ -381,11 +502,22 @@ func TestOutputJSON(t *testing.T) {
 	}
 
 	// Verify content
-	if len(report.Results) != 4 {
-		t.Errorf("Expected 4 results in JSON, got %d", len(report.Results))
+	if len(report.Results) != 3 {
+		t.Errorf("Expected 3 legacy results in JSON, got %d", len(report.Results))
 	}
-	if report.Summary.TotalFunctions != 4 {
-		t.Errorf("Expected 4 total functions in JSON, got %d", report.Summary.TotalFunctions)
+	if len(report.ClassScopes) != 1 {
+		t.Errorf("Expected 1 class scope in JSON, got %d", len(report.ClassScopes))
+	}
+	if report.Summary.TotalFunctions != 3 {
+		t.Errorf("Expected 3 total functions in JSON, got %d", report.Summary.TotalFunctions)
+	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("JSON result %q has no scope kind", result.FunctionName)
+		}
+	}
+	if len(report.ClassScopes) == 1 && (report.ClassScopes[0].FilePath != "b.py" || report.ClassScopes[0].StartLine != 3) {
+		t.Errorf("Expected JSON class source location, got %+v", report.ClassScopes[0])
 	}
 }
 
@@ -414,11 +546,22 @@ func TestOutputYAML(t *testing.T) {
 	}
 
 	// Verify content
-	if len(report.Results) != 4 {
-		t.Errorf("Expected 4 results in YAML, got %d", len(report.Results))
+	if len(report.Results) != 3 {
+		t.Errorf("Expected 3 legacy results in YAML, got %d", len(report.Results))
 	}
-	if report.Summary.TotalFunctions != 4 {
-		t.Errorf("Expected 4 total functions in YAML, got %d", report.Summary.TotalFunctions)
+	if len(report.ClassScopes) != 1 {
+		t.Errorf("Expected 1 class scope in YAML, got %d", len(report.ClassScopes))
+	}
+	if report.Summary.TotalFunctions != 3 {
+		t.Errorf("Expected 3 total functions in YAML, got %d", report.Summary.TotalFunctions)
+	}
+	for _, result := range report.Results {
+		if result.ScopeKind == domain.AnalysisScopeUnknown {
+			t.Errorf("YAML result %q has no scope kind", result.FunctionName)
+		}
+	}
+	if len(report.ClassScopes) == 1 && (report.ClassScopes[0].FilePath != "b.py" || report.ClassScopes[0].StartLine != 3) {
+		t.Errorf("Expected YAML class source location, got %+v", report.ClassScopes[0])
 	}
 }
 
@@ -454,7 +597,8 @@ func TestOutputCSV(t *testing.T) {
 	// Verify header
 	expectedHeader := []string{
 		"Function", "Complexity", "Risk", "Nodes", "Edges",
-		"If Statements", "Loop Statements", "Exception Handlers",
+		"If Statements", "Loop Statements", "Exception Handlers", "Scope Kind",
+		"File Path", "Start Line", "Start Column", "End Line",
 	}
 	for i, field := range records[0] {
 		if field != expectedHeader[i] {
@@ -470,8 +614,16 @@ func TestOutputCSV(t *testing.T) {
 	if firstRow[1] != "25" {
 		t.Errorf("Expected complexity 25, got %s", firstRow[1])
 	}
+	for _, record := range records[1:] {
+		if record[8] == "" {
+			t.Errorf("CSV result %q has no scope kind", record[0])
+		}
+	}
 	if firstRow[2] != "high" {
 		t.Errorf("Expected risk high, got %s", firstRow[2])
+	}
+	if firstRow[9] != "b.py" || firstRow[10] != "30" || firstRow[11] != "1" || firstRow[12] != "64" {
+		t.Errorf("Expected stable source location columns, got %v", firstRow[9:])
 	}
 }
 
@@ -502,7 +654,7 @@ func TestOutputText(t *testing.T) {
 	if !strings.Contains(output, "Summary:") {
 		t.Error("Missing summary section")
 	}
-	if !strings.Contains(output, "Total Functions: 4") {
+	if !strings.Contains(output, "Total Functions: 3") {
 		t.Error("Missing total functions in summary")
 	}
 	if !strings.Contains(output, "Risk Distribution:") {
@@ -510,6 +662,12 @@ func TestOutputText(t *testing.T) {
 	}
 	if !strings.Contains(output, "Function Details:") {
 		t.Error("Missing function details section")
+	}
+	if !strings.Contains(output, "Class Scope Details:") {
+		t.Error("Missing additive class scope details")
+	}
+	if !strings.Contains(output, "complex_function (b.py:3:1)") {
+		t.Error("Missing class source location")
 	}
 	if !strings.Contains(output, "Generated at:") {
 		t.Error("Missing generation timestamp")
@@ -573,8 +731,8 @@ func TestFormatComplexityBrief(t *testing.T) {
 		brief := FormatComplexityBrief(results)
 
 		expectedSubstrings := []string{
-			"4 functions analyzed",
-			"Avg: 11.5",
+			"3 functions analyzed",
+			"Avg: 10.3",
 			"Max: 25",
 			"High Risk: 1",
 		}
@@ -643,6 +801,7 @@ func TestComplexityReporterEdgeCases(t *testing.T) {
 			&mockComplexityResult{
 				complexity:   10,
 				functionName: "single_function",
+				scopeKind:    domain.AnalysisScopeFunction,
 				riskLevel:    "medium",
 			},
 		}

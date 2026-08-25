@@ -189,8 +189,9 @@ func TestAnalyzeFormatter_Write_TextIncludesModuleQuality(t *testing.T) {
 
 	assert.Contains(t, output.String(), "MODULE QUALITY HOTSPOTS")
 	assert.Contains(t, output.String(), "pkg.hotspot (pkg/hotspot.py)")
-	assert.Contains(t, output.String(), "Functions: 4 total / 2 analyzed")
-	assert.Contains(t, output.String(), "Complexity: avg 6.50, max 9, high-risk 1, handlers 0")
+	assert.Contains(t, output.String(), "Definitions: 4 functions")
+	assert.Contains(t, output.String(), "Function complexity: 2 analyzed")
+	assert.Contains(t, output.String(), "Function complexity: 2 analyzed, avg 6.50, max 9, high-risk 1, handlers 0")
 	assert.Contains(t, output.String(), "Cognitive: avg 8.00")
 	assert.Contains(t, output.String(), "Dead code: 2 findings, 3 blocks")
 }
@@ -247,6 +248,51 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	if assert.NotNil(t, decoded.Complexity.Request.Recursive) {
 		assert.True(t, *decoded.Complexity.Request.Recursive)
 	}
+}
+
+func TestAnalyzeFormatter_PublishesClassScopesAcrossFormats(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.ComplexityEnabled = true
+	response.Summary.TotalFunctions = 1
+	response.Summary.TotalClassScopes = 1
+	response.Summary.MaxClassComplexity = 12
+	response.Complexity = &domain.ComplexityResponse{
+		Functions: []domain.FunctionComplexity{{Name: domain.ModuleFunctionName, FilePath: "config.py", Metrics: domain.ComplexityMetrics{Complexity: 1}}},
+		ClassScopes: []domain.FunctionComplexity{{
+			Name:      "Config",
+			ScopeKind: domain.AnalysisScopeClass,
+			FilePath:  "config.py",
+			Metrics:   domain.ComplexityMetrics{Complexity: 12},
+		}},
+		Summary: domain.ComplexitySummary{TotalFunctions: 1, TotalClassScopes: 1, MaxClassComplexity: 12},
+	}
+
+	for _, format := range []domain.OutputFormat{domain.OutputFormatJSON, domain.OutputFormatYAML} {
+		t.Run(string(format), func(t *testing.T) {
+			var output bytes.Buffer
+			require.NoError(t, NewAnalyzeFormatter().Write(response, format, &output))
+			var decoded domain.AnalyzeResponse
+			if format == domain.OutputFormatJSON {
+				require.NoError(t, json.Unmarshal(output.Bytes(), &decoded))
+			} else {
+				require.NoError(t, yaml.Unmarshal(output.Bytes(), &decoded))
+			}
+			require.NotNil(t, decoded.Complexity)
+			require.Len(t, decoded.Complexity.ClassScopes, 1)
+			assert.Equal(t, domain.AnalysisScopeClass, decoded.Complexity.ClassScopes[0].ScopeKind)
+			assert.Equal(t, 1, decoded.Summary.TotalClassScopes)
+			assert.Equal(t, 12, decoded.Summary.MaxClassComplexity)
+		})
+	}
+
+	var csvOutput bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatCSV, &csvOutput))
+	assert.Contains(t, csvOutput.String(), "Class Scopes,1")
+
+	var htmlOutput bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &htmlOutput))
+	assert.Contains(t, htmlOutput.String(), "Config")
+	assert.Contains(t, htmlOutput.String(), "Class execution scopes")
 }
 
 func TestAnalyzeFormatter_Write_JSON_IncludesCommunityAnalysis(t *testing.T) {
@@ -640,6 +686,39 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, `data-tab="classes"`)
 }
 
+func TestAnalyzeFormatter_Write_HTMLLabelsDeadCodeClassScope(t *testing.T) {
+	response := createMinimalAnalyzeResponse()
+	response.Summary.DeadCodeEnabled = true
+	response.Summary.DeadCodeCount = 1
+	response.DeadCode = &domain.DeadCodeResponse{
+		Files: []domain.FileDeadCode{{
+			FilePath: "config.py",
+			ClassScopes: []domain.FunctionDeadCode{{
+				Name:      "Config",
+				ScopeKind: domain.AnalysisScopeClass,
+				Findings: []domain.DeadCodeFinding{{
+					Location:  domain.DeadCodeLocation{FilePath: "config.py", StartLine: 3, EndLine: 3},
+					ScopeKind: domain.AnalysisScopeClass,
+					Severity:  domain.DeadCodeSeverityCritical,
+					Reason:    "unreachable_after_raise",
+				}},
+			}},
+		}},
+		Summary: domain.DeadCodeSummary{TotalFindings: 1, CriticalFindings: 1},
+	}
+
+	var output bytes.Buffer
+	require.NoError(t, NewAnalyzeFormatter().Write(response, domain.OutputFormatHTML, &output))
+
+	html := output.String()
+	require.Contains(t, html, ">Dead code</h2>")
+	section := html[strings.Index(html, ">Dead code</h2>"):]
+	section = section[:strings.Index(section, "</table>")]
+	assert.Contains(t, section, "<th>Scope</th>")
+	assert.NotContains(t, section, "<th>Function</th>")
+	assert.Contains(t, section, "class scope Config")
+}
+
 func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 	response := createMinimalAnalyzeResponse()
 	response.Summary.ComplexityEnabled = true
@@ -647,6 +726,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 		Functions: []domain.FunctionComplexity{
 			{
 				Name:      "find_datatable_locale",
+				ScopeKind: domain.AnalysisScopeFunction,
 				FilePath:  "i18n/main.py",
 				StartLine: 22,
 				EndLine:   131,
@@ -655,6 +735,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 			},
 			{
 				Name:      "tight_but_complex",
+				ScopeKind: domain.AnalysisScopeFunction,
 				FilePath:  "core/dispatch.py",
 				StartLine: 5,
 				EndLine:   30,
@@ -663,6 +744,7 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 			},
 			{
 				Name:      domain.ModuleFunctionName,
+				ScopeKind: domain.AnalysisScopeModule,
 				FilePath:  "i18n/main.py",
 				StartLine: 1,
 				EndLine:   400,
@@ -684,6 +766,8 @@ func TestAnalyzeFormatter_Write_HTMLShowsLongestFunctions(t *testing.T) {
 	section := html[strings.Index(html, "Longest Functions"):]
 	section = section[:strings.Index(section, "</table>")]
 
+	assert.Contains(t, section, "<th>Function</th>")
+	assert.NotContains(t, section, "<th>Scope</th>")
 	assert.Contains(t, section, "Functions longer than 50 source lines")
 	// A McCabe-1 long function has no reason to appear in the ranked table.
 	assert.Contains(t, section, "find_datatable_locale")
@@ -708,8 +792,9 @@ func TestAnalyzeFormatter_CollectLongFunctions(t *testing.T) {
 		}
 		for i := 0; i < longFunctionsDisplayLimit+3; i++ {
 			complexity.Functions = append(complexity.Functions, domain.FunctionComplexity{
-				Name:    fmt.Sprintf("f%d", i),
-				Metrics: domain.ComplexityMetrics{SLOC: 51 + i},
+				Name:      fmt.Sprintf("f%d", i),
+				ScopeKind: domain.AnalysisScopeFunction,
+				Metrics:   domain.ComplexityMetrics{SLOC: 51 + i},
 			})
 		}
 

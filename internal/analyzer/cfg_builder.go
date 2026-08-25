@@ -71,8 +71,8 @@ type CFGBuilder struct {
 	// scopeStack tracks nested scopes (functions, classes, etc.)
 	scopeStack []string
 
-	// functionCFGs stores CFGs for nested functions
-	functionCFGs map[string]*CFG
+	// scopedCFGs stores CFGs for nested execution scopes in source order.
+	scopedCFGs ControlFlowGraphs
 
 	// blockCounter for generating unique block names
 	blockCounter uint
@@ -85,13 +85,17 @@ type CFGBuilder struct {
 
 	// exceptionStack tracks nested try blocks for exception handling
 	exceptionStack []*exceptionContext
+
+	// inlineClassSuites is enabled only by BuildExecutionFragment. Standard
+	// analysis keeps each class suite in its own typed CFG via BuildAll.
+	inlineClassSuites bool
 }
 
 // NewCFGBuilder creates a new CFG builder
 func NewCFGBuilder() *CFGBuilder {
 	return &CFGBuilder{
 		scopeStack:     []string{},
-		functionCFGs:   make(map[string]*CFG),
+		scopedCFGs:     make(ControlFlowGraphs, 0),
 		blockCounter:   0,
 		logger:         nil, // Can be set via SetLogger if needed
 		loopStack:      []*loopContext{},
@@ -113,12 +117,25 @@ func (b *CFGBuilder) logError(format string, args ...interface{}) {
 
 // Build constructs a CFG from an AST node
 func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
+	return b.build(node, false)
+}
+
+// BuildExecutionFragment constructs the single graph used for semantic clone
+// comparison. Class suites reached while executing the fragment are inlined,
+// matching Python's class-definition execution; nested function bodies remain
+// separate because defining a function does not execute its body.
+func (b *CFGBuilder) BuildExecutionFragment(node *parser.Node) (*CFG, error) {
+	return b.build(node, true)
+}
+
+func (b *CFGBuilder) build(node *parser.Node, inlineClassSuites bool) (*CFG, error) {
 	if node == nil {
 		return nil, fmt.Errorf("cannot build CFG from nil node")
 	}
+	b.inlineClassSuites = inlineClassSuites
 
 	if len(b.scopeStack) == 0 {
-		b.functionCFGs = make(map[string]*CFG)
+		b.scopedCFGs = b.scopedCFGs[:0]
 	}
 	b.blockCounter = 0
 	b.loopStack = b.loopStack[:0]
@@ -145,7 +162,11 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 		b.buildFunction(node)
 	case parser.NodeClassDef:
-		b.buildClass(node)
+		if b.inlineClassSuites {
+			b.buildInlineClass(node)
+		} else {
+			b.buildClass(node)
+		}
 	default:
 		// For single statements, process directly
 		b.processStatement(node)
@@ -159,26 +180,22 @@ func (b *CFGBuilder) Build(node *parser.Node) (*CFG, error) {
 	return b.cfg, nil
 }
 
-// BuildAll builds CFGs for all functions in the AST
-func (b *CFGBuilder) BuildAll(node *parser.Node) (map[string]*CFG, error) {
+// BuildAll builds CFGs for every supported execution scope in source order.
+func (b *CFGBuilder) BuildAll(node *parser.Node) (ControlFlowGraphs, error) {
 	if node == nil {
 		return nil, fmt.Errorf("cannot build CFGs from nil node")
 	}
 
-	allCFGs := make(map[string]*CFG)
-
-	// Build main CFG
+	// Build the root CFG.
 	mainCFG, err := b.Build(node)
 	if err != nil {
 		return nil, err
 	}
-	allCFGs[domain.ModuleFunctionName] = mainCFG
 
-	// Add all function CFGs (including nested ones)
-	for name, cfg := range b.functionCFGs {
-		allCFGs[name] = cfg
-	}
-
+	rootScope := cfgScope(node, mainCFG.Name)
+	allCFGs := make(ControlFlowGraphs, 0, 1+len(b.scopedCFGs))
+	allCFGs = append(allCFGs, ScopedCFG{Scope: rootScope, Graph: mainCFG})
+	allCFGs = append(allCFGs, b.scopedCFGs...)
 	return allCFGs, nil
 }
 
@@ -218,26 +235,33 @@ func (b *CFGBuilder) buildClass(node *parser.Node) {
 	b.cfg.ConnectBlocks(b.currentBlock, bodyBlock, EdgeNormal)
 	b.currentBlock = bodyBlock
 
-	// Add class definition as a statement
-	b.currentBlock.AddStatement(node)
-
-	// Process class body (methods and attributes)
+	// Process the executable class suite. The class definition itself belongs
+	// to the enclosing scope, where it evaluates decorators and bases before
+	// binding the completed class object.
 	for _, stmt := range node.Body {
-		if stmt.Type == parser.NodeFunctionDef || stmt.Type == parser.NodeAsyncFunctionDef {
-			// Build separate CFG for methods
-			if err := b.buildNestedFunction(stmt); err != nil {
-				b.logError("error building CFG for method %s: %v", stmt.Name, err)
-			}
-		} else {
-			// Process other statements (assignments, etc.)
-			b.processStatement(stmt)
-		}
+		b.processStatement(stmt)
 	}
 }
 
-// buildNestedFunction builds a separate CFG for a nested function
-func (b *CFGBuilder) buildNestedFunction(node *parser.Node) error {
-	// Create a new builder for the nested function
+// buildInlineClass preserves the execution profile used by fragment analysis:
+// the definition and its suite execute as part of the enclosing fragment.
+func (b *CFGBuilder) buildInlineClass(node *parser.Node) {
+	b.enterScope(node.Name)
+	defer b.exitScope()
+
+	bodyBlock := b.createBlock(LabelClassBody)
+	b.cfg.ConnectBlocks(b.currentBlock, bodyBlock, EdgeNormal)
+	b.currentBlock = bodyBlock
+	b.currentBlock.AddStatement(node)
+
+	for _, stmt := range node.Body {
+		b.processStatement(stmt)
+	}
+}
+
+// buildNestedScope builds a function or class suite without folding its body
+// into the enclosing graph.
+func (b *CFGBuilder) buildNestedScope(node *parser.Node) error {
 	nestedBuilder := NewCFGBuilder()
 
 	// Efficiently copy scope stack
@@ -247,29 +271,43 @@ func (b *CFGBuilder) buildNestedFunction(node *parser.Node) error {
 	// Copy logger if set
 	nestedBuilder.logger = b.logger
 
-	// Build CFG for the nested function
-	funcCFG, err := nestedBuilder.Build(node)
+	graph, err := nestedBuilder.Build(node)
 	if err != nil {
-		// Log error but don't fail the entire build
-		b.logError("failed to build CFG for nested function %s: %v", node.Name, err)
-		// Still add the function definition to current block
+		b.logError("failed to build CFG for nested scope %s: %v", node.Name, err)
 		b.currentBlock.AddStatement(node)
-		return fmt.Errorf("failed to build nested function %s: %w", node.Name, err)
+		return fmt.Errorf("failed to build nested scope %s: %w", node.Name, err)
 	}
 
-	// Store descendant CFGs produced while building this function before the
-	// function itself. Their names are already fully scoped by nestedBuilder.
-	for nestedName, nestedCFG := range nestedBuilder.functionCFGs {
-		b.functionCFGs[nestedName] = nestedCFG
-	}
-
-	// Store the function CFG.
+	// Store the scope, followed by descendants produced in source order.
 	fullName := b.getFullScopeName(node.Name)
-	b.functionCFGs[fullName] = funcCFG
+	b.scopedCFGs = append(b.scopedCFGs, ScopedCFG{
+		Scope: cfgScope(node, fullName),
+		Graph: graph,
+	})
+	b.scopedCFGs = append(b.scopedCFGs, nestedBuilder.scopedCFGs...)
 
-	// Add function definition to current block
+	// Keep the definition statement in the enclosing execution scope.
 	b.currentBlock.AddStatement(node)
 	return nil
+}
+
+func cfgScope(node *parser.Node, name string) CFGScope {
+	scope := CFGScope{Name: name}
+	if node == nil {
+		return scope
+	}
+
+	scope.StartLine = node.Location.StartLine
+	scope.StartColumn = node.Location.StartCol
+	switch node.Type {
+	case parser.NodeModule:
+		scope.Kind = domain.AnalysisScopeModule
+	case parser.NodeClassDef:
+		scope.Kind = domain.AnalysisScopeClass
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+		scope.Kind = domain.AnalysisScopeFunction
+	}
+	return scope
 }
 
 // processStatement processes a single statement
@@ -307,13 +345,20 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 	switch stmt.Type {
 	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
 		// Build separate CFG for nested functions
-		if err := b.buildNestedFunction(stmt); err != nil {
+		if err := b.buildNestedScope(stmt); err != nil {
 			b.logError("error in nested function: %v", err)
 		}
 
 	case parser.NodeClassDef:
-		// Build separate scope for nested classes
-		b.buildClass(stmt)
+		if b.inlineClassSuites {
+			b.buildInlineClass(stmt)
+		} else {
+			// A class suite is its own execution scope. Keep only the definition
+			// binding and header evaluation in the enclosing graph.
+			if err := b.buildNestedScope(stmt); err != nil {
+				b.logError("error in nested class: %v", err)
+			}
+		}
 
 	case parser.NodeReturn:
 		// Check if the return value is a comprehension

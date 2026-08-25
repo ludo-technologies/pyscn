@@ -121,20 +121,22 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 			"grade":        result.Summary.Grade,
 			"is_healthy":   result.Summary.IsHealthy(),
 			"summary": map[string]interface{}{
-				"total_files":           result.Summary.TotalFiles,
-				"total_functions":       result.Summary.TotalFunctions,
-				"functions_parsed":      result.Summary.FunctionsParsed,
-				"complexity_score":      result.Summary.ComplexityScore,
-				"dead_code_score":       result.Summary.DeadCodeScore,
-				"duplication_score":     result.Summary.DuplicationScore,
-				"coupling_score":        result.Summary.CouplingScore,
-				"cohesion_score":        result.Summary.CohesionScore,
-				"dependency_score":      result.Summary.DependencyScore,
-				"high_complexity_count": result.Summary.HighComplexityCount,
-				"dead_code_count":       result.Summary.DeadCodeCount,
-				"clone_pairs":           result.Summary.ClonePairs,
-				"high_coupling_classes": result.Summary.HighCouplingClasses,
-				"high_lcom_classes":     result.Summary.HighLCOMClasses,
+				"total_files":                       result.Summary.TotalFiles,
+				"total_functions":                   result.Summary.TotalFunctions,
+				"total_class_scopes":                result.Summary.TotalClassScopes,
+				"high_complexity_class_scope_count": result.Summary.HighComplexityClassScopeCount,
+				"functions_parsed":                  result.Summary.FunctionsParsed,
+				"complexity_score":                  result.Summary.ComplexityScore,
+				"dead_code_score":                   result.Summary.DeadCodeScore,
+				"duplication_score":                 result.Summary.DuplicationScore,
+				"coupling_score":                    result.Summary.CouplingScore,
+				"cohesion_score":                    result.Summary.CohesionScore,
+				"dependency_score":                  result.Summary.DependencyScore,
+				"high_complexity_count":             result.Summary.HighComplexityCount,
+				"dead_code_count":                   result.Summary.DeadCodeCount,
+				"clone_pairs":                       result.Summary.ClonePairs,
+				"high_coupling_classes":             result.Summary.HighCouplingClasses,
+				"high_lcom_classes":                 result.Summary.HighLCOMClasses,
 			},
 		}
 	}
@@ -285,9 +287,12 @@ func (h *HandlerSet) HandleCheckComplexity(ctx context.Context, request mcp.Call
 	case "full":
 		responseData = result
 	case "detailed":
-		responseData = formatComplexityDetailed(result, maxComplexity, maxResults)
+		responseData, err = formatComplexityDetailed(result, maxComplexity, maxResults)
 	default: // "summary"
-		responseData = formatComplexitySummary(result, maxComplexity, maxResults)
+		responseData, err = formatComplexitySummary(result, maxComplexity, maxResults)
+	}
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("invalid complexity result: %v", err)), nil
 	}
 
 	// Convert to JSON
@@ -742,13 +747,18 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 			"architecture_score": result.Summary.ArchitectureScore,
 		},
 		"summary": map[string]interface{}{
-			"total_files":           result.Summary.TotalFiles,
-			"average_complexity":    result.Summary.AverageComplexity,
-			"high_complexity_count": result.Summary.HighComplexityCount,
-			"dead_code_count":       result.Summary.DeadCodeCount,
-			"clone_pairs":           result.Summary.ClonePairs,
-			"high_coupling_classes": result.Summary.HighCouplingClasses,
-			"high_lcom_classes":     result.Summary.HighLCOMClasses,
+			"total_files":                       result.Summary.TotalFiles,
+			"average_complexity":                result.Summary.AverageComplexity,
+			"high_complexity_count":             result.Summary.HighComplexityCount,
+			"total_class_scopes":                result.Summary.TotalClassScopes,
+			"max_class_complexity":              result.Summary.MaxClassComplexity,
+			"max_class_cognitive_complexity":    result.Summary.MaxClassCognitiveComplexity,
+			"max_class_nesting_depth":           result.Summary.MaxClassNestingDepth,
+			"high_complexity_class_scope_count": result.Summary.HighComplexityClassScopeCount,
+			"dead_code_count":                   result.Summary.DeadCodeCount,
+			"clone_pairs":                       result.Summary.ClonePairs,
+			"high_coupling_classes":             result.Summary.HighCouplingClasses,
+			"high_lcom_classes":                 result.Summary.HighLCOMClasses,
 		},
 	}
 
@@ -774,94 +784,132 @@ func (h *HandlerSet) HandleGetHealthScore(ctx context.Context, request mcp.CallT
 // Helper functions
 
 // formatComplexitySummary formats complexity results in compact summary mode
-func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
+func formatComplexitySummary(result *domain.ComplexityResponse, threshold int, maxResults int) (map[string]interface{}, error) {
 	issues := []string{}
-	totalIssues := 0
 
 	// Default threshold to 10 if not specified
 	if threshold == 0 {
 		threshold = 10
 	}
 
-	// Filter functions that exceed threshold
-	for _, fn := range result.Functions {
-		if fn.Metrics.Complexity > threshold {
-			totalIssues++
-
-			// Only add to issues array if within max_results limit
-			if maxResults == 0 || len(issues) < maxResults {
-				// Format: "file:line:col: function is too complex (X > threshold)"
-				issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
-					fn.FilePath, fn.StartLine, fn.StartColumn+1, fn.Name,
-					fn.Metrics.Complexity, threshold)
-				issues = append(issues, issue)
-			}
-		}
+	analysis, err := analyzeComplexityGate(result, threshold, maxResults)
+	if err != nil {
+		return nil, err
+	}
+	for _, scope := range analysis.Issues {
+		issue := fmt.Sprintf("%s:%d:%d: %s is too complex (%d > %d)",
+			scope.FilePath, scope.StartLine, scope.StartColumn+1, scope.ScopeLabel(),
+			scope.Metrics.Complexity, threshold)
+		issues = append(issues, issue)
 	}
 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":       totalIssues,
-			"total_functions":    result.Summary.TotalFunctions,
-			"functions_parsed":   result.Summary.FunctionsParsed,
-			"max_complexity":     result.Summary.MaxComplexity,
-			"average_complexity": result.Summary.AverageComplexity,
-			"threshold":          threshold,
+			"total_issues":             analysis.TotalIssues,
+			"total_functions":          result.Summary.TotalFunctions,
+			"total_class_scopes":       result.Summary.TotalClassScopes,
+			"functions_parsed":         result.Summary.FunctionsParsed,
+			"max_complexity":           result.Summary.MaxComplexity,
+			"max_scope_complexity":     analysis.MaxComplexity,
+			"average_complexity":       result.Summary.AverageComplexity,
+			"average_scope_complexity": analysis.AverageComplexity,
+			"threshold":                threshold,
 		},
-	}
+	}, nil
 }
 
 // formatComplexityDetailed formats complexity results with structured details
-func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, maxResults int) map[string]interface{} {
+func formatComplexityDetailed(result *domain.ComplexityResponse, threshold int, maxResults int) (map[string]interface{}, error) {
 	type Issue struct {
-		File       string `json:"file"`
-		Line       int    `json:"line"`
-		Column     int    `json:"column"`
-		Function   string `json:"function"`
-		Complexity int    `json:"complexity"`
-		Threshold  int    `json:"threshold"`
-		Message    string `json:"message"`
+		File       string                   `json:"file"`
+		Line       int                      `json:"line"`
+		Column     int                      `json:"column"`
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		Complexity int                      `json:"complexity"`
+		Threshold  int                      `json:"threshold"`
+		Message    string                   `json:"message"`
 	}
 
 	issues := []Issue{}
-	totalIssues := 0
 
 	if threshold == 0 {
 		threshold = 10
 	}
 
-	for _, fn := range result.Functions {
-		if fn.Metrics.Complexity > threshold {
-			totalIssues++
-
-			// Only add to issues array if within max_results limit
-			if maxResults == 0 || len(issues) < maxResults {
-				issue := Issue{
-					File:       fn.FilePath,
-					Line:       fn.StartLine,
-					Column:     fn.StartColumn + 1,
-					Function:   fn.Name,
-					Complexity: fn.Metrics.Complexity,
-					Threshold:  threshold,
-					Message:    fmt.Sprintf("is too complex (%d > %d)", fn.Metrics.Complexity, threshold),
-				}
-				issues = append(issues, issue)
-			}
+	analysis, err := analyzeComplexityGate(result, threshold, maxResults)
+	if err != nil {
+		return nil, err
+	}
+	for _, scope := range analysis.Issues {
+		issue := Issue{
+			File:       scope.FilePath,
+			Line:       scope.StartLine,
+			Column:     scope.StartColumn + 1,
+			Function:   scope.Name,
+			ScopeKind:  scope.ScopeKind,
+			Complexity: scope.Metrics.Complexity,
+			Threshold:  threshold,
+			Message:    fmt.Sprintf("is too complex (%d > %d)", scope.Metrics.Complexity, threshold),
 		}
+		issues = append(issues, issue)
 	}
 
 	return map[string]interface{}{
 		"issues": issues,
 		"summary": map[string]interface{}{
-			"total_issues":       totalIssues,
-			"total_functions":    result.Summary.TotalFunctions,
-			"functions_parsed":   result.Summary.FunctionsParsed,
-			"max_complexity":     result.Summary.MaxComplexity,
-			"average_complexity": result.Summary.AverageComplexity,
-			"threshold":          threshold,
+			"total_issues":             analysis.TotalIssues,
+			"total_functions":          result.Summary.TotalFunctions,
+			"total_class_scopes":       result.Summary.TotalClassScopes,
+			"functions_parsed":         result.Summary.FunctionsParsed,
+			"max_complexity":           result.Summary.MaxComplexity,
+			"max_scope_complexity":     analysis.MaxComplexity,
+			"average_complexity":       result.Summary.AverageComplexity,
+			"average_scope_complexity": analysis.AverageComplexity,
+			"threshold":                threshold,
 		},
+	}, nil
+}
+
+type complexityGateAnalysis struct {
+	Issues            []domain.FunctionComplexity
+	TotalIssues       int
+	MaxComplexity     int
+	AverageComplexity float64
+}
+
+func analyzeComplexityGate(result *domain.ComplexityResponse, threshold int, maxResults int) (complexityGateAnalysis, error) {
+	analyzedScopes, err := result.AnalyzedScopes()
+	if err != nil {
+		return complexityGateAnalysis{}, err
 	}
+
+	analysis := complexityGateAnalysis{}
+	total := 0
+	for _, scope := range analyzedScopes {
+		total += scope.Metrics.Complexity
+		if scope.Metrics.Complexity > analysis.MaxComplexity {
+			analysis.MaxComplexity = scope.Metrics.Complexity
+		}
+	}
+	if len(analyzedScopes) > 0 {
+		analysis.AverageComplexity = float64(total) / float64(len(analyzedScopes))
+	}
+
+	// Gate findings use the same presentation-filtered population serialized by
+	// full mode. Aggregate scope statistics above intentionally remain complete.
+	for _, scope := range result.ReportedScopesByComplexity() {
+		if scope.Metrics.Complexity > threshold {
+			analysis.TotalIssues++
+			analysis.Issues = append(analysis.Issues, scope)
+		}
+	}
+
+	if maxResults > 0 && len(analysis.Issues) > maxResults {
+		analysis.Issues = analysis.Issues[:maxResults]
+	}
+	return analysis, nil
 }
 
 // formatDeadCodeSummary formats dead code results in compact summary mode
@@ -873,8 +921,8 @@ func formatDeadCodeSummary(result *domain.DeadCodeResponse, maxResults int) map[
 	infoCount := 0
 
 	for _, file := range result.Files {
-		for _, function := range file.Functions {
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			for _, finding := range scope.Findings {
 				totalIssues++
 
 				switch finding.Severity {
@@ -915,12 +963,14 @@ func formatDeadCodeSummary(result *domain.DeadCodeResponse, maxResults int) map[
 // formatDeadCodeDetailed formats dead code results with structured details
 func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map[string]interface{} {
 	type Issue struct {
-		File     string `json:"file"`
-		Line     int    `json:"line"`
-		Column   int    `json:"column"`
-		Function string `json:"function"`
-		Reason   string `json:"reason"`
-		Severity string `json:"severity"`
+		File       string                   `json:"file"`
+		Line       int                      `json:"line"`
+		Column     int                      `json:"column"`
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		ScopeLabel string                   `json:"scope_label"`
+		Reason     string                   `json:"reason"`
+		Severity   string                   `json:"severity"`
 	}
 
 	issues := []Issue{}
@@ -930,8 +980,8 @@ func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map
 	infoCount := 0
 
 	for _, file := range result.Files {
-		for _, function := range file.Functions {
-			for _, finding := range function.Findings {
+		for _, scope := range file.ExecutionScopes() {
+			for _, finding := range scope.Findings {
 				totalIssues++
 
 				switch finding.Severity {
@@ -945,12 +995,14 @@ func formatDeadCodeDetailed(result *domain.DeadCodeResponse, maxResults int) map
 
 				if maxResults == 0 || len(issues) < maxResults {
 					issue := Issue{
-						File:     finding.Location.FilePath,
-						Line:     finding.Location.StartLine,
-						Column:   finding.Location.StartColumn + 1,
-						Function: function.Name,
-						Reason:   finding.Reason,
-						Severity: string(finding.Severity),
+						File:       finding.Location.FilePath,
+						Line:       finding.Location.StartLine,
+						Column:     finding.Location.StartColumn + 1,
+						Function:   scope.Name,
+						ScopeKind:  scope.ScopeKind,
+						ScopeLabel: scope.ScopeLabel(),
+						Reason:     finding.Reason,
+						Severity:   string(finding.Severity),
 					}
 					issues = append(issues, issue)
 				}

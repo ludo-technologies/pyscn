@@ -267,12 +267,12 @@ Field notes:
 
 ### check_complexity
 
-**Description**: Analyze cyclomatic complexity of Python functions
+**Description**: Analyze cyclomatic complexity of Python execution scopes
 
 **Parameters**:
 - `path` (required): Path to Python code
 - `min_complexity` (optional): Minimum complexity to report (default: `1`)
-- `max_complexity` (optional): Maximum allowed complexity, 0 = no limit (default: `0`)
+- `max_complexity` (optional): Maximum allowed complexity; `0` uses the default of `10` (default: `0`)
 - `show_details` (optional): Include detailed metrics (default: `true`)
 - `output_mode` (optional): `"summary"`, `"detailed"`, or `"full"` (default: `"summary"`)
 - `max_results` (optional): Maximum findings in summary or detailed output; `0` means unlimited (default: `0`)
@@ -283,6 +283,9 @@ Check complexity of functions with complexity > 10 in src/
 ```
 
 **Output**: Complexity analysis with risk levels
+
+Summary and detailed findings use the same `min_complexity` and `report_unchanged` filtered scope population returned by full mode. Their aggregate `max_scope_complexity` and `average_scope_complexity` fields still describe the complete analyzed population; `max_complexity` remains the function-population maximum.
+
 ```json
 {
   "functions": [
@@ -405,24 +408,32 @@ Check the coupling of classes in src/
 Find dead code with severity >= warning in my project
 ```
 
-**Output**: List of dead code locations
+**Output**: Detailed mode returns structured issues from functions and executable class suites. `function` keeps the raw scope name for compatibility; `scope_kind` identifies its owner and `scope_label` is the canonical display label.
 ```json
 {
-  "dead_code": [
+  "issues": [
     {
-      "file_path": "src/util.py",
+      "file": "src/util.py",
       "function": "process_data",
       "line": 42,
+      "column": 5,
+      "scope_kind": "function",
+      "scope_label": "process_data",
       "severity": "warning",
-      "reason": "Unreachable after exhaustive if-elif-else"
+      "reason": "unreachable_branch"
     }
   ],
   "summary": {
-    "dead_code_count": 5,
-    "critical_dead_code": 2
+    "total_issues": 5,
+    "critical_issues": 2,
+    "warning_issues": 3,
+    "info_issues": 0,
+    "files_analyzed": 4
   }
 }
 ```
+
+Full mode returns `DeadCodeResponse`; its existing `functions`, `total_functions`, and `affected_functions` fields remain function-only. Class suites are reported additively in `class_scopes`, `total_class_scopes`, and `affected_class_scopes`. Aggregate finding, block, health, and module metrics include both populations.
 
 ### get_health_score
 

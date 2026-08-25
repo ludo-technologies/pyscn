@@ -7,8 +7,9 @@ import (
 func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 	modules := AggregateComplexityByModule([]FunctionComplexity{
 		{
-			Name:     "hotPath",
-			FilePath: "pkg/hot.py",
+			Name:      "hotPath",
+			ScopeKind: AnalysisScopeFunction,
+			FilePath:  "pkg/hot.py",
 			Metrics: ComplexityMetrics{
 				Complexity:          7,
 				CognitiveComplexity: 9,
@@ -17,8 +18,9 @@ func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 			RiskLevel: RiskLevelHigh,
 		},
 		{
-			Name:     "warmPath",
-			FilePath: "pkg/hot.py",
+			Name:      "warmPath",
+			ScopeKind: AnalysisScopeFunction,
+			FilePath:  "pkg/hot.py",
 			Metrics: ComplexityMetrics{
 				Complexity:          3,
 				CognitiveComplexity: 5,
@@ -28,6 +30,7 @@ func TestAggregateComplexityByModule_GroupsUnfilteredFunctions(t *testing.T) {
 		},
 		{
 			Name:      "simplePath",
+			ScopeKind: AnalysisScopeFunction,
 			FilePath:  "pkg/simple.py",
 			Metrics:   ComplexityMetrics{Complexity: 1},
 			RiskLevel: RiskLevelLow,
@@ -63,12 +66,14 @@ func TestAggregateComplexityByModule_ExcludesModuleScopeFromFunctionAverages(t *
 	modules := AggregateComplexityByModule([]FunctionComplexity{
 		{
 			Name:      ModuleFunctionName,
+			ScopeKind: AnalysisScopeModule,
 			FilePath:  "pkg/module.py",
 			Metrics:   ComplexityMetrics{Complexity: 1},
 			RiskLevel: RiskLevelLow,
 		},
 		{
 			Name:      "onlyFunction",
+			ScopeKind: AnalysisScopeFunction,
 			FilePath:  "pkg/module.py",
 			Metrics:   ComplexityMetrics{Complexity: 5, CognitiveComplexity: 7},
 			RiskLevel: RiskLevelMedium,
@@ -78,6 +83,18 @@ func TestAggregateComplexityByModule_ExcludesModuleScopeFromFunctionAverages(t *
 	module := modules["pkg/module.py"]
 	if module.AnalyzedFunctionCount != 1 || module.AverageComplexity != 5 || module.AverageCognitiveComplexity != 7 {
 		t.Fatalf("expected function-only rollup, got %+v", module)
+	}
+}
+
+func TestAggregateComplexityByModule_ExcludesClassScopes(t *testing.T) {
+	modules := AggregateComplexityByModule([]FunctionComplexity{
+		{Name: "work", ScopeKind: AnalysisScopeFunction, FilePath: "pkg/a.py", Metrics: ComplexityMetrics{Complexity: 5}},
+		{Name: "Config", ScopeKind: AnalysisScopeClass, FilePath: "pkg/a.py", Metrics: ComplexityMetrics{Complexity: 20}},
+	})
+
+	metrics := modules["pkg/a.py"]
+	if metrics.AnalyzedFunctionCount != 1 || metrics.AverageComplexity != 5 || metrics.MaxComplexity != 5 {
+		t.Fatalf("class scope changed function rollup: %+v", metrics)
 	}
 }
 
@@ -102,5 +119,25 @@ func TestAggregateDeadCodeByModule_UsesOneUnfilteredPopulation(t *testing.T) {
 	}
 	if hot.DeadCodeBlockCount != 3 {
 		t.Errorf("expected 3 dead-code blocks, got %d", hot.DeadCodeBlockCount)
+	}
+}
+
+func TestAggregateDeadCodeByModule_IncludesClassScopes(t *testing.T) {
+	modules := AggregateDeadCodeByModule([]FileDeadCode{{
+		FilePath:      "pkg/config.py",
+		TotalFindings: 2,
+		Functions: []FunctionDeadCode{{
+			ScopeKind: AnalysisScopeFunction,
+			Findings:  []DeadCodeFinding{{BlockID: "function-block"}},
+		}},
+		ClassScopes: []FunctionDeadCode{{
+			ScopeKind: AnalysisScopeClass,
+			Findings:  []DeadCodeFinding{{BlockID: "class-block"}},
+		}},
+	}})
+
+	metrics := modules["pkg/config.py"]
+	if metrics.DeadCodeFindingCount != 2 || metrics.DeadCodeBlockCount != 2 {
+		t.Fatalf("class-scope findings missing from module rollup: %+v", metrics)
 	}
 }

@@ -81,7 +81,12 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 	}
 
 	var suggestions []Suggestion
-	for _, f := range resp.Functions {
+	for _, f := range resp.ReportedScopesByComplexity() {
+		switch f.ScopeKind {
+		case AnalysisScopeModule, AnalysisScopeFunction, AnalysisScopeClass:
+		default:
+			continue
+		}
 		complexity := f.Metrics.Complexity
 		if complexity <= ComplexityThresholdMedium {
 			continue
@@ -94,7 +99,9 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 
 		var title, desc string
 		var steps []string
-		isTopLevel := f.Name == ModuleFunctionName
+		scopeKind := f.ScopeKind
+		isTopLevel := scopeKind == AnalysisScopeModule
+		isClassSuite := scopeKind == AnalysisScopeClass
 		basename := filepath.Base(f.FilePath)
 
 		if isTopLevel {
@@ -104,6 +111,15 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			steps = []string{
 				"Extract top-level logic into well-named functions",
 				"Keep module-level code to imports, constants, and a main() call",
+				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
+			}
+		} else if isClassSuite {
+			title = fmt.Sprintf("Simplify executable class scope '%s'", f.Name)
+			desc = fmt.Sprintf("Class scope '%s' has cyclomatic complexity of %d.", f.Name, complexity)
+			desc += " Move conditional class construction into explicit functions or simpler declarations."
+			steps = []string{
+				"Review conditional and iterative statements executed while the class is created",
+				"Extract runtime decisions into named functions where class-level execution is unnecessary",
 				fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
 			}
 		} else {
@@ -166,17 +182,23 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 
 	var suggestions []Suggestion
 	for _, file := range resp.Files {
-		for _, fn := range file.Functions {
+		for _, fn := range file.ExecutionScopes() {
 			for _, finding := range fn.Findings {
 				sev := mapDeadCodeSeverity(finding.Severity)
 				effort := deadCodeEffort(finding.Reason)
 
+				scopeLabel := fn.ScopeLabel()
 				title := fmt.Sprintf("Remove dead code after %s in '%s'",
-					humanizeReason(finding.Reason), finding.FunctionName)
+					humanizeReason(finding.Reason), scopeLabel)
 				desc := finding.Description
 				if desc == "" {
-					desc = fmt.Sprintf("Dead code detected at lines %d-%d in function '%s'.",
-						finding.Location.StartLine, finding.Location.EndLine, finding.FunctionName)
+					if fn.ScopeKind == AnalysisScopeClass {
+						desc = fmt.Sprintf("Dead code detected at lines %d-%d in class scope '%s'.",
+							finding.Location.StartLine, finding.Location.EndLine, fn.Name)
+					} else {
+						desc = fmt.Sprintf("Dead code detected at lines %d-%d in function '%s'.",
+							finding.Location.StartLine, finding.Location.EndLine, fn.Name)
+					}
 				}
 				if effort == SuggestionEffortEasy {
 					desc += " This code is safely removable."
@@ -198,7 +220,7 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 					}
 				}
 
-				suggestions = append(suggestions, Suggestion{
+				suggestion := Suggestion{
 					Category:    SuggestionCategoryDeadCode,
 					Severity:    sev,
 					Effort:      effort,
@@ -206,9 +228,14 @@ func generateDeadCodeSuggestions(resp *DeadCodeResponse) []Suggestion {
 					Description: desc,
 					Steps:       steps,
 					FilePath:    finding.Location.FilePath,
-					Function:    finding.FunctionName,
 					StartLine:   finding.Location.StartLine,
-				})
+				}
+				if fn.ScopeKind == AnalysisScopeClass {
+					suggestion.ClassName = fn.Name
+				} else {
+					suggestion.Function = finding.FunctionName
+				}
+				suggestions = append(suggestions, suggestion)
 			}
 		}
 	}

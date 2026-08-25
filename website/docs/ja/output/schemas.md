@@ -77,11 +77,16 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 ### 複雑度メトリクス
 
-| フィールド               | 型      | 説明                                             |
-| ----------------------- | ------- | ------------------------------------------------ |
-| `total_functions`       | integer | 分析された関数の合計数。                         |
-| `average_complexity`    | number  | サイクロマティック複雑度の平均値。関数がない場合は `0`。 |
-| `high_complexity_count` | integer | 複雑度が 10 を超える関数の数（中閾値）。         |
+| フィールド                            | 型      | 説明                                             |
+| ------------------------------------ | ------- | ------------------------------------------------ |
+| `total_functions`                    | integer | 分析された関数の合計数。                         |
+| `total_class_scopes`                 | integer | 分析されたクラス実行スコープ数。                 |
+| `average_complexity`                 | number  | サイクロマティック複雑度の平均値。関数がない場合は `0`。 |
+| `high_complexity_count`              | integer | 複雑度が 10 を超える関数の数（中閾値）。         |
+| `max_class_complexity`               | integer | クラススコープの最大サイクロマティック複雑度。   |
+| `max_class_cognitive_complexity`     | integer | クラススコープの最大認知的複雑度。               |
+| `max_class_nesting_depth`            | integer | クラススコープの最大ネスト深度。                 |
+| `high_complexity_class_scope_count`  | integer | 高リスクに分類されたクラススコープ数。           |
 
 ### デッドコードメトリクス
 
@@ -164,6 +169,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 ```json
 {
   "functions": [ /* FunctionComplexity array */ ],
+  "class_scopes": [ /* FunctionComplexity array; omitted when empty */ ],
   "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
@@ -175,11 +181,12 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 }
 ```
 
-### `functions[]` 要素 (`FunctionComplexity`)
+### `functions[]` および `class_scopes[]` 要素 (`FunctionComplexity`)
 
 | フィールド          | 型       | 説明                                                    |
 | -------------- | ------- | ----------------------------------------------------- |
-| `name`         | string  | 関数名。モジュールレベルのコードの場合は `__main__`。                      |
+| `name`         | string  | 修飾されたスコープ名。モジュールレベルのコードは `<module>`。             |
+| `scope_kind`   | string  | 必須の実行所有者：`module`、`function`、`class` のいずれか。              |
 | `file_path`    | string  | ソースファイルのパス。                                           |
 | `start_line`   | integer | 1始まりの開始行。                                             |
 | `start_column` | integer | 0始まりの開始列。                                             |
@@ -203,19 +210,29 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 
 ### `summary` オブジェクト (`ComplexitySummary`)
 
-| フィールド                     | 型       | 説明                                                 |
-| ------------------------- | ------- | -------------------------------------------------- |
-| `total_functions`         | integer | 分析された関数の合計数。                                       |
-| `average_complexity`      | number  | すべての関数の `Complexity` の算術平均。                        |
-| `max_complexity`          | integer | 観測された最大複雑度。                                        |
-| `min_complexity`          | integer | 観測された最小複雑度。                                        |
-| `files_analyzed`          | integer | パースに成功し、上記のメトリクスに寄与したファイル。                         |
-| `total_files`             | integer | パース成否によらず、リクエストが対象としたファイル。                         |
-| `skipped_files`           | integer | 読み込みまたはパースに失敗して除外されたファイル。その内容は上記すべてのメトリクスに含まれません。  |
-| `low_risk_functions`      | integer | `RiskLevel = low` の関数。                             |
-| `medium_risk_functions`   | integer | `RiskLevel = medium` の関数。                          |
-| `high_risk_functions`     | integer | `RiskLevel = high` の関数。                            |
-| `complexity_distribution` | object  | 複雑度バケット（string）からカウント（integer）へのヒストグラム、または `null`。 |
+| フィールド                         | 型      | 説明                                                                 |
+| ---------------------------------- | ------- | -------------------------------------------------------------------- |
+| `total_functions`                  | integer | 分析されたモジュールおよび関数スコープの合計数。                     |
+| `total_class_scopes`               | integer | 分析された実行可能なクラススイートの合計数。                         |
+| `functions_parsed`                 | integer | `total_functions` の完全な母集団と一致する互換カウント。             |
+| `average_complexity`               | number  | モジュールおよび関数スコープの `complexity` の算術平均。             |
+| `average_cognitive_complexity`     | number  | モジュールおよび関数スコープの `cognitive_complexity` の算術平均。   |
+| `average_nesting_depth`            | number  | モジュールおよび関数スコープの `nesting_depth` の算術平均。          |
+| `max_complexity`                   | integer | モジュールおよび関数スコープの最大複雑度。                           |
+| `min_complexity`                   | integer | モジュールおよび関数スコープの最小複雑度。                           |
+| `max_class_complexity`             | integer | クラススイートの最大サイクロマティック複雑度。                       |
+| `max_class_cognitive_complexity`   | integer | クラススイートの最大認知的複雑度。                                   |
+| `max_class_nesting_depth`          | integer | クラススイートの最大ネスト深度。                                     |
+| `high_risk_class_scopes`           | integer | 高リスクに分類されたクラススイート数。                               |
+| `files_analyzed`                   | integer | パースに成功し、上記のメトリクスに寄与したファイル。                 |
+| `total_files`                      | integer | パース成否によらず、リクエストが対象としたファイル。                 |
+| `skipped_files`                    | integer | 読み込みまたはパースに失敗して除外されたファイル。その内容は上記すべてのメトリクスに含まれません。 |
+| `low_risk_functions`               | integer | `risk_level = low` のモジュールおよび関数スコープ。                  |
+| `medium_risk_functions`            | integer | `risk_level = medium` のモジュールおよび関数スコープ。               |
+| `high_risk_functions`              | integer | `risk_level = high` のモジュールおよび関数スコープ。                 |
+| `complexity_distribution`          | object  | 関数のみを対象とし、複雑度バケット（string）からカウント（integer）へのヒストグラム、または `null`。 |
+
+クラススコープのメトリクスは加算的です。クラススコープを追加しても、従来の関数コレクション、件数、平均、極値、分布、モジュール・ディレクトリ集計、ヘルススコアは変わりません。
 
 ### `raw_metrics[]` 要素 (`RawMetrics`)
 
@@ -252,32 +269,37 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | フィールド           | 型      | 説明                                           |
 | ------------------- | ------- | ---------------------------------------------- |
 | `file_path`         | string  | ソースファイルのパス。                         |
-| `functions`         | array   | 関数ごとの結果（下記参照）。                   |
-| `total_findings`    | integer | このファイル内の関数全体の検出結果の合計。     |
-| `total_functions`   | integer | このファイルで分析された関数の数。             |
-| `affected_functions`| integer | 少なくとも1つの検出結果がある関数。            |
-| `dead_code_ratio`   | number  | デッドブロック / 全ブロック、`0`–`1`。         |
+| `functions`             | array          | 関数ごとの結果。既存フィールドで、関数のみ。 |
+| `class_scopes`          | array \| absent | 実行可能なクラススイートの結果。`functions` と同じ行モデル。 |
+| `total_findings`        | integer        | このファイルの関数とクラススコープの検出結果合計。 |
+| `total_functions`       | integer        | 分析された関数数。既存フィールドで、関数のみ。 |
+| `affected_functions`    | integer        | 検出結果がある関数数。既存フィールドで、関数のみ。 |
+| `total_class_scopes`    | integer        | 分析された実行可能なクラススイート数。 |
+| `affected_class_scopes` | integer        | 検出結果がある実行可能なクラススイート数。 |
+| `dead_code_ratio`       | number         | 両スコープコレクションのデッドブロック / 全ブロック、`0`–`1`。 |
 
-### `files[].functions[]` 要素 (`FunctionDeadCode`)
+### `files[].functions[]` および `files[].class_scopes[]` 要素 (`FunctionDeadCode`)
 
 | フィールド         | 型      | 説明                                         |
 | ----------------- | ------- | -------------------------------------------- |
-| `name`            | string  | 関数名。                                     |
+| `name`            | string  | 関数名またはクラス名。                       |
+| `scope_kind`      | string  | 必須の実行所有者：`functions` では `function`、`class_scopes` では `class`。 |
 | `file_path`       | string  | ソースファイルのパス。                       |
-| `findings`        | array   | この関数内の検出結果（下記参照）。           |
-| `total_blocks`    | integer | 関数内の CFG ブロックの合計数。              |
+| `findings`        | array   | この実行スコープ内の検出結果（下記参照）。   |
+| `total_blocks`    | integer | このスコープ内の CFG ブロックの合計数。      |
 | `dead_blocks`     | integer | 到達不能な CFG ブロック。                    |
 | `reachable_ratio` | number  | `(total_blocks - dead_blocks) / total_blocks`、`0`–`1`。 |
 | `critical_count`  | integer | 重大度 `critical` の検出結果。               |
 | `warning_count`   | integer | 重大度 `warning` の検出結果。                |
 | `info_count`      | integer | 重大度 `info` の検出結果。                   |
 
-### `files[].functions[].findings[]` 要素 (`DeadCodeFinding`)
+### `findings[]` 要素 (`DeadCodeFinding`)
 
 | フィールド       | 型      | 説明                                                          |
 | --------------- | ------- | ------------------------------------------------------------- |
 | `location`      | object  | [`DeadCodeLocation`](#deadcodelocation-object) を参照。 |
-| `function_name` | string  | 包含する関数名。                                              |
+| `function_name` | string  | 包含する実行スコープ名（従来のフィールド名）。                |
+| `scope_kind`    | string  | 必須の実行所有者：`function` または `class`。                 |
 | `code`          | string  | デッドコードのソースコード断片。                              |
 | `reason`        | string  | 分類 — 下記の列挙を参照。                                    |
 | `severity`      | string  | `critical`、`warning`、`info` のいずれか。                    |
@@ -311,15 +333,17 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | -------------------------- | ------- | ------------------------------------------------ |
 | `total_files`              | integer | 分析されたファイル数。                           |
 | `total_functions`          | integer | 分析された関数数。                               |
-| `total_findings`           | integer | 全ファイルの検出結果の合計。                     |
+| `total_findings`           | integer | 全ファイルの関数とクラススコープの検出結果合計。 |
 | `files_with_dead_code`     | integer | 少なくとも1つの検出結果があるファイル。           |
 | `functions_with_dead_code` | integer | 少なくとも1つの検出結果がある関数。               |
+| `total_class_scopes`       | integer | 分析された実行可能なクラススイート数。             |
+| `class_scopes_with_dead_code` | integer | 少なくとも1つの検出結果があるクラススイート。   |
 | `critical_findings`        | integer | 重大度 `critical` の検出結果。                   |
 | `warning_findings`         | integer | 重大度 `warning` の検出結果。                    |
 | `info_findings`            | integer | 重大度 `info` の検出結果。                       |
 | `findings_by_reason`       | object \| null | `reason` 値をキーとしたヒストグラム。      |
-| `total_blocks`             | integer | 全関数の CFG ブロック数。                        |
-| `dead_blocks`              | integer | 全関数の到達不能な CFG ブロック数。              |
+| `total_blocks`             | integer | 関数とクラススコープの CFG ブロック総数。        |
+| `dead_blocks`              | integer | 両コレクションの到達不能 CFG ブロック総数。      |
 | `overall_dead_ratio`       | number  | `dead_blocks / total_blocks`、`0`–`1`。          |
 
 ## `clone` オブジェクト

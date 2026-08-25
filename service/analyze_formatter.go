@@ -73,6 +73,10 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	if response.Summary.ComplexityEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Class Scopes", response.Summary.TotalClassScopes))
+		if response.Summary.TotalClassScopes > 0 {
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Max Class Complexity", response.Summary.MaxClassComplexity))
+		}
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Complexity", fmt.Sprintf("%.1f", response.Summary.AverageComplexity)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Complexity Count", response.Summary.HighComplexityCount))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
@@ -114,11 +118,10 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 			}
 			fmt.Fprintf(writer, "  %s\n", label)
 			if module.FunctionCount > 0 {
-				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
-			} else {
-				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
+				fmt.Fprintf(writer, "    Definitions: %d functions\n", module.FunctionCount)
 			}
-			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+			fmt.Fprintf(writer, "    Function complexity: %d analyzed, avg %.2f, max %d, high-risk %d, handlers %d\n",
+				module.AnalyzedFunctionCount,
 				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
 			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
 			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
@@ -164,6 +167,8 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Grade", response.Summary.Grade},
 		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
 		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Total Functions", fmt.Sprint(response.Summary.TotalFunctions)},
+		[]string{"Class Scopes", fmt.Sprint(response.Summary.TotalClassScopes)},
 		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
 		[]string{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
 		[]string{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},

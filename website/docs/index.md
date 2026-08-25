@@ -48,7 +48,7 @@ uvx pyscn@latest analyze .
 
     ---
 
-    Cyclomatic complexity per function, with thresholds you tune per project.
+    Cyclomatic complexity per execution scope, with thresholds you tune per project.
 
 -   :material-shape-outline:{ .lg .middle } __Class design__
 

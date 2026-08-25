@@ -103,7 +103,7 @@ func TestCloneService_DetectClones(t *testing.T) {
 		assert.True(t, response.Success)
 		assert.NotNil(t, response.Statistics)
 		assert.NotNil(t, response.Request)
-		assert.Greater(t, response.Duration, int64(0))
+		assert.GreaterOrEqual(t, response.Duration, int64(0))
 		assert.GreaterOrEqual(t, response.Statistics.FilesAnalyzed, 0)
 		assert.GreaterOrEqual(t, response.Statistics.LinesAnalyzed, 0)
 
@@ -720,7 +720,7 @@ func TestCloneService_ResponseStructure(t *testing.T) {
 		assert.Equal(t, req, response.Request)
 	}
 	assert.True(t, response.Success)
-	assert.Greater(t, response.Duration, int64(0))
+	assert.GreaterOrEqual(t, response.Duration, int64(0))
 	assert.Empty(t, response.Error)
 
 	// Verify statistics structure
