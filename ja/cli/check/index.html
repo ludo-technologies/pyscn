@@ -3459,7 +3459,7 @@
 </ul>
 <div class="admonition note">
 <p class="admonition-title">パースエラーのカバー範囲</p>
-<p><code>complexity</code>、<code>deadcode</code>、<code>clones</code>、<code>mockdata</code>、<code>di</code> の各解析は読み込み・パースできなかったファイルを報告し、いずれか 1 つでも発生すればチェックは失敗します。<code>deps</code> は例外です: 依存グラフの構築処理は読めないモジュールを記録せずにスキップするため、<code>pyscn check --select deps</code> 単独では構文エラーを検出できません。デフォルト実行では <code>complexity</code> が常に走るためカバーされます。</p>
+<p>選択したすべての解析は同じプロジェクト検出台帳を使用します。パースエラーがある場合、<code>--allow-parse-errors</code> を指定しない限り、<code>pyscn check --select deps</code> を含めてチェックは失敗します。ファイル読み込みエラーは常に失敗となります。</p>
 </div>
 <h2 id="_2">フラグ<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <h3 id="_3">解析の選択<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
@@ -3515,11 +3515,11 @@
 <tr>
 <td><code>--allow-parse-errors</code></td>
 <td>off</td>
-<td>読み込めない・パースできないファイルを警告のみとし、チェックを失敗させません。</td>
+<td>パースエラーを警告のみとします。ファイル読み込みエラーは引き続きチェックを失敗させます。</td>
 </tr>
 </tbody>
 </table>
-<p>デフォルトでは、パースできないファイルがあるとチェックは失敗します。そのようなファイルはすべての解析から除外されるため検出結果を一切生成せず、放置するとすべてのしきい値を通過してしまいます。つまり構文エラーを含むソースが「問題なし」と報告されることになります。この仕組みが届かない唯一の解析については上記の注記を参照してください。</p>
+<p>デフォルトでは、パースできないファイルがあるとチェックは失敗します。そのようなファイルはすべての解析から除外されるため検出結果を一切生成せず、放置するとすべてのしきい値を通過してしまいます。<code>--allow-parse-errors</code> は、存在しないファイル、権限エラー、その他の読み込みエラーを免除しません。</p>
 <h3 id="_5">出力<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

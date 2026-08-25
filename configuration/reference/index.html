@@ -4415,6 +4415,7 @@
 </tr>
 </tbody>
 </table>
+<p>Patterns without a directory separator match the filename at any depth. For example, <code>main*.py</code> matches both <code>main.py</code> and <code>pkg/main_utils.py</code>. Include a directory segment, such as <code>pkg/main*.py</code>, when the rule should apply only within that path.</p>
 <p>Default <code>exclude_patterns</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="s2">"test_*.py"</span><span class="err">,</span><span class="w"> </span><span class="s2">"*_test.py"</span><span class="err">,</span>

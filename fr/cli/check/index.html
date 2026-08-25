@@ -3459,7 +3459,7 @@
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Portée des erreurs d'analyse syntaxique</p>
-<p>Les analyses <code>complexity</code>, <code>deadcode</code>, <code>clones</code>, <code>mockdata</code> et <code>di</code> signalent chacune les fichiers qu'elles n'ont pas pu lire ou analyser, et il suffit qu'une seule le fasse pour faire échouer la vérification. <code>deps</code> fait exception : le constructeur du graphe de dépendances ignore les modules illisibles sans les enregistrer, donc <code>pyscn check --select deps</code> seul ne détectera pas une erreur de syntaxe. Les exécutions par défaut sont couvertes, car <code>complexity</code> s'exécute toujours.</p>
+<p>Toutes les analyses sélectionnées utilisent le même registre de découverte du projet. Une erreur d'analyse syntaxique fait échouer la vérification, y compris avec <code>pyscn check --select deps</code>, sauf si <code>--allow-parse-errors</code> est défini. Une erreur de lecture reste toujours bloquante.</p>
 </div>
 <h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
 <h3 id="selection-des-analyses">Sélection des analyses<a class="headerlink" href="#selection-des-analyses" title="Permanent link">&para;</a></h3>
@@ -3515,11 +3515,11 @@
 <tr>
 <td><code>--allow-parse-errors</code></td>
 <td>off</td>
-<td>Traite les fichiers illisibles ou non analysables comme de simples avertissements ; ne fait pas échouer la vérification.</td>
+<td>Traite les erreurs d'analyse syntaxique comme de simples avertissements. Les erreurs de lecture restent bloquantes.</td>
 </tr>
 </tbody>
 </table>
-<p>Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. Voir la note ci-dessus pour la seule analyse que ce mécanisme n'atteint pas.</p>
+<p>Par défaut, un fichier impossible à analyser syntaxiquement fait échouer la vérification. Un tel fichier est exclu de toutes les analyses : il ne produit aucune constatation et franchirait donc tous les seuils — une erreur de syntaxe dans vos sources serait rapportée comme une exécution propre. L'option ne masque ni les fichiers absents, ni les erreurs d'autorisation, ni les autres erreurs de lecture.</p>
 <h3 id="sortie">Sortie<a class="headerlink" href="#sortie" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

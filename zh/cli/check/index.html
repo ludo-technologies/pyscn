@@ -3459,7 +3459,7 @@
 </ul>
 <div class="admonition note">
 <p class="admonition-title">解析错误的覆盖范围</p>
-<p><code>complexity</code>、<code>deadcode</code>、<code>clones</code>、<code>mockdata</code> 和 <code>di</code> 分析都会报告无法读取或解析的文件，其中任意一个报告了此类文件，检查即失败。<code>deps</code> 除外：依赖图构建过程会跳过无法读取的模块且不做记录，因此单独使用 <code>pyscn check --select deps</code> 无法发现语法错误。默认运行会覆盖此情况，因为 <code>complexity</code> 始终会运行。</p>
+<p>所有选定的分析都使用同一份项目发现记录。除非设置 <code>--allow-parse-errors</code>，解析错误会使检查失败，包括 <code>pyscn check --select deps</code>。文件读取错误始终会使检查失败。</p>
 </div>
 <h2 id="_2">选项<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <h3 id="_3">分析选择<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
@@ -3515,11 +3515,11 @@
 <tr>
 <td><code>--allow-parse-errors</code></td>
 <td>关闭</td>
-<td>将无法读取或解析的文件视为警告，不触发检查失败。</td>
+<td>将解析错误视为警告。文件读取错误仍会使检查失败。</td>
 </tr>
 </tbody>
 </table>
-<p>默认情况下，无法解析的文件会导致检查失败。这类文件被排除在所有分析之外，不会产生任何检查结果，因此会顺利通过所有阈值 —— 含有语法错误的源码反而会被报告为通过。关于此机制未覆盖的唯一一项分析，请参阅上面的说明。</p>
+<p>默认情况下，无法解析的文件会导致检查失败。这类文件被排除在所有分析之外，不会产生任何检查结果，因此会顺利通过所有阈值。<code>--allow-parse-errors</code> 不会忽略文件缺失、权限错误或其他读取错误。</p>
 <h3 id="_5">输出<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
 <table>
 <thead>

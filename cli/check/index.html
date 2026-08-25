@@ -3459,7 +3459,7 @@
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Parse-error coverage</p>
-<p>The <code>complexity</code>, <code>deadcode</code>, <code>clones</code>, <code>mockdata</code> and <code>di</code> analyses each report the files they could not read or parse, and any one of them failing to do so fails the check. <code>deps</code> does not: the dependency graph builder skips unreadable modules without recording them, so <code>pyscn check --select deps</code> alone will not catch a syntax error. Default runs are covered, because <code>complexity</code> always runs.</p>
+<p>Every selected analysis uses the same project discovery ledger. Parse errors fail the check, including <code>pyscn check --select deps</code>, unless <code>--allow-parse-errors</code> is set. File read errors always fail.</p>
 </div>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
 <h3 id="analysis-selection">Analysis selection<a class="headerlink" href="#analysis-selection" title="Permanent link">&para;</a></h3>
@@ -3515,11 +3515,11 @@
 <tr>
 <td><code>--allow-parse-errors</code></td>
 <td>off</td>
-<td>Treat unreadable or unparseable files as warnings only; don't fail the check.</td>
+<td>Treat parse errors as warnings only. File read errors still fail the check.</td>
 </tr>
 </tbody>
 </table>
-<p>By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run. See the coverage note above for the one analysis this does not reach.</p>
+<p>By default, a file that cannot be parsed fails the check. Such a file is excluded from every analysis, so it contributes no findings and would otherwise pass every threshold — a syntax error in your source would be reported as a clean run. The flag does not waive missing files, permission failures, or other read errors.</p>
 <h3 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
