@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -222,7 +223,7 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 	if analysisErr != nil {
-		if isInformationalCloneAnalysisError(response, analysisErr) {
+		if isInformationalCloneAnalysisError(analysisErr) {
 			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  Clone detection failed: %v\n", analysisErr)
 		} else {
 			fmt.Fprintf(cmd.ErrOrStderr(), "❌ Analysis failed: %v\n", analysisErr)
@@ -271,11 +272,16 @@ func (c *CheckCommand) runCheck(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func isInformationalCloneAnalysisError(response *domain.AnalyzeResponse, analysisErr error) bool {
-	if analysisErr == nil || response == nil || len(response.Failures) == 0 {
+func isInformationalCloneAnalysisError(analysisErr error) bool {
+	var failureReporter domain.AnalysisFailureReporter
+	if analysisErr == nil || !errors.As(analysisErr, &failureReporter) {
 		return false
 	}
-	for _, failure := range response.Failures {
+	failures := failureReporter.AnalysisFailures()
+	if len(failures) == 0 {
+		return false
+	}
+	for _, failure := range failures {
 		if failure.Analysis != domain.AnalysisKindClones {
 			return false
 		}

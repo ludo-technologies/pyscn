@@ -151,23 +151,38 @@ func TestExitCodeForQualityIssues(t *testing.T) {
 }
 
 func TestCloneAnalysisFailuresRemainInformational(t *testing.T) {
-	analysisErr := errors.New("clone engine unavailable")
-	response := &domain.AnalyzeResponse{Failures: []domain.AnalysisFailure{{
+	analysisErr := checkAnalysisRunError{failures: []domain.AnalysisFailure{{
 		Analysis: domain.AnalysisKindClones,
 		Code:     domain.AnalysisFailureCodeExecution,
-		Message:  analysisErr.Error(),
+		Message:  "clone engine unavailable",
 	}}}
-	if !isInformationalCloneAnalysisError(response, analysisErr) {
+	if !isInformationalCloneAnalysisError(analysisErr) {
 		t.Fatal("expected clone-only analyzer failure to remain informational")
 	}
 
-	response.Failures = append(response.Failures, domain.AnalysisFailure{
+	analysisErr.failures = append(analysisErr.failures, domain.AnalysisFailure{
 		Analysis: domain.AnalysisKindComplexity,
 		Code:     domain.AnalysisFailureCodeExecution,
 		Message:  "complexity failed",
 	})
-	if isInformationalCloneAnalysisError(response, analysisErr) {
+	if isInformationalCloneAnalysisError(analysisErr) {
 		t.Fatal("mixed analyzer failures must fail the quality gate")
+	}
+}
+
+type checkAnalysisRunError struct {
+	failures []domain.AnalysisFailure
+}
+
+func (e checkAnalysisRunError) Error() string { return "analysis failed" }
+
+func (e checkAnalysisRunError) AnalysisFailures() []domain.AnalysisFailure {
+	return e.failures
+}
+
+func TestCloneFailureDoesNotMaskResponseAssemblyError(t *testing.T) {
+	if isInformationalCloneAnalysisError(errors.New("build analysis response: invalid task result")) {
+		t.Fatal("a response assembly error must fail the quality gate")
 	}
 }
 

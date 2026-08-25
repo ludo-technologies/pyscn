@@ -79,8 +79,8 @@ func (f AnalysisFailure) Unwrap() error {
 	return f.cause
 }
 
-// AnalysisFailureReporter is implemented by analyzer responses that can carry
-// partial results alongside typed execution failures.
+// AnalysisFailureReporter is implemented by analysis results and errors that
+// carry typed execution failures.
 type AnalysisFailureReporter interface {
 	AnalysisFailures() []AnalysisFailure
 }

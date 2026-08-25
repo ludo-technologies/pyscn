@@ -346,17 +346,20 @@ func (r communityTaskResult) applyTo(response *domain.AnalyzeResponse) {
 }
 
 type analysisRunError struct {
-	failureCount int
-	firstFailure string
-	causes       []error
+	failures []domain.AnalysisFailure
+	causes   []error
 }
 
 func (e *analysisRunError) Error() string {
-	return fmt.Sprintf("analysis completed with %d failure(s): %s", e.failureCount, e.firstFailure)
+	return fmt.Sprintf("analysis completed with %d failure(s): %s", len(e.failures), e.failures[0].Message)
 }
 
 func (e *analysisRunError) Unwrap() []error {
 	return e.causes
+}
+
+func (e *analysisRunError) AnalysisFailures() []domain.AnalysisFailure {
+	return append([]domain.AnalysisFailure(nil), e.failures...)
 }
 
 // ProjectAnalysisResult owns the canonical snapshot and the analyses derived
@@ -585,9 +588,8 @@ func newAnalysisRunError(tasks []*analysisTask, failures []domain.AnalysisFailur
 		causes = append(causes, failure)
 	}
 	return &analysisRunError{
-		failureCount: len(failures),
-		firstFailure: failures[0].Message,
-		causes:       causes,
+		failures: append([]domain.AnalysisFailure(nil), failures...),
+		causes:   causes,
 	}
 }
 
