@@ -170,6 +170,8 @@ File discovery rules.
 | `include_patterns` | string[] | `["**/*.py"]` | Glob patterns to include. |
 | `exclude_patterns` | string[] | see below     | Glob patterns to exclude. |
 
+Patterns without a directory separator match the filename at any depth. For example, `main*.py` matches both `main.py` and `pkg/main_utils.py`. Include a directory segment, such as `pkg/main*.py`, when the rule should apply only within that path.
+
 Default `exclude_patterns`:
 
 ```toml
