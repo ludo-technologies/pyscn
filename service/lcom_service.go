@@ -29,7 +29,7 @@ func NewLCOMService() *LCOMServiceImpl {
 func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	var allClasses []domain.ClassCohesion
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 	filesProcessed := 0
 
 	for _, filePath := range req.Paths {
@@ -39,10 +39,10 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 		default:
 		}
 
-		classes, fileWarnings, fileErrors := s.analyzeFile(ctx, filePath, req)
+		classes, fileWarnings, fileIssues := s.analyzeFile(ctx, filePath, req)
 
-		if len(fileErrors) > 0 {
-			errors = append(errors, fileErrors...)
+		if len(fileIssues) > 0 {
+			issues = append(issues, fileIssues...)
 			continue
 		}
 
@@ -57,7 +57,8 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 			Classes:     []domain.ClassCohesion{},
 			Summary:     s.generateSummary([]domain.ClassCohesion{}, filesProcessed, req),
 			Warnings:    warnings,
-			Errors:      errors,
+			Errors:      analysisIssueMessages(issues),
+			Failures:    analyzerFailures(domain.AnalysisKindLCOM, issues),
 			GeneratedAt: time.Now().Format(time.RFC3339),
 			Version:     version.Version,
 			Config:      s.buildConfigForResponse(req),
@@ -72,7 +73,8 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 		Classes:     sortedClasses,
 		Summary:     summary,
 		Warnings:    warnings,
-		Errors:      errors,
+		Errors:      analysisIssueMessages(issues),
+		Failures:    analyzerFailures(domain.AnalysisKindLCOM, issues),
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),
@@ -87,20 +89,19 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 
 	var allClasses []domain.ClassCohesion
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 	filesProcessed := 0
 
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.analysisProjectFiles() {
 		select {
 		case <-ctx.Done():
 			return nil, fmt.Errorf("LCOM analysis cancelled: %w", ctx.Err())
 		default:
 		}
+		classes, fileWarnings, fileIssues := s.analyzeProjectFile(file, req)
 
-		classes, fileWarnings, fileErrors := s.analyzeProjectFile(file, req)
-
-		if len(fileErrors) > 0 {
-			errors = append(errors, fileErrors...)
+		if len(fileIssues) > 0 {
+			issues = append(issues, fileIssues...)
 			continue
 		}
 
@@ -115,7 +116,8 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 			Classes:     []domain.ClassCohesion{},
 			Summary:     s.generateSummary([]domain.ClassCohesion{}, filesProcessed, req),
 			Warnings:    warnings,
-			Errors:      errors,
+			Errors:      analysisIssueMessages(issues),
+			Failures:    analyzerFailures(domain.AnalysisKindLCOM, issues),
 			GeneratedAt: time.Now().Format(time.RFC3339),
 			Version:     version.Version,
 			Config:      s.buildConfigForResponse(req),
@@ -130,7 +132,8 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 		Classes:     sortedClasses,
 		Summary:     summary,
 		Warnings:    warnings,
-		Errors:      errors,
+		Errors:      analysisIssueMessages(issues),
+		Failures:    analyzerFailures(domain.AnalysisKindLCOM, issues),
 		GeneratedAt: time.Now().Format(time.RFC3339),
 		Version:     version.Version,
 		Config:      s.buildConfigForResponse(req),
@@ -145,71 +148,71 @@ func (s *LCOMServiceImpl) AnalyzeFile(ctx context.Context, filePath string, req 
 }
 
 // analyzeFile performs LCOM analysis on a single file
-func (s *LCOMServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.LCOMRequest) ([]domain.ClassCohesion, []string, []string) {
+func (s *LCOMServiceImpl) analyzeFile(ctx context.Context, filePath string, req domain.LCOMRequest) ([]domain.ClassCohesion, []string, []analysisIssue) {
 	var classes []domain.ClassCohesion
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", filePath, err))
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Failed to read file: %v", err), cause: err})
+		return classes, warnings, issues
 	}
 
 	result, err := s.parser.Parse(ctx, content)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", filePath, err))
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("Parse error: %v", err), cause: err})
+		return classes, warnings, issues
 	}
 
 	options := s.buildLCOMOptions(req)
 	lcomResults, err := analyzer.CalculateLCOMWithConfig(result.AST, filePath, options)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] LCOM analysis failed: %v", filePath, err))
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: filePath, message: fmt.Sprintf("LCOM analysis failed: %v", err), cause: err})
+		return classes, warnings, issues
 	}
 
 	if len(lcomResults) == 0 {
 		warnings = append(warnings, fmt.Sprintf("[%s] No classes found in file", filePath))
-		return classes, warnings, errors
+		return classes, warnings, issues
 	}
 
 	classes = s.convertLCOMResults(lcomResults)
-	return classes, warnings, errors
+	return classes, warnings, issues
 }
 
-func (s *LCOMServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.LCOMRequest) ([]domain.ClassCohesion, []string, []string) {
+func (s *LCOMServiceImpl) analyzeProjectFile(file *ProjectFile, req domain.LCOMRequest) ([]domain.ClassCohesion, []string, []analysisIssue) {
 	var classes []domain.ClassCohesion
 	var warnings []string
-	var errors []string
+	var issues []analysisIssue
 
 	if file == nil {
-		errors = append(errors, "[unknown] Invalid project file")
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: "unknown", message: "Invalid project file"})
+		return classes, warnings, issues
 	}
 	if file.ReadErr != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Failed to read file: %v", file.Path, file.ReadErr))
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Failed to read file: %v", file.ReadErr), cause: file.ReadErr, diagnosticCode: domain.DiagnosticCodeRead})
+		return classes, warnings, issues
 	}
 	if file.ParseErr != nil {
-		errors = append(errors, fmt.Sprintf("[%s] Parse error: %v", file.Path, file.ParseErr))
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("Parse error: %v", file.ParseErr), cause: file.ParseErr, diagnosticCode: domain.DiagnosticCodeParse})
+		return classes, warnings, issues
 	}
 
 	options := s.buildLCOMOptions(req)
 	lcomResults, err := analyzer.CalculateLCOMWithConfig(file.AST, file.Path, options)
 	if err != nil {
-		errors = append(errors, fmt.Sprintf("[%s] LCOM analysis failed: %v", file.Path, err))
-		return classes, warnings, errors
+		issues = append(issues, analysisIssue{filePath: file.Path, message: fmt.Sprintf("LCOM analysis failed: %v", err), cause: err})
+		return classes, warnings, issues
 	}
 
 	if len(lcomResults) == 0 {
 		warnings = append(warnings, fmt.Sprintf("[%s] No classes found in file", file.Path))
-		return classes, warnings, errors
+		return classes, warnings, issues
 	}
 
 	classes = s.convertLCOMResults(lcomResults)
-	return classes, warnings, errors
+	return classes, warnings, issues
 }
 
 func (s *LCOMServiceImpl) convertLCOMResults(lcomResults []*analyzer.LCOMResult) []domain.ClassCohesion {

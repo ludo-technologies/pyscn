@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -161,7 +162,13 @@ func (f *FormatUtils) FormatSummaryStats(stats map[string]interface{}) string {
 	var builder strings.Builder
 	builder.WriteString(f.FormatSectionHeader("SUMMARY"))
 
-	for label, value := range stats {
+	labels := make([]string, 0, len(stats))
+	for label := range stats {
+		labels = append(labels, label)
+	}
+	sort.Strings(labels)
+	for _, label := range labels {
+		value := stats[label]
 		builder.WriteString(f.FormatLabelWithIndent(SectionPadding, label, value))
 	}
 
@@ -212,12 +219,12 @@ func (f *FormatUtils) ConvertToStandardRisk(risk string) RiskLevel {
 }
 
 // FormatFileStats creates standardized file statistics
-func (f *FormatUtils) FormatFileStats(analyzed, total, withIssues int) string {
+func (f *FormatUtils) FormatFileStats(analyzed, total, skipped int) string {
 	var builder strings.Builder
 	builder.WriteString(f.FormatSectionHeader("FILE STATISTICS"))
 	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "Total Files", total))
 	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "Analyzed", analyzed))
-	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "With Issues", withIssues))
+	builder.WriteString(f.FormatLabelWithIndent(SectionPadding, "Skipped", skipped))
 	builder.WriteString(f.FormatSectionSeparator())
 	return builder.String()
 }

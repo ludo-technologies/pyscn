@@ -17,15 +17,12 @@ func BenchmarkSortByComplexity(b *testing.B) {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
 			// Generate random test data
 			functions := generateRandomFunctions(size)
-			service := &ComplexityServiceImpl{}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				// Make a copy to avoid sorting already sorted data
-				testData := make([]domain.FunctionComplexity, len(functions))
-				copy(testData, functions)
-
-				service.sortByComplexity(testData)
+				if _, err := domain.SortComplexityScopesBy(functions, domain.SortByComplexity); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
@@ -38,14 +35,12 @@ func BenchmarkSortByName(b *testing.B) {
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
 			functions := generateRandomFunctions(size)
-			service := &ComplexityServiceImpl{}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				testData := make([]domain.FunctionComplexity, len(functions))
-				copy(testData, functions)
-
-				service.sortByName(testData)
+				if _, err := domain.SortComplexityScopesBy(functions, domain.SortByName); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}
@@ -58,14 +53,12 @@ func BenchmarkSortByRisk(b *testing.B) {
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
 			functions := generateRandomFunctions(size)
-			service := &ComplexityServiceImpl{}
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
-				testData := make([]domain.FunctionComplexity, len(functions))
-				copy(testData, functions)
-
-				service.sortByRisk(testData)
+				if _, err := domain.SortComplexityScopesBy(functions, domain.SortByRisk); err != nil {
+					b.Fatal(err)
+				}
 			}
 		})
 	}

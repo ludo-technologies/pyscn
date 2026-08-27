@@ -135,6 +135,10 @@ type MockDataResponse struct {
 	// Warnings and issues
 	Warnings []string `json:"warnings"`
 	Errors   []string `json:"errors"`
+	// Diagnostics contains typed file read and parse failures.
+	Diagnostics []AnalysisDiagnostic `json:"diagnostics,omitempty"`
+	// Failures contains detector execution failures.
+	Failures []AnalysisFailure `json:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt string      `json:"generated_at"`

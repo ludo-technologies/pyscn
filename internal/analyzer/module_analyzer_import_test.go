@@ -252,7 +252,7 @@ func TestModuleAnalyzerResolvesSingleDotRelativeImportInCurrentPackage(t *testin
 	if len(imports) != 1 || !imports[0].IsRelative || imports[0].Level != 1 || imports[0].Statement != "target" {
 		t.Fatalf("unexpected relative import metadata: %#v", imports)
 	}
-	if resolved := analyzer.resolveImport(imports[0], consumer); resolved != "pkg.target" {
+	if resolved := analyzer.resolveImport(nil, imports[0], consumer, false); resolved != "pkg.target" {
 		t.Fatalf("relative import resolved to %q, want pkg.target", resolved)
 	}
 

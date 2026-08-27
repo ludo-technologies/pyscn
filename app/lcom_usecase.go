@@ -9,9 +9,16 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// LCOMAnalysisService adds canonical snapshot analysis to the standalone LCOM contract.
+type LCOMAnalysisService interface {
+	domain.LCOMService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.LCOMRequest) (*domain.LCOMResponse, error)
+}
+
 // LCOMUseCase orchestrates the LCOM analysis workflow
 type LCOMUseCase struct {
 	service      domain.LCOMService
+	snapshot     LCOMAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.LCOMOutputFormatter
 	configLoader domain.LCOMConfigurationLoader
@@ -32,6 +39,13 @@ func NewLCOMUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewSnapshotLCOMUseCase constructs an LCOM use case for aggregate snapshot analysis.
+func NewSnapshotLCOMUseCase(service LCOMAnalysisService, fileReader domain.FileReader, formatter domain.LCOMOutputFormatter, configLoader domain.LCOMConfigurationLoader) *LCOMUseCase {
+	uc := NewLCOMUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // prepareAnalysis handles common preparation steps for analysis.
@@ -108,10 +122,6 @@ func (uc *LCOMUseCase) AnalyzeAndReturn(ctx context.Context, req domain.LCOMRequ
 	return response, nil
 }
 
-type snapshotLCOMService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.LCOMRequest) (*domain.LCOMResponse, error)
-}
-
 func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.LCOMRequest) (*domain.LCOMResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("project snapshot is required"))
@@ -126,14 +136,12 @@ func (uc *LCOMUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc
 	}
 	finalReq.Paths = snapshot.Paths()
 
-	snapshotService, ok := uc.service.(snapshotLCOMService)
-	if !ok {
-		return nil, domain.NewAnalysisError("LCOM analysis failed", fmt.Errorf("LCOM service does not support project snapshots"))
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("lcom analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
-		return nil, domain.NewAnalysisError("LCOM analysis failed", err)
+		return nil, domain.NewAnalysisError("lcom analysis failed", err)
 	}
 
 	return response, nil
@@ -200,6 +208,7 @@ func (uc *LCOMUseCase) loadAndMergeConfig(req domain.LCOMRequest) (domain.LCOMRe
 // LCOMUseCaseBuilder provides a builder pattern for creating LCOMUseCase
 type LCOMUseCaseBuilder struct {
 	service      domain.LCOMService
+	snapshot     LCOMAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.LCOMOutputFormatter
 	configLoader domain.LCOMConfigurationLoader
@@ -214,6 +223,13 @@ func NewLCOMUseCaseBuilder() *LCOMUseCaseBuilder {
 // WithService sets the LCOM service
 func (b *LCOMUseCaseBuilder) WithService(service domain.LCOMService) *LCOMUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+// WithSnapshotService sets the LCOM collaborator used by aggregate snapshot analysis.
+func (b *LCOMUseCaseBuilder) WithSnapshotService(service LCOMAnalysisService) *LCOMUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -259,6 +275,7 @@ func (b *LCOMUseCaseBuilder) Build() (*LCOMUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

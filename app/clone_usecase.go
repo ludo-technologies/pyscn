@@ -10,9 +10,16 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// CloneAnalysisService adds canonical snapshot analysis to the standalone clone contract.
+type CloneAnalysisService interface {
+	domain.CloneService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, *domain.CloneRequest) (*domain.CloneResponse, error)
+}
+
 // CloneUseCase orchestrates clone detection operations
 type CloneUseCase struct {
 	service      domain.CloneService
+	snapshot     CloneAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CloneOutputFormatter
 	configLoader domain.CloneConfigurationLoader
@@ -34,6 +41,13 @@ func NewCloneUseCase(
 		// Default implementation; CLI may override via builder
 		output: svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewSnapshotCloneUseCase constructs a clone use case for aggregate snapshot analysis.
+func NewSnapshotCloneUseCase(service CloneAnalysisService, fileReader domain.FileReader, formatter domain.CloneOutputFormatter, configLoader domain.CloneConfigurationLoader) *CloneUseCase {
+	uc := NewCloneUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // Execute executes the clone detection use case
@@ -106,7 +120,7 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	// Step 1: Load configuration if specified or try default config
 	finalReq, err := uc.loadAndMergeConfig(req)
 	if err != nil {
-		return nil, err
+		return nil, domain.NewConfigError("failed to load configuration", err)
 	}
 	req = finalReq
 
@@ -149,6 +163,30 @@ func (uc *CloneUseCase) ExecuteAndReturn(ctx context.Context, req domain.CloneRe
 	// Step 5: Update response with timing information
 	response.Duration = time.Since(startTime).Milliseconds()
 
+	return response, nil
+}
+
+func (uc *CloneUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CloneRequest) (*domain.CloneResponse, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("project snapshot is required")
+	}
+
+	finalReq, err := uc.loadAndMergeConfig(req)
+	if err != nil {
+		return nil, domain.NewConfigError("failed to load configuration", err)
+	}
+	finalReq.Paths = snapshot.Paths()
+	if err := finalReq.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	if uc.snapshot == nil {
+		return nil, fmt.Errorf("snapshot collaborator is required")
+	}
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, &finalReq)
+	if err != nil {
+		return nil, fmt.Errorf("clone detection failed: %w", err)
+	}
 	return response, nil
 }
 
@@ -280,6 +318,7 @@ func (uc *CloneUseCase) outputEmptyResults(req domain.CloneRequest) error {
 // CloneUseCaseBuilder helps build CloneUseCase with dependencies
 type CloneUseCaseBuilder struct {
 	service      domain.CloneService
+	snapshot     CloneAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CloneOutputFormatter
 	configLoader domain.CloneConfigurationLoader
@@ -294,6 +333,13 @@ func NewCloneUseCaseBuilder() *CloneUseCaseBuilder {
 // WithService sets the clone service
 func (b *CloneUseCaseBuilder) WithService(service domain.CloneService) *CloneUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+// WithSnapshotService sets the clone collaborator used by aggregate snapshot analysis.
+func (b *CloneUseCaseBuilder) WithSnapshotService(service CloneAnalysisService) *CloneUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -342,6 +388,7 @@ func (b *CloneUseCaseBuilder) Build() (*CloneUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

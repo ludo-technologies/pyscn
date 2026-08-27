@@ -40,3 +40,16 @@ func TestFindProjectRoot_FromSiblingPackages(t *testing.T) {
 	})
 	assert.Equal(t, root, got)
 }
+
+func TestFindProjectRoot_UsesPathComponentBoundaries(t *testing.T) {
+	root := t.TempDir()
+	pkg := filepath.Join(root, "pkg")
+	pkgExtra := filepath.Join(root, "pkg_extra")
+	require.NoError(t, os.MkdirAll(pkg, 0o755))
+	require.NoError(t, os.MkdirAll(pkgExtra, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte("[project]\n"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "pyproject.toml"), []byte("[project]\n"), 0o644))
+
+	got := FindProjectRoot([]string{pkg, pkgExtra})
+	assert.Equal(t, root, got)
+}

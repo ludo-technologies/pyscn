@@ -510,22 +510,23 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 	// Copy nodes
 	for name, node := range g.Nodes {
 		newNode := &ModuleNode{
-			Name:             node.Name,
-			FilePath:         node.FilePath,
-			RelativePath:     node.RelativePath,
-			Package:          node.Package,
-			IsPackage:        node.IsPackage,
-			Dependencies:     make(map[string]bool),
-			Dependents:       make(map[string]bool),
-			LazyDependencies: make(map[string]bool),
-			Imports:          make([]string, len(node.Imports)),
-			ImportedBy:       make([]string, len(node.ImportedBy)),
-			InDegree:         node.InDegree,
-			OutDegree:        node.OutDegree,
-			LineCount:        node.LineCount,
-			FunctionCount:    node.FunctionCount,
-			ClassCount:       node.ClassCount,
-			PublicNames:      make([]string, len(node.PublicNames)),
+			Name:               node.Name,
+			FilePath:           node.FilePath,
+			RelativePath:       node.RelativePath,
+			Package:            node.Package,
+			IsPackage:          node.IsPackage,
+			Dependencies:       make(map[string]bool),
+			Dependents:         make(map[string]bool),
+			LazyDependencies:   make(map[string]bool),
+			Imports:            make([]string, len(node.Imports)),
+			ImportedBy:         make([]string, len(node.ImportedBy)),
+			InDegree:           node.InDegree,
+			OutDegree:          node.OutDegree,
+			LineCount:          node.LineCount,
+			FunctionCount:      node.FunctionCount,
+			ClassCount:         node.ClassCount,
+			AbstractClassCount: node.AbstractClassCount,
+			PublicNames:        make([]string, len(node.PublicNames)),
 		}
 
 		// Copy maps and slices
@@ -547,9 +548,16 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 
 	// Copy edges
 	for _, edge := range g.Edges {
-		newImportInfo := &ImportInfo{}
+		if edge == nil {
+			clone.Edges = append(clone.Edges, nil)
+			continue
+		}
+
+		var newImportInfo *ImportInfo
 		if edge.ImportInfo != nil {
+			newImportInfo = &ImportInfo{}
 			*newImportInfo = *edge.ImportInfo
+			newImportInfo.ImportedNames = append([]string(nil), edge.ImportInfo.ImportedNames...)
 		}
 
 		newEdge := &DependencyEdge{
@@ -564,6 +572,33 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 
 	clone.TotalModules = g.TotalModules
 	clone.TotalEdges = g.TotalEdges
+	clone.RootModules = append([]string(nil), g.RootModules...)
+	clone.LeafModules = append([]string(nil), g.LeafModules...)
+	clone.CyclicGroups = make([][]string, len(g.CyclicGroups))
+	for index, group := range g.CyclicGroups {
+		clone.CyclicGroups[index] = append([]string(nil), group...)
+	}
+	clone.ModuleMetrics = make(map[string]*ModuleMetrics, len(g.ModuleMetrics))
+	for moduleName, metrics := range g.ModuleMetrics {
+		if metrics == nil {
+			clone.ModuleMetrics[moduleName] = nil
+			continue
+		}
+		copiedMetrics := *metrics
+		clone.ModuleMetrics[moduleName] = &copiedMetrics
+	}
+	if g.SystemMetrics == nil {
+		clone.SystemMetrics = nil
+	} else {
+		copiedMetrics := *g.SystemMetrics
+		copiedMetrics.RefactoringPriority = append([]string(nil), g.SystemMetrics.RefactoringPriority...)
+		copiedMetrics.StableModules = append([]string(nil), g.SystemMetrics.StableModules...)
+		copiedMetrics.InstableModules = append([]string(nil), g.SystemMetrics.InstableModules...)
+		copiedMetrics.ZoneOfPain = append([]string(nil), g.SystemMetrics.ZoneOfPain...)
+		copiedMetrics.ZoneOfUselessness = append([]string(nil), g.SystemMetrics.ZoneOfUselessness...)
+		copiedMetrics.MainSequence = append([]string(nil), g.SystemMetrics.MainSequence...)
+		clone.SystemMetrics = &copiedMetrics
+	}
 	clone.topologyRevision = g.topologyRevision
 
 	return clone

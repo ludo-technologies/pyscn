@@ -8,7 +8,6 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/service"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,10 +16,8 @@ func TestAnalyzeCommand_BuildAnalyzeUseCase_WiresCommunityAnalysis(t *testing.T)
 	fixtureRoot, err := filepath.Abs(filepath.Join("..", "..", "testdata", "python", "mvc_app"))
 	require.NoError(t, err)
 
-	cmd := &AnalyzeCommand{}
-	cobraCmd := &cobra.Command{}
 	builder := app.NewAnalyzeUseCaseBuilder()
-	require.NoError(t, cmd.buildIndividualUseCases(builder, cobraCmd))
+	require.NoError(t, buildIndividualUseCases(builder))
 
 	progressManager := service.NewProgressManager()
 	progressManager.SetWriter(io.Discard)

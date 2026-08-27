@@ -114,7 +114,7 @@ Reasons:
     },
     "max_complexity": {
       "type": "integer",
-      "description": "Maximum allowed complexity (0 = no limit)",
+      "description": "Maximum allowed complexity (0 uses the default of 10)",
       "default": 0
     },
     "show_details": {
@@ -128,6 +128,8 @@ Reasons:
 ```
 
 **Output**: `ComplexityResponse` JSON
+
+Summary and detailed findings use the same `min_complexity` and `report_unchanged` filtered scope population returned by full mode. Their aggregate `max_scope_complexity` and `average_scope_complexity` fields still describe the complete analyzed population; `max_complexity` remains the maximum across the established function population.
 
 ### 3. detect_clones
 
@@ -210,7 +212,7 @@ Reasons:
 }
 ```
 
-**Output**: `DeadCodeResponse` JSON
+**Output**: Summary mode returns compact issue strings. Detailed mode returns structured issues from functions and executable class suites; each issue includes the compatibility `function` name, required `scope_kind`, and canonical `scope_label`. Full mode returns `DeadCodeResponse` JSON, where the existing function collection and counters remain function-only and class-suite collections and counters are additive. Aggregate finding, health, and module metrics include both populations.
 
 ### 6. get_health_score
 
@@ -236,19 +238,28 @@ Reasons:
   "health_score": 85,
   "grade": "A",
   "is_healthy": true,
+  "partial": false,
+  "diagnostics": [],
+  "failures": [],
   "category_scores": {
     "complexity_score": 90,
     "dead_code_score": 95,
     "duplication_score": 80,
     "coupling_score": 85,
+    "cohesion_score": 92,
     "dependency_score": 88,
     "architecture_score": 82
   },
   "summary": {
     "total_files": 42,
+    "analyzed_files": 42,
+    "skipped_files": 0,
     "average_complexity": 5.2,
+    "high_complexity_count": 1,
     "dead_code_count": 2,
-    "clone_pairs": 5
+    "clone_pairs": 5,
+    "high_coupling_classes": 3,
+    "high_lcom_classes": 1
   }
 }
 ```

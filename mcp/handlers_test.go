@@ -3,11 +3,13 @@ package mcp_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/mcp"
 	"github.com/ludo-technologies/pyscn/service"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
@@ -165,7 +167,8 @@ func TestHandleAnalyzeCode(t *testing.T) {
 					var result map[string]interface{}
 					require.NoError(t, json.Unmarshal([]byte(text), &result))
 					assert.Contains(t, result, "health_score")
-
+					assert.Equal(t, []interface{}{}, result["diagnostics"])
+					assert.Equal(t, []interface{}{}, result["failures"])
 				},
 			},
 		},
@@ -181,6 +184,84 @@ func TestHandleAnalyzeCode(t *testing.T) {
 				check: func(t *testing.T, res *mcplib.CallToolResult) {
 					text := mcplib.GetTextFromContent(res.Content[0])
 					require.NotEmpty(t, text)
+				},
+			},
+		},
+		"summary_reports_partial_coverage": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					for index := range 20 {
+						fileName := fmt.Sprintf("valid_%02d.py", index)
+						require.NoError(t, os.WriteFile(filepath.Join(projectDir, fileName), []byte("VALUE = 1\n"), 0o644))
+					}
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{
+					"analyses": []interface{}{"deadcode"},
+				},
+			},
+			want: want{
+				isError: &errTrue,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Partial     bool                        `json:"partial"`
+						IsHealthy   bool                        `json:"is_healthy"`
+						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+						Summary     struct {
+							TotalFiles    int `json:"total_files"`
+							AnalyzedFiles int `json:"analyzed_files"`
+							SkippedFiles  int `json:"skipped_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.True(t, result.Partial)
+					assert.False(t, result.IsHealthy)
+					assert.Equal(t, 21, result.Summary.TotalFiles)
+					assert.Equal(t, 20, result.Summary.AnalyzedFiles)
+					assert.Equal(t, 1, result.Summary.SkippedFiles)
+					require.Len(t, result.Diagnostics, 1)
+					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
+				},
+			},
+		},
+		"summary_preserves_all_parse_diagnostics": {
+			args: args{
+				setupFS: func(t *testing.T) string {
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
+				},
+				arguments: map[string]interface{}{
+					"analyses": []interface{}{"deps"},
+				},
+			},
+			want: want{
+				isError: &errTrue,
+				check: func(t *testing.T, res *mcplib.CallToolResult) {
+					text := mcplib.GetTextFromContent(res.Content[0])
+					var result struct {
+						Partial     bool                        `json:"partial"`
+						IsHealthy   bool                        `json:"is_healthy"`
+						Diagnostics []domain.AnalysisDiagnostic `json:"diagnostics"`
+						Failures    []domain.AnalysisFailure    `json:"failures"`
+						Summary     struct {
+							TotalFiles    int `json:"total_files"`
+							AnalyzedFiles int `json:"analyzed_files"`
+							SkippedFiles  int `json:"skipped_files"`
+						} `json:"summary"`
+					}
+					require.NoError(t, json.Unmarshal([]byte(text), &result))
+					assert.True(t, result.Partial)
+					assert.False(t, result.IsHealthy)
+					assert.Equal(t, 1, result.Summary.TotalFiles)
+					assert.Zero(t, result.Summary.AnalyzedFiles)
+					assert.Equal(t, 1, result.Summary.SkippedFiles)
+					require.Len(t, result.Diagnostics, 1)
+					assert.Equal(t, domain.DiagnosticCodeParse, result.Diagnostics[0].Code)
+					assert.Empty(t, result.Failures)
 				},
 			},
 		},
@@ -319,6 +400,36 @@ func TestHandleAnalyzeCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleAnalyzeCodeSummaryIncludesClassHotspots(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			path := filepath.Join(t.TempDir(), "config.py")
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 20; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{"analyses": []interface{}{"complexity"}},
+		(*mcp.HandlerSet).HandleAnalyzeCode,
+	)
+
+	require.False(t, res.IsError)
+	var output struct {
+		Summary struct {
+			TotalClassScopes              int `json:"total_class_scopes"`
+			HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &output))
+	assert.Equal(t, 1, output.Summary.TotalClassScopes)
+	assert.Equal(t, 1, output.Summary.HighComplexityClassScopeCount)
 }
 
 func TestHandleAnalyzeCode_RecursiveOmittedUsesProjectConfig(t *testing.T) {
@@ -469,6 +580,86 @@ func TestHandleCheckComplexity(t *testing.T) {
 
 		})
 	}
+}
+
+func TestHandleCheckComplexityReportsClassExecutionScope(t *testing.T) {
+	setup := func(t *testing.T) string {
+		t.Helper()
+		var source strings.Builder
+		source.WriteString("class Config:\n")
+		for i := 0; i < 11; i++ {
+			source.WriteString("    if enabled:\n        value = 1\n")
+		}
+		source.WriteString("\ndef resolve(value):\n")
+		for i := 0; i < 10; i++ {
+			source.WriteString("    if value:\n        value -= 1\n")
+		}
+		source.WriteString("    return value\n")
+		path := filepath.Join(t.TempDir(), "config.py")
+		require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+		return path
+	}
+
+	res := runToolTest(
+		t,
+		setup,
+		map[string]interface{}{
+			"max_complexity": float64(0),
+			"min_complexity": float64(12),
+			"max_results":    float64(1),
+			"output_mode":    "summary",
+		},
+		(*mcp.HandlerSet).HandleCheckComplexity,
+	)
+
+	require.False(t, res.IsError)
+	require.NotEmpty(t, res.Content)
+	var result struct {
+		Issues  []string `json:"issues"`
+		Summary struct {
+			TotalFunctions         int     `json:"total_functions"`
+			TotalClassScopes       int     `json:"total_class_scopes"`
+			TotalIssues            int     `json:"total_issues"`
+			MaxComplexity          int     `json:"max_complexity"`
+			MaxScopeComplexity     int     `json:"max_scope_complexity"`
+			AverageComplexity      float64 `json:"average_complexity"`
+			AverageScopeComplexity float64 `json:"average_scope_complexity"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &result))
+	require.Len(t, result.Issues, 1)
+	assert.Contains(t, result.Issues[0], "class scope Config is too complex (12 > 10)")
+	assert.Equal(t, 2, result.Summary.TotalFunctions)
+	assert.Equal(t, 1, result.Summary.TotalClassScopes)
+	assert.Equal(t, 1, result.Summary.TotalIssues)
+	assert.Equal(t, 11, result.Summary.MaxComplexity)
+	assert.Equal(t, 12, result.Summary.MaxScopeComplexity)
+	assert.InDelta(t, 6, result.Summary.AverageComplexity, 1e-9)
+	assert.InDelta(t, 8, result.Summary.AverageScopeComplexity, 1e-9)
+
+	full := runToolTest(
+		t,
+		setup,
+		map[string]interface{}{
+			"max_complexity": float64(0),
+			"min_complexity": float64(12),
+			"output_mode":    "full",
+		},
+		(*mcp.HandlerSet).HandleCheckComplexity,
+	)
+	require.False(t, full.IsError)
+	var fullResult struct {
+		Functions   []domain.FunctionComplexity `json:"functions"`
+		ClassScopes []domain.FunctionComplexity `json:"class_scopes"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(full.Content[0])), &fullResult))
+	visibleIssues := 0
+	for _, scope := range append(fullResult.Functions, fullResult.ClassScopes...) {
+		if scope.Metrics.Complexity > 10 {
+			visibleIssues++
+		}
+	}
+	assert.Equal(t, visibleIssues, result.Summary.TotalIssues)
 }
 
 func TestHandleCheckCoupling(t *testing.T) {
@@ -726,40 +917,120 @@ func TestHandleFindDeadCode(t *testing.T) {
 		})
 	}
 }
-func TestHandleGetHealthScore(t *testing.T) {
 
+func TestHandleFindDeadCodeDetailedLabelsClassScope(t *testing.T) {
+	res := runToolTest(
+		t,
+		func(t *testing.T) string {
+			path := filepath.Join(t.TempDir(), "class_scope.py")
+			source := `class Config:
+    raise RuntimeError("stop")
+    mode = "unreachable"
+
+    def resolve(self):
+        return self.mode
+        print("unreachable")
+`
+			require.NoError(t, os.WriteFile(path, []byte(source), 0o644))
+			return path
+		},
+		map[string]interface{}{
+			"min_severity": "info",
+			"output_mode":  "detailed",
+		},
+		(*mcp.HandlerSet).HandleFindDeadCode,
+	)
+
+	require.False(t, res.IsError)
+	var output struct {
+		Issues []struct {
+			Function   string                   `json:"function"`
+			ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+			ScopeLabel string                   `json:"scope_label"`
+		} `json:"issues"`
+		Summary struct {
+			TotalIssues int `json:"total_issues"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(mcplib.GetTextFromContent(res.Content[0])), &output))
+	assert.Equal(t, 2, output.Summary.TotalIssues)
+
+	var classIssue *struct {
+		Function   string                   `json:"function"`
+		ScopeKind  domain.AnalysisScopeKind `json:"scope_kind"`
+		ScopeLabel string                   `json:"scope_label"`
+	}
+	for i := range output.Issues {
+		if output.Issues[i].ScopeKind == domain.AnalysisScopeClass {
+			classIssue = &output.Issues[i]
+			break
+		}
+	}
+	require.NotNil(t, classIssue)
+	assert.Equal(t, "Config", classIssue.Function)
+	assert.Equal(t, "class scope Config", classIssue.ScopeLabel)
+}
+
+func TestHandleGetHealthScore(t *testing.T) {
 	errTrue := true
 
 	tests := map[string]struct {
 		args    args
 		isError *bool
+		check   func(t *testing.T, result map[string]interface{})
 	}{
 		"happy_path_single_file": {
 			args: args{
+				setupFS:   func(t *testing.T) string { return setupTestFile(t, "classes.py") },
+				arguments: map[string]interface{}{},
+			},
+			check: func(t *testing.T, result map[string]interface{}) {
+				assert.Equal(t, false, result["partial"])
+				assert.Equal(t, []interface{}{}, result["diagnostics"])
+				assert.Equal(t, []interface{}{}, result["failures"])
+				categories, ok := result["category_scores"].(map[string]interface{})
+				require.True(t, ok)
+				assert.Contains(t, categories, "architecture_score")
+				summary, ok := result["summary"].(map[string]interface{})
+				require.True(t, ok)
+				assert.Equal(t, float64(1), summary["total_files"])
+				assert.Equal(t, float64(1), summary["analyzed_files"])
+				assert.Equal(t, float64(0), summary["skipped_files"])
+			},
+		},
+		"partial_result_preserves_diagnostics": {
+			args: args{
 				setupFS: func(t *testing.T) string {
-					return setupTestFile(t, "classes.py")
+					projectDir := t.TempDir()
+					require.NoError(t, os.WriteFile(filepath.Join(projectDir, "broken.py"), []byte("def broken(:\n"), 0o644))
+					return projectDir
 				},
 				arguments: map[string]interface{}{},
+			},
+			isError: &errTrue,
+			check: func(t *testing.T, result map[string]interface{}) {
+				assert.Equal(t, true, result["partial"])
+				assert.Equal(t, false, result["is_healthy"])
+				diagnostics, ok := result["diagnostics"].([]interface{})
+				require.True(t, ok)
+				require.Len(t, diagnostics, 1)
+				failures, ok := result["failures"].([]interface{})
+				require.True(t, ok)
+				assert.Empty(t, failures)
 			},
 		},
 		"invalid_arguments": {
-			args: args{
-				arguments: "bad",
-			},
+			args:    args{arguments: "bad"},
 			isError: &errTrue,
 		},
 		"path_missing": {
-			args: args{
-				arguments: map[string]interface{}{},
-			},
+			args:    args{arguments: map[string]interface{}{}},
 			isError: &errTrue,
 		},
 		"path_not_exist": {
-			args: args{
-				arguments: map[string]interface{}{
-					"path": "/non/existing/file.py",
-				},
-			},
+			args: args{arguments: map[string]interface{}{
+				"path": "/non/existing/file.py",
+			}},
 			isError: &errTrue,
 		},
 	}
@@ -768,32 +1039,54 @@ func TestHandleGetHealthScore(t *testing.T) {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-
-			res := runToolTest(
-				t,
-				tc.args.setupFS,
-				tc.args.arguments,
-				(*mcp.HandlerSet).HandleGetHealthScore,
-			)
-
+			res := runToolTest(t, tc.args.setupFS, tc.args.arguments, (*mcp.HandlerSet).HandleGetHealthScore)
 			if tc.isError != nil {
 				require.Equal(t, *tc.isError, res.IsError)
+			}
+			if tc.check == nil {
 				return
 			}
-
-			if res.IsError && len(res.Content) > 0 {
-				t.Logf("unexpected error content: %s", mcplib.GetTextFromContent(res.Content[0]))
-			}
-			require.False(t, res.IsError)
 			require.NotEmpty(t, res.Content)
-
 			text := mcplib.GetTextFromContent(res.Content[0])
-			var out map[string]interface{}
-			require.NoError(t, json.Unmarshal([]byte(text), &out))
-
-			assert.Contains(t, out, "health_score")
-			assert.Contains(t, out, "grade")
-			assert.Contains(t, out, "category_scores")
+			var result map[string]interface{}
+			require.NoError(t, json.Unmarshal([]byte(text), &result))
+			tc.check(t, result)
 		})
 	}
+}
+
+func TestHandleGetHealthScoreExplainsClassScopePenalty(t *testing.T) {
+	configFile := filepath.Join(t.TempDir(), ".pyscn.toml")
+	require.NoError(t, os.WriteFile(configFile, []byte("[complexity]\nreport_unchanged = true\n"), 0o644))
+	res := runToolTestWithConfig(
+		t,
+		func(t *testing.T) string {
+			t.Helper()
+			path := filepath.Join(t.TempDir(), "config.py")
+			var source strings.Builder
+			source.WriteString("class Config:\n")
+			for i := 0; i < 20; i++ {
+				source.WriteString("    if enabled:\n        value = 1\n")
+			}
+			require.NoError(t, os.WriteFile(path, []byte(source.String()), 0o644))
+			return path
+		},
+		map[string]interface{}{},
+		configFile,
+		(*mcp.HandlerSet).HandleGetHealthScore,
+	)
+
+	require.False(t, res.IsError)
+	rawOutput := mcplib.GetTextFromContent(res.Content[0])
+	var output struct {
+		Summary struct {
+			TotalClassScopes              int `json:"total_class_scopes"`
+			MaxClassComplexity            int `json:"max_class_complexity"`
+			HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count"`
+		} `json:"summary"`
+	}
+	require.NoError(t, json.Unmarshal([]byte(rawOutput), &output))
+	assert.Equal(t, 1, output.Summary.TotalClassScopes, rawOutput)
+	assert.Equal(t, 21, output.Summary.MaxClassComplexity)
+	assert.Equal(t, 1, output.Summary.HighComplexityClassScopeCount)
 }

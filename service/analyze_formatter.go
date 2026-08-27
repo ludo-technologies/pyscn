@@ -67,12 +67,35 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	fmt.Fprint(writer, utils.FormatFileStats(
 		response.Summary.AnalyzedFiles,
 		response.Summary.TotalFiles,
-		response.Summary.TotalFiles-response.Summary.AnalyzedFiles))
+		response.Summary.SkippedFiles))
+
+	if len(response.Diagnostics) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("ANALYSIS DIAGNOSTICS"))
+		for _, diagnostic := range response.Diagnostics {
+			fmt.Fprintf(writer, "  %s [%s]: %s\n", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+	if len(response.Failures) > 0 {
+		fmt.Fprint(writer, utils.FormatSectionHeader("ANALYSIS FAILURES"))
+		for _, failure := range response.Failures {
+			fmt.Fprintf(writer, "  %s [%s]", failure.Analysis, failure.Code)
+			if failure.FilePath != "" {
+				fmt.Fprintf(writer, " %s", failure.FilePath)
+			}
+			fmt.Fprintf(writer, ": %s\n", failure.Message)
+		}
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
 
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Class Scopes", response.Summary.TotalClassScopes))
+		if response.Summary.TotalClassScopes > 0 {
+			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Max Class Complexity", response.Summary.MaxClassComplexity))
+		}
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average Complexity", fmt.Sprintf("%.1f", response.Summary.AverageComplexity)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High Complexity Count", response.Summary.HighComplexityCount))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
@@ -114,11 +137,10 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 			}
 			fmt.Fprintf(writer, "  %s\n", label)
 			if module.FunctionCount > 0 {
-				fmt.Fprintf(writer, "    Functions: %d total / %d analyzed\n", module.FunctionCount, module.AnalyzedFunctionCount)
-			} else {
-				fmt.Fprintf(writer, "    Functions: %d analyzed\n", module.AnalyzedFunctionCount)
+				fmt.Fprintf(writer, "    Definitions: %d functions\n", module.FunctionCount)
 			}
-			fmt.Fprintf(writer, "    Complexity: avg %.2f, max %d, high-risk %d, handlers %d\n",
+			fmt.Fprintf(writer, "    Function complexity: %d analyzed, avg %.2f, max %d, high-risk %d, handlers %d\n",
+				module.AnalyzedFunctionCount,
 				module.AverageComplexity, module.MaxComplexity, module.HighRiskFunctionCount, module.ExceptionHandlerCount)
 			fmt.Fprintf(writer, "    Cognitive: avg %.2f\n", module.AverageCognitiveComplexity)
 			fmt.Fprintf(writer, "    Dead code: %d findings, %d blocks\n",
@@ -150,7 +172,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	if response.Complexity != nil {
 		directories = response.Complexity.ByDirectory
 	}
-	rowCapacity := 16 + (12 * len(response.ModuleQuality))
+	rowCapacity := 17 + len(response.Diagnostics) + len(response.Failures) + (12 * len(response.ModuleQuality))
 	if response.Complexity != nil {
 		rowCapacity += 1 + (7 * len(directories))
 	}
@@ -164,6 +186,9 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Grade", response.Summary.Grade},
 		[]string{"Total Files", fmt.Sprint(response.Summary.TotalFiles)},
 		[]string{"Analyzed Files", fmt.Sprint(response.Summary.AnalyzedFiles)},
+		[]string{"Skipped Files", fmt.Sprint(response.Summary.SkippedFiles)},
+		[]string{"Total Functions", fmt.Sprint(response.Summary.TotalFunctions)},
+		[]string{"Class Scopes", fmt.Sprint(response.Summary.TotalClassScopes)},
 		[]string{"Average Complexity", fmt.Sprintf("%.2f", response.Summary.AverageComplexity)},
 		[]string{"High Complexity Count", fmt.Sprint(response.Summary.HighComplexityCount)},
 		[]string{"Dead Code Count", fmt.Sprint(response.Summary.DeadCodeCount)},
@@ -176,6 +201,12 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
 	)
+	for _, diagnostic := range response.Diagnostics {
+		rows = append(rows, []string{"Diagnostic", fmt.Sprintf("%s [%s]: %s", diagnostic.FilePath, diagnostic.Code, diagnostic.Message)})
+	}
+	for _, failure := range response.Failures {
+		rows = append(rows, []string{"Analysis Failure", fmt.Sprintf("%s %s [%s]: %s", failure.Analysis, failure.FilePath, failure.Code, failure.Message)})
+	}
 
 	for index, module := range response.ModuleQuality {
 		prefix := fmt.Sprintf("Module %d ", index+1)

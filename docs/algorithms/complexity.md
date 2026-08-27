@@ -1,12 +1,12 @@
 # Cyclomatic Complexity Analysis
 
-This document describes how pyscn computes McCabe cyclomatic complexity for Python functions. The implementation spans three main phases: parsing, control-flow graph construction, and metric calculation.
+This document describes how pyscn computes McCabe cyclomatic complexity for Python execution scopes: modules, functions, methods, and executable class suites. The implementation spans three main phases: parsing, control-flow graph construction, and metric calculation.
 
 ## Overview
 
-Cyclomatic complexity, introduced by Thomas J. McCabe in 1976, quantifies the number of linearly independent paths through a program's source code. A function with complexity 1 has a single straight-line path; each decision point (branch, loop, exception handler) adds one to the count.
+Cyclomatic complexity, introduced by Thomas J. McCabe in 1976, quantifies the number of linearly independent paths through a program's source code. A scope with complexity 1 has a single straight-line path; each decision point (branch, loop, exception handler) adds one to the count.
 
-High cyclomatic complexity correlates with code that is harder to understand, test, and maintain. pyscn uses this metric to flag functions that may benefit from refactoring.
+High cyclomatic complexity correlates with code that is harder to understand, test, and maintain. pyscn uses this metric to flag execution scopes that may benefit from refactoring.
 
 ## End-to-End Pipeline
 
@@ -24,7 +24,7 @@ flowchart LR
 
 1. **Parse** -- tree-sitter produces a concrete syntax tree (CST) from raw Python source.
 2. **AST Build** -- `ASTBuilder` converts the CST into an internal `parser.Node` tree.
-3. **CFG Build** -- `CFGBuilder` walks the AST and emits a per-function control flow graph.
+3. **CFG Build** -- `CFGBuilder` walks the AST and emits one control flow graph per execution scope.
 4. **Calculate** -- `CalculateComplexity` uses `polyscan/core/cfg` for structural metrics, then applies Python AST counters and risk scoring.
 
 ## Phase 1: Tree-sitter Python Parsing
@@ -60,7 +60,7 @@ The internal `Node` structure (`internal/parser/ast.go`) stores typed fields for
 
 ### Location Tracking
 
-Every node records its source position (`Location` struct with `StartLine`, `StartCol`, `EndLine`, `EndCol`), which the complexity results carry forward to map functions back to their source locations.
+Every node records its source position (`Location` struct with `StartLine`, `StartCol`, `EndLine`, `EndCol`), which the complexity results carry forward to map scopes back to their source locations.
 
 ## Phase 2: Control Flow Graph Construction
 
@@ -95,7 +95,7 @@ The `CFGBuilder` (`internal/analyzer/cfg_builder.go`) maintains:
 - `loopStack` -- tracks nested loops for break/continue resolution
 - `exceptionStack` -- tracks nested try blocks for exception routing
 - `scopeStack` -- tracks nested scopes for fully qualified naming
-- `functionCFGs` -- stores separately built CFGs for nested functions and methods
+- `scopedCFGs` -- stores typed module, function, method, and class-suite CFG ownership in source order
 
 #### Building Process
 
@@ -176,11 +176,11 @@ The `exceptionStack` tracks nesting so that `raise`, `break`, `continue`, and `r
 
 Each `case` clause creates a separate block connected from the match evaluation block via `EdgeCondTrue`. A fallback `EdgeCondFalse` connects to the merge block for the no-match scenario.
 
-#### Nested Functions and Classes
+#### Nested Functions and Executable Class Suites
 
-When the builder encounters a nested function or class definition, it creates a separate `CFGBuilder` instance, builds an independent CFG for that scope, and stores it in `functionCFGs`. The outer CFG simply records the definition as a statement in the current block.
+When the builder encounters a nested function or class definition, it creates a separate `CFGBuilder` instance and builds an independent CFG for that execution scope. The outer CFG retains the definition statement because function defaults, decorators, class decorators, bases, and class-name binding execute there. Function bodies and executable class-suite statements belong only to their respective child CFGs.
 
-`BuildAll(moduleNode)` returns all CFGs (module-level plus per-function) as a map keyed by fully qualified name.
+`BuildAll(moduleNode)` returns an ordered `ControlFlowGraphs` collection. Each entry combines a graph with typed `CFGScope` metadata: `module`, `function`, or `class`, its qualified display name, and its source location. The collection permits same-named scopes without encoding identity into a map key or losing one definition.
 
 ## Phase 3: Complexity Calculation
 
@@ -221,7 +221,7 @@ The final complexity is then:
 complexity := decisionPoints + 1
 ```
 
-The minimum complexity for any function is 1 (a function with no branching has one linear path).
+The minimum complexity for any scope is 1 (a scope with no branching has one linear path).
 
 ### Python Syntax Elements and Their Contribution
 
@@ -247,7 +247,7 @@ The following table maps Python syntax to how it affects the complexity count:
 
 ### Nesting Depth
 
-In addition to cyclomatic complexity, pyscn calculates the maximum nesting depth for each function via `CalculateMaxNestingDepth` (`internal/analyzer/nesting_depth.go`). This traverses the AST (not the CFG) and increments depth for each nesting construct:
+In addition to cyclomatic complexity, pyscn calculates the maximum nesting depth for each execution scope via `CalculateMaxNestingDepth` (`internal/analyzer/nesting_depth.go`). This traverses the owned AST scope (not the CFG) and increments depth for each nesting construct:
 
 - `if`, `elif`, `for`, `async for`, `while`, `with`, `async with`
 - `try`, `except` handler, `match`, `case`
@@ -263,9 +263,9 @@ Function length is a maintainability signal orthogonal to cyclomatic complexity:
 
 The range is measured verbatim, so lines belonging to nested definitions count toward the enclosing function as well — the value reflects the physical length of the definition.
 
-Both tiers are evaluated independently of the McCabe value, and both skip module-scope code, whose line span covers the whole file and would merely restate the file-level `sloc` metric (`FunctionComplexity.ExceedsSLOC`, `domain/complexity.go`):
+Both tiers are evaluated independently of the McCabe value. They apply only to function scopes; module spans restate file-level SLOC, while class-suite spans measure a different construct (`FunctionComplexity.ExceedsSLOC`, `domain/complexity.go`):
 
-- **Warn tier** (`function_sloc_warn_threshold`, default 50): the HTML report's complexity tab lists these under **Longest Functions**. The neighbouring *Top Complex Functions* table is ranked by McCabe, where a flat 200-line function never surfaces, so length gets its own ranking.
+- **Warn tier** (`function_sloc_warn_threshold`, default 50): the HTML report's complexity tab lists these under **Longest Functions**. The neighbouring *Top Complex Scopes* table is ranked by McCabe, where a flat 200-line function never surfaces, so length gets its own ranking.
 - **Critical tier** (`function_sloc_critical_threshold`, default 100): `pyscn check` reports these as issues (`file:line:col: name is too long (N SLOC > M)`) and counts them toward its exit code, alongside `--max-complexity` violations. A single function can trip both gates; they are separate issues.
 
 Configuring one tier moves the other with it, at the 2x ratio of the defaults: `function_sloc_warn_threshold = 150` alone yields a critical tier of 300, and `function_sloc_critical_threshold = 60` alone yields a warn tier of 30. Setting a single knob therefore cannot collide with the other tier's default. Setting both is taken verbatim, and an inverted pair (`critical <= warn`, which would make the warn tier unreachable) is rejected when the configuration or the request is validated.
@@ -317,21 +317,21 @@ func (c *ComplexityConfig) AssessRiskLevel(complexity, cognitiveComplexity, nest
 }
 ```
 
-When `max_complexity` is set to a positive value, `ExceedsMaxComplexity` can be used as a quality gate to fail CI checks for functions exceeding the limit.
+When `max_complexity` is set to a positive value, complexity checks fail for any analyzed module, function, or executable class suite that exceeds the limit. Presentation filters such as `min_complexity` and `report_unchanged` do not hide gate violations.
 
 ## Output
 
 ### ComplexityResult
 
-Each analyzed function produces a `ComplexityResult` (`internal/analyzer/complexity.go`) with:
+Each analyzed scope produces a `ComplexityResult` (`internal/analyzer/complexity.go`) with:
 
 | Field | Description |
 |---|---|
 | `Complexity` | McCabe cyclomatic complexity value |
 | `Edges` | Number of edges in the CFG |
 | `Nodes` | Number of non-entry/exit blocks in the CFG |
-| `ConnectedComponents` | Always 1 (single function) |
-| `FunctionName` | Fully qualified function name |
+| `ConnectedComponents` | Always 1 (single execution scope) |
+| `FunctionName` | Fully qualified scope name (historical field name) |
 | `StartLine`, `StartCol`, `EndLine` | Source location |
 | `NestingDepth` | Maximum nesting depth |
 | `CognitiveComplexity` | SonarQube-style cognitive complexity |
@@ -342,13 +342,16 @@ Each analyzed function produces a `ComplexityResult` (`internal/analyzer/complex
 | `SLOC` | Source lines of code within `StartLine`..`EndLine` |
 | `RiskLevel` | `"low"`, `"medium"`, or `"high"` |
 
+Scope ownership is canonical on the `ScopedCFG` that accompanies this result. The service projects that typed owner into `FunctionComplexity.ScopeKind`; `ComplexityResult` remains metric-only.
+
 ### Aggregate Metrics
 
-`CalculateAggregateComplexity` computes summary statistics across all functions in a file or project:
+Function aggregates retain their established contract: the module pseudo-record and function scopes determine `total_functions`, averages, minima, maxima, risk distribution, module rollups, and directory rollups. Executable class suites are published in a separate `class_scopes` collection with their own count and hotspot maxima.
 
-- Total function count
-- Average, minimum, and maximum complexity
-- Count of high/medium/low risk functions
+- Total function population (including the module pseudo-record)
+- Function average, minimum, and maximum complexity
+- Function risk distribution
+- Class-scope count and maximum cyclomatic, cognitive, and nesting values
 
 ### Report Formats
 
@@ -356,24 +359,24 @@ The `ComplexityAnalyzer` (`internal/analyzer/complexity_analyzer.go`) coordinate
 
 ## Performance Considerations
 
-- **Per-function CFGs**: Each function gets its own CFG built by an independent `CFGBuilder`. Nested functions are built with separate builder instances, avoiding interference with the parent scope.
+- **Per-scope CFGs**: Each function, method, and executable class suite gets its own CFG built by an independent `CFGBuilder`, avoiding interference with the parent scope.
 - **Shared graph kernel**: `polyscan/core/cfg` performs structural reachability and edge accounting with visited sets that prevent loops on back-edges.
 - **Parallel file analysis**: Multiple files are analyzed concurrently (default: 4 goroutines), with each file independently parsed, CFG-built, and scored.
-- **Filtering**: `ShouldReport` filters out trivial functions (complexity = 1) when `report_unchanged` is false, reducing noise in reports for large codebases.
+- **Filtering**: presentation filters are applied independently to function and class-scope collections. Complete pre-filter populations remain available for summaries and gates.
 
 ## Related Metrics
 
 Alongside the McCabe count, pyscn computes two more measurements per analyzed file. They share the complexity output pipeline but use independent algorithms:
 
-- **Cognitive Complexity** (`internal/analyzer/cognitive_complexity.go`). SonarQube-style metric that increments per branch, applies an additional `+nestingLevel` penalty for nested branches, and counts boolean operator runs as a single increment. Walks the AST directly rather than the CFG. Surfaces as `CognitiveComplexity` per function in the JSON output and on the HTML complexity tab.
-- **Nesting Depth** (`internal/analyzer/nesting_depth.go`). Maximum depth of nested branch, loop, exception, context-manager, lambda, comprehension, and function scopes. Surfaces as `NestingDepth` per function in reports.
+- **Cognitive Complexity** (`internal/analyzer/cognitive_complexity.go`). SonarQube-style metric that increments per branch, applies an additional `+nestingLevel` penalty for nested branches, and counts boolean operator runs as a single increment. It walks the owned AST scope directly and stops at nested function/class boundaries. Surfaces as `CognitiveComplexity` per scope in the JSON output and on the HTML complexity tab.
+- **Nesting Depth** (`internal/analyzer/nesting_depth.go`). Maximum depth of nested branch, loop, exception, context-manager, lambda, and comprehension constructs within the owned scope. Nested functions and classes are separate owners and do not inflate their parent. Surfaces as `NestingDepth` per scope in reports.
 - **Raw code metrics** (`internal/analyzer/raw_metrics.go`). Per-file line accounting: SLOC, LLOC, comment lines, docstring lines, blank lines, total lines, and comment ratio. Produced without AST parsing — a small state machine over source lines that tracks docstrings and multiline strings. Aggregates are exposed in the `raw_metrics` / `raw_metrics_summary` JSON fields.
 
-Cognitive complexity and nesting depth participate in risk classification. A function is high risk if either value exceeds its configured threshold, even when McCabe complexity is low. The `complexity.max_complexity` gate remains a McCabe-only limit.
+Cognitive complexity and nesting depth participate in risk classification. A scope is high risk if either value exceeds its configured threshold, even when McCabe complexity is low. The `complexity.max_complexity` gate remains a McCabe-only limit.
 
 ## Integration with Health Score
 
-The overall project health score (`docs/ANALYZE_SCORING.md`) uses the strongest complexity penalty from average cyclomatic complexity, average cognitive complexity, and average nesting depth:
+The overall project health score (`docs/ANALYZE_SCORING.md`) retains its established function-average inputs:
 
 ```
 penalty = max(
@@ -382,3 +385,5 @@ penalty = max(
   linear(avg_nesting_depth, start=3, max=7),
 )
 ```
+
+Class-scope maxima and high-risk counts are reported as separate metrics for hotspot discovery. They do not change the health score until a separately calibrated scoring policy is defined.

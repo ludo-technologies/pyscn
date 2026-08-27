@@ -718,6 +718,14 @@ func TestAnalyzeSummary_CalculateFallbackScore(t *testing.T) {
 			want: 95,
 		},
 		{
+			name: "class metrics preserve fallback score",
+			summary: domain.AnalyzeSummary{
+				MaxClassComplexity:            15,
+				HighComplexityClassScopeCount: 1,
+			},
+			want: 100,
+		},
+		{
 			name: "with all issues",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:   15.0,
@@ -765,6 +773,13 @@ func TestAnalyzeSummary_HasIssues(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "has high complexity class scope",
+			summary: domain.AnalyzeSummary{
+				HighComplexityClassScopeCount: 1,
+			},
+			want: true,
+		},
+		{
 			name: "has dead code",
 			summary: domain.AnalyzeSummary{
 				DeadCodeCount: 10,
@@ -803,5 +818,39 @@ func TestAnalyzeSummary_HasIssues(t *testing.T) {
 				t.Errorf("HasIssues() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestAnalyzeSummary_ClassMetricsPreserveComplexityScore(t *testing.T) {
+	baseline := domain.AnalyzeSummary{
+		ComplexityEnabled: true,
+		TotalFunctions:    1,
+		AverageComplexity: 1,
+	}
+	if err := baseline.CalculateHealthScore(); err != nil {
+		t.Fatalf("baseline health score: %v", err)
+	}
+
+	withClassHotspot := baseline
+	withClassHotspot.TotalClassScopes = 1
+	withClassHotspot.MaxClassComplexity = 15
+	withClassHotspot.MaxClassCognitiveComplexity = 50
+	withClassHotspot.MaxClassNestingDepth = 20
+	withClassHotspot.HighComplexityClassScopeCount = 1
+	if err := withClassHotspot.CalculateHealthScore(); err != nil {
+		t.Fatalf("class hotspot health score: %v", err)
+	}
+
+	if baseline.ComplexityScore != 100 {
+		t.Fatalf("baseline complexity score = %d, want 100", baseline.ComplexityScore)
+	}
+	if withClassHotspot.ComplexityScore != baseline.ComplexityScore {
+		t.Fatalf("class metrics changed complexity score from %d to %d", baseline.ComplexityScore, withClassHotspot.ComplexityScore)
+	}
+	if withClassHotspot.HealthScore != baseline.HealthScore {
+		t.Fatalf("class metrics changed health score from %d to %d", baseline.HealthScore, withClassHotspot.HealthScore)
+	}
+	if withClassHotspot.AverageComplexity != baseline.AverageComplexity {
+		t.Fatal("class hotspot must not alter the function average")
 	}
 }

@@ -53,6 +53,21 @@ func TestAnalyzeDependencies_CompletesBranchingGraphBeforeDeadline(t *testing.T)
 	assert.Equal(t, moduleCount, response.LongestChains[0].Length)
 }
 
+func TestSystemAnalysisService_AnalyzeGraphDoesNotReadSourceFiles(t *testing.T) {
+	graph := analyzer.NewDependencyGraph(t.TempDir())
+	graph.AddModule("package.source", filepath.Join(graph.ProjectRoot, "missing", "source.py"))
+	graph.AddModule("package.target", filepath.Join(graph.ProjectRoot, "missing", "target.py"))
+	graph.AddDependency("package.source", "package.target", analyzer.DependencyEdgeImport, nil)
+
+	response, err := NewSystemAnalysisService().AnalyzeGraph(context.Background(), &ProjectModuleGraph{graph: graph}, domain.SystemAnalysisRequest{
+		AnalyzeDependencies: domain.BoolPtr(true),
+		AnalyzeArchitecture: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, response.DependencyAnalysis)
+	assert.Equal(t, 1, response.DependencyAnalysis.TotalDependencies)
+}
+
 func TestAnalyzeDependenciesReportsMainSequenceMetricsFromPythonProject(t *testing.T) {
 	dir := t.TempDir()
 	files := map[string]string{

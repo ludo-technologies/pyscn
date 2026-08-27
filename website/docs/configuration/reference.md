@@ -14,7 +14,7 @@ Controls how results are reported.
 | `directory`      | string  | `""`          | Output directory. Empty = `.pyscn/reports/` under CWD. |
 | `show_details`   | bool    | `false`       | Include per-finding detail in the summary. |
 | `sort_by`        | string  | `"complexity"`| `name`, `complexity`, or `risk`. |
-| `min_complexity` | int     | `1`           | Filter out functions below this complexity. Overrides `[complexity].min_complexity` when set. |
+| `min_complexity` | int     | `1`           | Filter out execution scopes below this complexity. Overrides `[complexity].min_complexity` when set. |
 
 ---
 
@@ -28,7 +28,7 @@ Cyclomatic complexity analysis.
 | `low_threshold`    | int  | `9`     | Upper bound for "low risk" (inclusive). |
 | `medium_threshold` | int  | `19`    | Upper bound for "medium risk". |
 | `max_complexity`   | int  | `0`     | CI failure threshold. `0` = no limit. |
-| `min_complexity`   | int  | `1`     | Don't report functions below this. |
+| `min_complexity`   | int  | `1`     | Don't report execution scopes below this. |
 | `report_unchanged` | bool | `true`  | Include functions with complexity = 1. |
 
 See [high-cyclomatic-complexity](../rules/high-cyclomatic-complexity.md) for thresholds guidance.
@@ -169,6 +169,8 @@ File discovery rules.
 | `follow_symlinks`  | bool     | `false`       | Follow symbolic links. |
 | `include_patterns` | string[] | `["**/*.py"]` | Glob patterns to include. |
 | `exclude_patterns` | string[] | see below     | Glob patterns to exclude. |
+
+Patterns without a directory separator match the filename at any depth. For example, `main*.py` matches both `main.py` and `pkg/main_utils.py`. Include a directory segment, such as `pkg/main*.py`, when the rule should apply only within that path.
 
 Default `exclude_patterns`:
 

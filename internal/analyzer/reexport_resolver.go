@@ -29,6 +29,7 @@ type ReExportResolver struct {
 	projectRoot string
 	roots       []string
 	cache       map[string]*ReExportMap // package name -> re-export map
+	cacheOnly   bool
 }
 
 // NewReExportResolver creates a new resolver
@@ -65,6 +66,9 @@ func (r *ReExportResolver) GetReExportMap(packageName string) (*ReExportMap, err
 	if cached, exists := r.cache[packageName]; exists {
 		return cached, nil
 	}
+	if r.cacheOnly {
+		return nil, nil
+	}
 
 	// Find and parse the __init__.py file
 	initPath := r.findInitFile(packageName)
@@ -84,6 +88,16 @@ func (r *ReExportResolver) GetReExportMap(packageName string) (*ReExportMap, err
 
 	r.cache[packageName] = reExportMap
 	return reExportMap, nil
+}
+
+// UseParsedPackages replaces filesystem discovery with re-export maps derived
+// from syntax owned by a project snapshot.
+func (r *ReExportResolver) UseParsedPackages(packages map[string]*parser.Node) {
+	r.cache = make(map[string]*ReExportMap, len(packages))
+	for packageName, ast := range packages {
+		r.cache[packageName] = r.buildReExportMap(ast, packageName)
+	}
+	r.cacheOnly = true
 }
 
 // ResolveReExport resolves an imported name to its actual source module.
@@ -137,13 +151,17 @@ func (r *ReExportResolver) parseInitFile(filePath, packageName string) (*ReExpor
 		return nil, err
 	}
 
+	return r.buildReExportMap(result.AST, packageName), nil
+}
+
+func (r *ReExportResolver) buildReExportMap(ast *parser.Node, packageName string) *ReExportMap {
 	exports := make(map[string]*ReExportEntry)
 
 	// Extract re-exports from import statements
-	r.extractReExports(result.AST, packageName, exports)
+	r.extractReExports(ast, packageName, exports)
 
 	// Extract __all__ declaration if present
-	allNames, hasAll := r.extractAllDeclaration(result.AST)
+	allNames, hasAll := r.extractAllDeclaration(ast)
 
 	// If __all__ is declared, filter exports to only include names in __all__
 	if hasAll && len(allNames) > 0 {
@@ -161,7 +179,7 @@ func (r *ReExportResolver) parseInitFile(filePath, packageName string) (*ReExpor
 		Exports:     exports,
 		AllDeclared: allNames,
 		HasAllDecl:  hasAll,
-	}, nil
+	}
 }
 
 // extractReExports extracts re-export entries from import statements

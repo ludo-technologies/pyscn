@@ -505,16 +505,16 @@ def nested_returns():
 			var cfg *CFG
 			if tc.name == "OnlyReturns" || tc.name == "NestedReturns" {
 				// These tests define functions, get the function CFG
-				for name, c := range cfgs {
-					if name != domain.ModuleFunctionName {
-						cfg = c
+				for _, scopedCFG := range cfgs {
+					if scopedCFG.Scope.Kind == domain.AnalysisScopeFunction {
+						cfg = scopedCFG.Graph
 						break
 					}
 				}
 				require.NotNil(t, cfg, "Failed to find function CFG")
 			} else {
 				// Module-level tests
-				cfg = cfgs[domain.ModuleFunctionName]
+				cfg, _ = findCFG(cfgs, domain.ModuleFunctionName)
 				require.NotNil(t, cfg, "Failed to find main CFG")
 			}
 
@@ -542,7 +542,7 @@ func TestSimpleWalrusStatement(t *testing.T) {
 	cfgs, err := builder.BuildAll(result.AST)
 	require.NoError(t, err)
 
-	cfg, exists := cfgs[funcName]
+	cfg, exists := findCFG(cfgs, funcName)
 	require.True(t, exists)
 
 	foundWalrus := false
@@ -584,7 +584,7 @@ func TestWalrusOperatorInConditional(t *testing.T) {
 	cfgs, err := builder.BuildAll(result.AST)
 	require.NoError(t, err)
 
-	cfg, exists := cfgs[funcName]
+	cfg, exists := findCFG(cfgs, funcName)
 	require.True(t, exists, "Function CFG should exist")
 	assert.NotNil(t, cfg)
 
@@ -653,7 +653,7 @@ func TestWalrusOperatorInWhile(t *testing.T) {
 	cfgs, err := builder.BuildAll(result.AST)
 	require.NoError(t, err)
 
-	cfg, exists := cfgs[funcName]
+	cfg, exists := findCFG(cfgs, funcName)
 	require.True(t, exists, "Function CFG should exist")
 	assert.NotNil(t, cfg)
 
@@ -704,7 +704,7 @@ func TestWalrusOperatorInComprehension(t *testing.T) {
 	cfgs, err := builder.BuildAll(result.AST)
 	require.NoError(t, err)
 
-	cfg, exists := cfgs[funcName]
+	cfg, exists := findCFG(cfgs, funcName)
 	require.True(t, exists, "Function CFG should exist")
 	assert.NotNil(t, cfg)
 
@@ -819,7 +819,7 @@ func TestWalrusOperatorWithComprehension(t *testing.T) {
 	cfgs, err := builder.BuildAll(result.AST)
 	require.NoError(t, err)
 
-	cfg, exists := cfgs[funcName]
+	cfg, exists := findCFG(cfgs, funcName)
 	require.True(t, exists, "Function CFG should exist")
 	assert.NotNil(t, cfg)
 

@@ -89,6 +89,9 @@ enable_architecture = true
 
 [dependencies]
 enabled = true
+include_stdlib = true
+include_third_party = false
+follow_relative = false
 
 [output]
 min_complexity = 9
@@ -115,6 +118,10 @@ lsh_auto_threshold = 123
 		}
 		if len(cfg.IncludePatterns) != 1 || cfg.IncludePatterns[0] != "pkg/**/*.py" {
 			t.Errorf("expected custom include patterns, got %v", cfg.IncludePatterns)
+		}
+		moduleSelection := cfg.PythonFileSelection().ForModules()
+		if len(moduleSelection.IncludePatterns) != 2 || moduleSelection.IncludePatterns[0] != "pkg/**/*.py" || moduleSelection.IncludePatterns[1] != "pkg/**/*.pyi" {
+			t.Errorf("expected module patterns to preserve configured scope, got %v", moduleSelection.IncludePatterns)
 		}
 		if len(cfg.ExcludePatterns) != 1 || cfg.ExcludePatterns[0] != "tests/**/*.py" {
 			t.Errorf("expected custom exclude patterns, got %v", cfg.ExcludePatterns)
@@ -151,6 +158,15 @@ lsh_auto_threshold = 123
 		}
 		if !cfg.SystemAnalyzeArchitecture {
 			t.Error("expected architecture enabled through system analysis section")
+		}
+		if !cfg.ModuleGraph.IncludeStdLib {
+			t.Error("expected standard library dependencies enabled")
+		}
+		if cfg.ModuleGraph.IncludeThirdParty {
+			t.Error("expected third-party dependencies disabled")
+		}
+		if cfg.ModuleGraph.FollowRelative {
+			t.Error("expected relative imports disabled")
 		}
 		if cfg.CloneLSHEnabled != "true" {
 			t.Errorf("expected LSH enabled true, got %q", cfg.CloneLSHEnabled)

@@ -7,15 +7,17 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
-const analysisTimingsVersion = 1
+const analysisTimingsVersion = 2
 
 // analysisTimings stores per-task calibration factors (actual seconds divided by
 // estimated seconds) observed in previous runs for a given project directory.
 type analysisTimings struct {
-	Version int                `json:"version"`
-	Factors map[string]float64 `json:"factors"`
+	Version int                             `json:"version"`
+	Factors map[domain.AnalysisKind]float64 `json:"factors"`
 }
 
 // analysisTimingsPath returns the per-project cache file path, keyed by the
@@ -37,21 +39,21 @@ func analysisTimingsPath() (string, error) {
 // LoadAnalysisTimingFactors returns calibration factors recorded by previous
 // runs on this project. Returns an empty map when no usable cache exists.
 // Disabled under `go test` so test runs neither read nor pollute the cache.
-func LoadAnalysisTimingFactors() map[string]float64 {
+func LoadAnalysisTimingFactors() map[domain.AnalysisKind]float64 {
 	if testing.Testing() {
-		return map[string]float64{}
+		return map[domain.AnalysisKind]float64{}
 	}
 	path, err := analysisTimingsPath()
 	if err != nil {
-		return map[string]float64{}
+		return map[domain.AnalysisKind]float64{}
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return map[string]float64{}
+		return map[domain.AnalysisKind]float64{}
 	}
 	var timings analysisTimings
 	if err := json.Unmarshal(data, &timings); err != nil || timings.Version != analysisTimingsVersion || timings.Factors == nil {
-		return map[string]float64{}
+		return map[domain.AnalysisKind]float64{}
 	}
 	return timings.Factors
 }
@@ -59,7 +61,7 @@ func LoadAnalysisTimingFactors() map[string]float64 {
 // UpdateAnalysisTimingFactors records observed task durations against their
 // estimates, smoothing with previously stored factors. Failures are ignored:
 // the cache only improves progress estimation and must never affect analysis.
-func UpdateAnalysisTimingFactors(estimatedSeconds, actualSeconds map[string]float64) {
+func UpdateAnalysisTimingFactors(estimatedSeconds, actualSeconds map[domain.AnalysisKind]float64) {
 	if testing.Testing() {
 		return
 	}

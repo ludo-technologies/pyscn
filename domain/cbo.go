@@ -107,8 +107,9 @@ type CBOResponse struct {
 	Summary CBOSummary      `json:"summary" yaml:"summary"`
 
 	// Warnings and issues
-	Warnings []string `json:"warnings" yaml:"warnings"`
-	Errors   []string `json:"errors" yaml:"errors"`
+	Warnings []string          `json:"warnings" yaml:"warnings"`
+	Errors   []string          `json:"errors" yaml:"errors"`
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Metadata
 	GeneratedAt string      `json:"generated_at" yaml:"generated_at"`

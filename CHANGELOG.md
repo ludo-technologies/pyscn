@@ -1,12 +1,21 @@
 # Changelog
 
-## [Unreleased]
+## [1.30.0] - 2026-08-26
+
+### Added
+- Report class-body complexity in its own scope across CLI, JSON, YAML, CSV, HTML, and MCP (#709)
 
 ### Changed
-- **BREAKING**: Rename every `analyze` JSON/YAML object key to snake_case (#698). The `complexity`, `cbo`, `lcom`, and `system` objects emitted Go PascalCase field names, and the `config` objects of `cbo`, `lcom`, and `community_analysis` emitted lowerCamelCase. Consumers reading those keys must be updated; see the [output schemas](https://docs.codescan.dev/output/schemas/).
+- Redesign the analyze HTML report: five tabs, a rebuilt Overview, and dark mode (#717)
+- Build aggregate analyze, check, and MCP runs from one canonical project snapshot (#704)
+- Adopt the polyscan core dependency chain finder; `deps_max_depth` now matches the top-ranked chain (#711)
+- Replace the README demo video with a report screenshot (#716)
+- **BREAKING**: Rename every `analyze` JSON/YAML object key to snake_case (#718). The `complexity`, `cbo`, `lcom`, and `system` objects emitted Go PascalCase field names, and the `config` objects of `cbo`, `lcom`, and `community_analysis` emitted lowerCamelCase. Consumers reading those keys must be updated; see the [output schemas](https://docs.codescan.dev/output/schemas/).
+- **BREAKING**: Narrow `check --allow-parse-errors` to syntax and parser failures (#704). Missing, unreadable, and permission-denied files still fail the gate.
+- **BREAKING**: Match bare file globs against basenames at every directory depth (#704). For example, `main*.py` now also matches `pkg/main_utils.py`; add a directory segment to constrain the rule.
 
 ### Fixed
-- Exclude constructors from the LCOM4 graph (#698). `__init__`, `__new__`, and `__post_init__` initialize every attribute of a class, so keeping them in the graph joined all the responsibility clusters they set up and reported `LCOM4 = 1` for classes with plainly separate concerns. The attributes they introduce still count toward `instance_variables`.
+- Exclude constructors from the LCOM4 graph (#718). `__init__`, `__new__`, and `__post_init__` initialize every attribute of a class, so keeping them in the graph joined all the responsibility clusters they set up. The attributes they introduce still count toward `instance_variables`.
 
 ## [1.29.1] - 2026-08-16
 

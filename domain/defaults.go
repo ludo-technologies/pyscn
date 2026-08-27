@@ -1,5 +1,7 @@
 package domain
 
+import "strings"
+
 // CloneThresholds defines the standard similarity thresholds for different types of code clones.
 // These values are based on research in clone detection and represent industry standards.
 //
@@ -364,7 +366,35 @@ func DefaultPythonSourceIncludePatterns() []string {
 // DefaultPythonModuleIncludePatterns returns the full Python module surface.
 // Dependency analysis uses this because stub files define importable modules.
 func DefaultPythonModuleIncludePatterns() []string {
-	return []string{"**/*.py", "**/*.pyi"}
+	return pythonModulePatterns(DefaultPythonSourceIncludePatterns())
+}
+
+// ForModules expands implementation-file rules to cover matching stub modules
+// without broadening their configured directory scope.
+func (s PythonFileSelection) ForModules() PythonFileSelection {
+	return PythonFileSelection{
+		IncludePatterns: pythonModulePatterns(s.IncludePatterns),
+		ExcludePatterns: pythonModulePatterns(s.ExcludePatterns),
+	}
+}
+
+func pythonModulePatterns(sourcePatterns []string) []string {
+	patterns := make([]string, 0, len(sourcePatterns)*2)
+	seen := make(map[string]struct{}, len(sourcePatterns)*2)
+	for _, pattern := range sourcePatterns {
+		if _, exists := seen[pattern]; !exists {
+			patterns = append(patterns, pattern)
+			seen[pattern] = struct{}{}
+		}
+		if strings.HasSuffix(pattern, ".py") {
+			stubPattern := pattern + "i"
+			if _, exists := seen[stubPattern]; !exists {
+				patterns = append(patterns, stubPattern)
+				seen[stubPattern] = struct{}{}
+			}
+		}
+	}
+	return patterns
 }
 
 // DefaultAnalysisExcludePatterns returns the canonical default file-glob

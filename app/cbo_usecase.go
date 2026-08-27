@@ -9,9 +9,16 @@ import (
 	svc "github.com/ludo-technologies/pyscn/service"
 )
 
+// CBOAnalysisService adds canonical snapshot analysis to the standalone CBO contract.
+type CBOAnalysisService interface {
+	domain.CBOService
+	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.CBORequest) (*domain.CBOResponse, error)
+}
+
 // CBOUseCase orchestrates the CBO analysis workflow
 type CBOUseCase struct {
 	service      domain.CBOService
+	snapshot     CBOAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
@@ -32,6 +39,13 @@ func NewCBOUseCase(
 		configLoader: configLoader,
 		output:       svc.NewFileOutputWriter(nil),
 	}
+}
+
+// NewSnapshotCBOUseCase constructs a CBO use case for aggregate snapshot analysis.
+func NewSnapshotCBOUseCase(service CBOAnalysisService, fileReader domain.FileReader, formatter domain.CBOOutputFormatter, configLoader domain.CBOConfigurationLoader) *CBOUseCase {
+	uc := NewCBOUseCase(service, fileReader, formatter, configLoader)
+	uc.snapshot = service
+	return uc
 }
 
 // prepareAnalysis handles common preparation steps for analysis
@@ -124,10 +138,6 @@ func (uc *CBOUseCase) AnalyzeAndReturn(ctx context.Context, req domain.CBOReques
 	return response, nil
 }
 
-type snapshotCBOService interface {
-	AnalyzeSnapshot(context.Context, *svc.ProjectSnapshot, domain.CBORequest) (*domain.CBOResponse, error)
-}
-
 func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.ProjectSnapshot, req domain.CBORequest) (*domain.CBOResponse, error) {
 	if snapshot == nil {
 		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("project snapshot is required"))
@@ -144,14 +154,12 @@ func (uc *CBOUseCase) analyzeSnapshotRequest(ctx context.Context, snapshot *svc.
 		return nil, domain.NewInvalidInputError("invalid request", err)
 	}
 
-	snapshotService, ok := uc.service.(snapshotCBOService)
-	if !ok {
-		return nil, domain.NewAnalysisError("CBO analysis failed", fmt.Errorf("CBO service does not support project snapshots"))
+	if uc.snapshot == nil {
+		return nil, domain.NewAnalysisError("cbo analysis failed", fmt.Errorf("snapshot collaborator is required"))
 	}
-
-	response, err := snapshotService.AnalyzeSnapshot(ctx, snapshot, finalReq)
+	response, err := uc.snapshot.AnalyzeSnapshot(ctx, snapshot, finalReq)
 	if err != nil {
-		return nil, domain.NewAnalysisError("CBO analysis failed", err)
+		return nil, domain.NewAnalysisError("cbo analysis failed", err)
 	}
 
 	return response, nil
@@ -317,6 +325,7 @@ func (uc *CBOUseCase) loadAndMergeConfig(req domain.CBORequest) (domain.CBOReque
 // CBOUseCaseBuilder provides a builder pattern for creating CBOUseCase
 type CBOUseCaseBuilder struct {
 	service      domain.CBOService
+	snapshot     CBOAnalysisService
 	fileReader   domain.FileReader
 	formatter    domain.CBOOutputFormatter
 	configLoader domain.CBOConfigurationLoader
@@ -331,6 +340,13 @@ func NewCBOUseCaseBuilder() *CBOUseCaseBuilder {
 // WithService sets the CBO service
 func (b *CBOUseCaseBuilder) WithService(service domain.CBOService) *CBOUseCaseBuilder {
 	b.service = service
+	return b
+}
+
+// WithSnapshotService sets the CBO collaborator used by aggregate snapshot analysis.
+func (b *CBOUseCaseBuilder) WithSnapshotService(service CBOAnalysisService) *CBOUseCaseBuilder {
+	b.service = service
+	b.snapshot = service
 	return b
 }
 
@@ -382,6 +398,7 @@ func (b *CBOUseCaseBuilder) Build() (*CBOUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}
@@ -412,6 +429,7 @@ func (b *CBOUseCaseBuilder) BuildWithDefaults() (*CBOUseCase, error) {
 		b.formatter,
 		b.configLoader,
 	)
+	uc.snapshot = b.snapshot
 	if b.output != nil {
 		uc.output = b.output
 	}

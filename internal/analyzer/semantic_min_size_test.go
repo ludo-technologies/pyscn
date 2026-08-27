@@ -95,3 +95,58 @@ func TestSemanticMinCyclomatic_DefaultMatchesDomainConstant(t *testing.T) {
 	b := NewSemanticSimilarityAnalyzerWithDFA()
 	require.Equal(t, domain.DefaultSemanticMinCyclomaticComplexity, b.minCyclomatic)
 }
+
+func TestSemanticMinCyclomatic_PreservesNestedClassType4Clones(t *testing.T) {
+	first := fragmentFor(t, `def build_settings(enabled):
+    class Settings:
+        if enabled:
+            value = normalize(enabled)
+        else:
+            value = default_value()
+    return Settings.value
+`, parser.NodeFunctionDef)
+	second := fragmentFor(t, `def prepare_config(active):
+    class Config:
+        if active:
+            result = normalize(active)
+        else:
+            result = default_value()
+    return Config.result
+`, parser.NodeFunctionDef)
+
+	classifier := NewCloneClassifier(&CloneClassifierConfig{
+		Type1Threshold:         2,
+		Type2Threshold:         2,
+		Type3Threshold:         2,
+		Type4Threshold:         domain.DefaultType4CloneThreshold,
+		EnableSemanticAnalysis: true,
+		EnableDFAAnalysis:      true,
+	})
+	result := classifier.ClassifyClone(first, second)
+	require.NotNil(t, result, "executed class-suite control flow must clear the Type-4 gate")
+	require.Equal(t, Type4Clone, result.CloneType)
+	require.GreaterOrEqual(t, result.Similarity, domain.DefaultType4CloneThreshold)
+}
+
+func TestSemanticMinCyclomatic_ExcludesClassesOwnedByNestedFunctions(t *testing.T) {
+	first := fragmentFor(t, `def outer():
+    def deferred(enabled):
+        class Settings:
+            if enabled:
+                value = normalize(enabled)
+        return Settings
+    return deferred
+`, parser.NodeFunctionDef)
+	second := fragmentFor(t, `def wrapper():
+    def deferred(active):
+        class Config:
+            if active:
+                result = normalize(active)
+        return Config
+    return deferred
+`, parser.NodeFunctionDef)
+
+	analyzer := NewSemanticSimilarityAnalyzer()
+	require.Zero(t, analyzer.ComputeSimilarity(first, second),
+		"nested-function bodies must not contribute to their enclosing fragment's execution profile")
+}

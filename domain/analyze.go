@@ -44,9 +44,34 @@ type AnalyzeExecutionConfig struct {
 	SystemEnabled             bool
 	SystemAnalyzeDependencies bool
 	SystemAnalyzeArchitecture bool
+	ModuleGraph               ModuleGraphOptions
 
 	CommunitiesEnabled         bool
 	CommunitiesEnabledExplicit bool
+}
+
+// PythonFileSelection is the canonical configured source-file scope for one
+// aggregate analysis execution.
+type PythonFileSelection struct {
+	IncludePatterns []string
+	ExcludePatterns []string
+}
+
+// PythonFileSelection returns an owned value for passing the configured source
+// scope across aggregate-analysis boundaries.
+func (c AnalyzeExecutionConfig) PythonFileSelection() PythonFileSelection {
+	return PythonFileSelection{
+		IncludePatterns: append([]string(nil), c.IncludePatterns...),
+		ExcludePatterns: append([]string(nil), c.ExcludePatterns...),
+	}
+}
+
+// ModuleGraphOptions is the resolved module graph policy shared by graph
+// consumers during one analysis execution.
+type ModuleGraphOptions struct {
+	IncludeStdLib     bool
+	IncludeThirdParty bool
+	FollowRelative    bool
 }
 
 // AnalyzeConfigurationLoader resolves and loads configuration for AnalyzeUseCase.
@@ -161,6 +186,10 @@ type AnalyzeResponse struct {
 
 	// Actionable suggestions derived from analysis results
 	Suggestions []Suggestion `json:"suggestions,omitempty" yaml:"suggestions,omitempty"`
+	// Project-level read and parse failures, independent of selected analyzers.
+	Diagnostics []AnalysisDiagnostic `json:"diagnostics,omitempty" yaml:"diagnostics,omitempty"`
+	// Analyzer execution failures. Partial results remain available when set.
+	Failures []AnalysisFailure `json:"failures,omitempty" yaml:"failures,omitempty"`
 
 	// Overall summary
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`
@@ -207,6 +236,13 @@ type AnalyzeSummary struct {
 	// Key metrics
 	// TotalFunctions is the complete analyzed population used for aggregate metrics.
 	TotalFunctions int `json:"total_functions" yaml:"total_functions"`
+	// Class-scope fields are reported separately from the established function
+	// aggregates and do not change health-score semantics.
+	TotalClassScopes              int `json:"total_class_scopes" yaml:"total_class_scopes"`
+	MaxClassComplexity            int `json:"max_class_complexity" yaml:"max_class_complexity"`
+	MaxClassCognitiveComplexity   int `json:"max_class_cognitive_complexity" yaml:"max_class_cognitive_complexity"`
+	MaxClassNestingDepth          int `json:"max_class_nesting_depth" yaml:"max_class_nesting_depth"`
+	HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count" yaml:"high_complexity_class_scope_count"`
 	// FunctionsParsed is retained for output compatibility and matches TotalFunctions.
 	FunctionsParsed            int     `json:"functions_parsed" yaml:"functions_parsed"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
@@ -682,5 +718,5 @@ func (s *AnalyzeSummary) IsHealthy() bool {
 
 // HasIssues returns true if any issues were found
 func (s *AnalyzeSummary) HasIssues() bool {
-	return s.HighComplexityCount > 0 || s.DeadCodeCount > 0 || s.ClonePairs > 0 || s.HighCouplingClasses > 0
+	return s.HighComplexityCount > 0 || s.HighComplexityClassScopeCount > 0 || s.DeadCodeCount > 0 || s.ClonePairs > 0 || s.HighCouplingClasses > 0
 }

@@ -4,7 +4,7 @@ import (
 	"github.com/ludo-technologies/pyscn/internal/parser"
 )
 
-// CognitiveComplexityResult holds the cognitive complexity score for a function
+// CognitiveComplexityResult holds the cognitive complexity score for an execution scope.
 type CognitiveComplexityResult struct {
 	// Total cognitive complexity score
 	Total int
@@ -15,7 +15,7 @@ type CognitiveComplexityResult struct {
 	EndLine      int
 }
 
-// CalculateCognitiveComplexity computes the cognitive complexity for a function node
+// CalculateCognitiveComplexity computes cognitive complexity for an execution scope
 // following the SonarSource specification, with one deliberate deviation for
 // nested scopes (see below).
 //
@@ -31,26 +31,26 @@ type CognitiveComplexityResult struct {
 // definitions are scope boundaries, so their control flow is NOT aggregated
 // into the enclosing scope's score. The specification folds a nested function's
 // complexity into its parent, but pyscn builds a separate CFG per nested
-// function (see CFGBuilder.buildNestedFunction) and reports it as its own
+// function or class (see CFGBuilder.buildNestedScope) and reports it as its own
 // scope, so aggregating here would double-count it and inflate parents that
 // contain no control flow of their own. Lambdas have no separate scope, so they
-// still contribute to the enclosing function.
-func CalculateCognitiveComplexity(funcNode *parser.Node) *CognitiveComplexityResult {
-	if funcNode == nil {
+// still contribute to the enclosing scope.
+func CalculateCognitiveComplexity(scopeNode *parser.Node) *CognitiveComplexityResult {
+	if scopeNode == nil {
 		return &CognitiveComplexityResult{
 			Total: 0,
 		}
 	}
 
 	result := &CognitiveComplexityResult{
-		FunctionName: funcNode.Name,
-		StartLine:    funcNode.Location.StartLine,
-		EndLine:      funcNode.Location.EndLine,
+		FunctionName: scopeNode.Name,
+		StartLine:    scopeNode.Location.StartLine,
+		EndLine:      scopeNode.Location.EndLine,
 		Total:        0,
 	}
 
-	// Traverse the function body with initial nesting depth of 0
-	for _, stmt := range funcNode.Body {
+	// Traverse the owned scope body with initial nesting depth of 0.
+	for _, stmt := range scopeNode.Body {
 		traverseForCognitive(stmt, 0, result)
 	}
 

@@ -173,22 +173,26 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 	tests := []struct {
 		name      string
 		function  string
+		scopeKind AnalysisScopeKind
 		sloc      int
 		threshold int
 		want      bool
 	}{
-		{name: "below threshold", function: "build_table", sloc: 50, threshold: 50, want: false},
-		{name: "above threshold", function: "build_table", sloc: 51, threshold: 50, want: true},
-		{name: "module scope never qualifies", function: ModuleFunctionName, sloc: 500, threshold: 50, want: false},
-		{name: "zero threshold disables the check", function: "build_table", sloc: 500, threshold: 0, want: false},
-		{name: "negative threshold disables the check", function: "build_table", sloc: 500, threshold: -1, want: false},
+		{name: "below threshold", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 50, threshold: 50, want: false},
+		{name: "above threshold", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 51, threshold: 50, want: true},
+		{name: "module scope never qualifies", function: ModuleFunctionName, scopeKind: AnalysisScopeModule, sloc: 500, threshold: 50, want: false},
+		{name: "class scope never qualifies", function: "Config", scopeKind: AnalysisScopeClass, sloc: 500, threshold: 50, want: false},
+		{name: "unknown scope never qualifies", function: "build_table", scopeKind: AnalysisScopeUnknown, sloc: 51, threshold: 50, want: false},
+		{name: "zero threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: 0, want: false},
+		{name: "negative threshold disables the check", function: "build_table", scopeKind: AnalysisScopeFunction, sloc: 500, threshold: -1, want: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			function := FunctionComplexity{
-				Name:    tt.function,
-				Metrics: ComplexityMetrics{SLOC: tt.sloc},
+				Name:      tt.function,
+				ScopeKind: tt.scopeKind,
+				Metrics:   ComplexityMetrics{SLOC: tt.sloc},
 			}
 
 			if got := function.ExceedsSLOC(tt.threshold); got != tt.want {
@@ -198,10 +202,76 @@ func TestFunctionComplexityExceedsSLOC(t *testing.T) {
 	}
 }
 
+func TestFunctionComplexityScopeLabel(t *testing.T) {
+	tests := []struct {
+		name string
+		row  FunctionComplexity
+		want string
+	}{
+		{name: "module", row: FunctionComplexity{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule}, want: ModuleFunctionName},
+		{name: "function", row: FunctionComplexity{Name: "build", ScopeKind: AnalysisScopeFunction}, want: "build"},
+		{name: "class", row: FunctionComplexity{Name: "Config", ScopeKind: AnalysisScopeClass}, want: "class scope Config"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.row.ScopeLabel(); got != test.want {
+				t.Fatalf("ScopeLabel() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestComplexityResponseReportedScopesUsesOneGlobalOrder(t *testing.T) {
+	response := &ComplexityResponse{
+		Functions: []FunctionComplexity{
+			{Name: "zeta", ScopeKind: AnalysisScopeFunction, FilePath: "b.py", Metrics: ComplexityMetrics{Complexity: 20}, RiskLevel: RiskLevelHigh},
+			{Name: "alpha", ScopeKind: AnalysisScopeFunction, FilePath: "a.py", Metrics: ComplexityMetrics{Complexity: 5}, RiskLevel: RiskLevelLow},
+		},
+		ClassScopes: []FunctionComplexity{
+			{Name: "beta", ScopeKind: AnalysisScopeClass, FilePath: "c.py", Metrics: ComplexityMetrics{Complexity: 30}, RiskLevel: RiskLevelMedium},
+			{Name: "gamma", ScopeKind: AnalysisScopeClass, FilePath: "d.py", Metrics: ComplexityMetrics{Complexity: 8}, RiskLevel: RiskLevelHigh},
+		},
+	}
+
+	tests := []struct {
+		name   string
+		sortBy SortCriteria
+		want   []string
+	}{
+		{name: "complexity", sortBy: SortByComplexity, want: []string{"beta", "zeta", "gamma", "alpha"}},
+		{name: "name", sortBy: SortByName, want: []string{"alpha", "beta", "gamma", "zeta"}},
+		{name: "risk", sortBy: SortByRisk, want: []string{"zeta", "gamma", "beta", "alpha"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			scopes, err := response.ReportedScopes(test.sortBy)
+			if err != nil {
+				t.Fatalf("ReportedScopes() error = %v", err)
+			}
+			for i, want := range test.want {
+				if scopes[i].Name != want {
+					t.Fatalf("ReportedScopes() order = %+v, want %v", scopes, test.want)
+				}
+			}
+			scopes[0].Name = "changed"
+			if response.Functions[0].Name != "zeta" || response.ClassScopes[0].Name != "beta" {
+				t.Fatal("ReportedScopes returned storage owned by the response")
+			}
+		})
+	}
+
+	if _, err := response.ReportedScopes(SortByLocation); err == nil {
+		t.Fatal("ReportedScopes() accepted an unsupported complexity sort criterion")
+	}
+}
+
 func TestFunctionComplexity(t *testing.T) {
 	function := FunctionComplexity{
-		Name:     "testFunction",
-		FilePath: "/path/to/test.py",
+		Name:      "testFunction",
+		ScopeKind: AnalysisScopeFunction,
+		FilePath:  "/path/to/test.py",
 		Metrics: ComplexityMetrics{
 			Complexity: 3,
 			Nodes:      5,
@@ -297,5 +367,94 @@ func TestComplexityResponse(t *testing.T) {
 
 	if response.Summary.TotalFunctions != 2 {
 		t.Errorf("Expected summary total functions 2, got %d", response.Summary.TotalFunctions)
+	}
+}
+
+func TestSortComplexityScopes(t *testing.T) {
+	scopes := []FunctionComplexity{
+		{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule, FilePath: "b.py", Metrics: ComplexityMetrics{Complexity: 1}},
+		{Name: "resolve", ScopeKind: AnalysisScopeFunction, FilePath: "a.py", StartLine: 5, Metrics: ComplexityMetrics{Complexity: 11}},
+		{Name: "Config", ScopeKind: AnalysisScopeClass, FilePath: "a.py", StartLine: 2, Metrics: ComplexityMetrics{Complexity: 12}},
+	}
+
+	ordered := SortComplexityScopes(scopes)
+	if len(ordered) != 3 || ordered[0].Name != "Config" || ordered[1].Name != "resolve" || ordered[2].Name != ModuleFunctionName {
+		t.Fatalf("unexpected scope order: %+v", ordered)
+	}
+	ordered[0].Name = "changed"
+	if scopes[2].Name != "Config" {
+		t.Fatal("sorting result must not alias response storage")
+	}
+}
+
+func TestComplexityResponse_AnalyzedScopesRequiresExplicitPopulation(t *testing.T) {
+	tests := []struct {
+		name     string
+		response *ComplexityResponse
+		wantErr  string
+	}{
+		{name: "nil response", wantErr: "complexity response is nil"},
+		{
+			name:     "missing functions",
+			response: &ComplexityResponse{AnalyzedClassScopes: []FunctionComplexity{}},
+			wantErr:  "analyzed function population is not initialized",
+		},
+		{
+			name:     "missing classes",
+			response: &ComplexityResponse{AnalyzedFunctions: []FunctionComplexity{}},
+			wantErr:  "analyzed class-scope population is not initialized",
+		},
+		{
+			name: "missing kind",
+			response: &ComplexityResponse{
+				AnalyzedFunctions:   []FunctionComplexity{{Name: "work"}},
+				AnalyzedClassScopes: []FunctionComplexity{},
+			},
+			wantErr: `analyzed function 0: invalid analysis scope kind ""`,
+		},
+		{
+			name: "class in function population",
+			response: &ComplexityResponse{
+				AnalyzedFunctions:   []FunctionComplexity{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+				AnalyzedClassScopes: []FunctionComplexity{},
+			},
+			wantErr: "analyzed function 0 has class scope kind",
+		},
+		{
+			name: "function in class population",
+			response: &ComplexityResponse{
+				AnalyzedFunctions:   []FunctionComplexity{},
+				AnalyzedClassScopes: []FunctionComplexity{{Name: "work", ScopeKind: AnalysisScopeFunction}},
+			},
+			wantErr: `analyzed class scope 0 has "function" scope kind`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.response.AnalyzedScopes()
+			if err == nil || err.Error() != test.wantErr {
+				t.Fatalf("AnalyzedScopes() error = %v, want %q", err, test.wantErr)
+			}
+		})
+	}
+
+	valid := &ComplexityResponse{
+		AnalyzedFunctions: []FunctionComplexity{
+			{Name: ModuleFunctionName, ScopeKind: AnalysisScopeModule},
+			{Name: "work", ScopeKind: AnalysisScopeFunction},
+		},
+		AnalyzedClassScopes: []FunctionComplexity{{Name: "Config", ScopeKind: AnalysisScopeClass}},
+	}
+	scopes, err := valid.AnalyzedScopes()
+	if err != nil {
+		t.Fatalf("AnalyzedScopes() error = %v", err)
+	}
+	if len(scopes) != 3 {
+		t.Fatalf("AnalyzedScopes() returned %d scopes, want 3", len(scopes))
+	}
+	scopes[0].Name = "changed"
+	if valid.AnalyzedFunctions[0].Name != ModuleFunctionName {
+		t.Fatal("AnalyzedScopes() must not alias response storage")
 	}
 }

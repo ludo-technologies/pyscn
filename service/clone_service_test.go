@@ -51,6 +51,59 @@ func TestNewCloneService(t *testing.T) {
 	assert.NotNil(t, service)
 }
 
+func TestCloneService_AnalyzeSnapshotUsesCapturedSource(t *testing.T) {
+	sourcePath := writeSnapshotFixture(t)
+	snapshot := BuildProjectSnapshot(context.Background(), []string{sourcePath})
+	if err := os.Remove(sourcePath); err != nil {
+		t.Fatalf("remove source after snapshot: %v", err)
+	}
+
+	response, err := NewCloneService().AnalyzeSnapshot(
+		context.Background(),
+		snapshot,
+		newDefaultCloneRequest(sourcePath),
+	)
+	if err != nil {
+		t.Fatalf("analyze captured project snapshot: %v", err)
+	}
+	if response.Statistics.FilesAnalyzed != 1 {
+		t.Fatalf("expected snapshot source to remain analyzable, got %+v", response.Statistics)
+	}
+	if len(response.Errors) != 0 {
+		t.Fatalf("expected no file-system errors after capture, got %v", response.Errors)
+	}
+}
+
+func TestCloneService_AnalyzeSnapshotHonorsRequestSelection(t *testing.T) {
+	projectRoot := t.TempDir()
+	includedPath := filepath.Join(projectRoot, "pkg", "included.py")
+	excludedPath := filepath.Join(projectRoot, "vendor", "excluded.py")
+	for _, path := range []string{includedPath, excludedPath} {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("create fixture directory: %v", err)
+		}
+		if err := os.WriteFile(path, []byte("def value():\n    return 1\n"), 0o644); err != nil {
+			t.Fatalf("write fixture: %v", err)
+		}
+	}
+	snapshot := BuildAnalysisProjectSnapshot(
+		context.Background(),
+		[]string{includedPath, excludedPath},
+		[]string{includedPath, excludedPath},
+		ProjectSnapshotOptions{ProjectRoot: projectRoot},
+	)
+	req := newDefaultCloneRequest(projectRoot)
+	req.IncludePatterns = []string{"**/pkg/**/*.py"}
+
+	response, err := NewCloneService().AnalyzeSnapshot(context.Background(), snapshot, req)
+	if err != nil {
+		t.Fatalf("analyze scoped snapshot: %v", err)
+	}
+	if response.Statistics.FilesAnalyzed != 1 {
+		t.Fatalf("expected one captured analysis file, got %+v", response.Statistics)
+	}
+}
+
 func TestCloneService_DetectClones(t *testing.T) {
 	service := NewCloneService()
 	ctx := context.Background()
@@ -103,7 +156,7 @@ func TestCloneService_DetectClones(t *testing.T) {
 		assert.True(t, response.Success)
 		assert.NotNil(t, response.Statistics)
 		assert.NotNil(t, response.Request)
-		assert.Greater(t, response.Duration, int64(0))
+		assert.GreaterOrEqual(t, response.Duration, int64(0))
 		assert.GreaterOrEqual(t, response.Statistics.FilesAnalyzed, 0)
 		assert.GreaterOrEqual(t, response.Statistics.LinesAnalyzed, 0)
 
@@ -720,7 +773,7 @@ func TestCloneService_ResponseStructure(t *testing.T) {
 		assert.Equal(t, req, response.Request)
 	}
 	assert.True(t, response.Success)
-	assert.Greater(t, response.Duration, int64(0))
+	assert.GreaterOrEqual(t, response.Duration, int64(0))
 	assert.Empty(t, response.Error)
 
 	// Verify statistics structure

@@ -520,14 +520,47 @@ func (f *HTMLFormatterImpl) renderComplexityTemplate(data ComplexityHTMLData) (s
 // getComplexityDetailsHTML returns the directory and function detail tables.
 func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
 	return `
-            {{if .Response.ByDirectory}}
+			{{define "complexityScopeTable"}}
+			<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+				<thead>
+					<tr style="background: #f8f9fa;">
+						<th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Kind</th>
+						<th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Scope</th>
+						<th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">File</th>
+						<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Complexity</th>
+						<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Cognitive</th>
+						<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Nesting Depth</th>
+						<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">SLOC</th>
+						<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Risk</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .}}
+					<tr style="border-bottom: 1px solid #e0e0e0;">
+						<td style="padding: 12px;">{{.ScopeKind}}</td>
+						<td style="padding: 12px;">{{.Name}}</td>
+						<td style="padding: 12px; color: #666;">{{.FilePath}}</td>
+						<td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>
+						<td style="padding: 12px; text-align: center;">{{.Metrics.CognitiveComplexity}}</td>
+						<td style="padding: 12px; text-align: center;">{{.Metrics.NestingDepth}}</td>
+						<td style="padding: 12px; text-align: center;">{{.Metrics.SLOC}}</td>
+						<td style="padding: 12px; text-align: center;">
+							<span class="risk-{{.RiskLevel}}" style="padding: 4px 8px; border-radius: 4px; font-weight: 600;">{{.RiskLevel}}</span>
+						</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+			{{end}}
+
+			{{if .Response.ByDirectory}}
             <h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Directory Complexity</h3>
             <div style="overflow-x: auto;">
                 <table id="directory-complexity-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                     <thead>
                         <tr style="background: #f8f9fa;">
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Directory</th>
-                            <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Functions</th>
+							<th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Functions</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Avg CC</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Max CC</th>
                             <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">High Risk</th>
@@ -552,37 +585,15 @@ func (f *HTMLFormatterImpl) getComplexityDetailsHTML() string {
             </div>
             {{end}}
 
-            {{if .Response.Functions}}
-            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Function Details</h3>
-            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                <thead>
-                    <tr style="background: #f8f9fa;">
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">Function</th>
-                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e0e0e0;">File</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Complexity</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Cognitive</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Nesting Depth</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">SLOC</th>
-                        <th style="padding: 12px; text-align: center; border-bottom: 2px solid #e0e0e0;">Risk</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {{range .Response.Functions}}
-                    <tr style="border-bottom: 1px solid #e0e0e0;">
-                        <td style="padding: 12px;">{{.Name}}</td>
-                        <td style="padding: 12px; color: #666;">{{.FilePath}}</td>
-                        <td style="padding: 12px; text-align: center;">{{.Metrics.Complexity}}</td>
-                        <td style="padding: 12px; text-align: center;">{{.Metrics.CognitiveComplexity}}</td>
-                        <td style="padding: 12px; text-align: center;">{{.Metrics.NestingDepth}}</td>
-                        <td style="padding: 12px; text-align: center;">{{.Metrics.SLOC}}</td>
-                        <td style="padding: 12px; text-align: center;">
-                            <span class="risk-{{.RiskLevel}}" style="padding: 4px 8px; border-radius: 4px; font-weight: 600;">{{.RiskLevel}}</span>
-                        </td>
-                    </tr>
-                    {{end}}
-                </tbody>
-            </table>
-            {{end}}`
+			{{if .Response.Functions}}
+			<h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Function Details</h3>
+			{{template "complexityScopeTable" .Response.Functions}}
+			{{end}}
+
+			{{if .Response.ClassScopes}}
+			<h3 style="margin-top: 30px; margin-bottom: 15px; color: #1a1a1a;">Class Scope Details</h3>
+			{{template "complexityScopeTable" .Response.ClassScopes}}
+			{{end}}`
 }
 
 // getHTMLTemplateWithContent returns the base HTML template with additional content injected

@@ -30,6 +30,8 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "mock_data":          { /* MockDataResponse, present when enabled */ },
   "module_quality":     [ /* ModuleQualityMetrics array, omitted when empty */ ],
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
+  "diagnostics":   [ /* AnalysisDiagnostic array, omitted when empty */ ],
+  "failures":      [ /* AnalysisFailure array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
@@ -49,10 +51,29 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `mock_data`          | object \| absent | Present when mock data detection ran.                 | stable |
 | `module_quality`     | array \| absent  | Per-module quality rollups. Omitted when no analyzer produced module data. | stable |
 | `suggestions` | array \| absent   | Derived suggestions. Omitted when empty.               | stable    |
+| `diagnostics` | array \| absent   | Project files that could not be read or parsed. See [`AnalysisDiagnostic`](#analysisdiagnostic-object). | stable |
+| `failures`    | array \| absent   | Analyzer execution failures. Partial results may still be present. See [`AnalysisFailure`](#analysisfailure-object). | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
+
+## `AnalysisDiagnostic` object { #analysisdiagnostic-object }
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `file_path` | string | Source file that could not be analyzed. |
+| `code` | string | One of: `read_error`, `parse_error`. Cancellation uses the phase that observed it: `read_error` before parsing starts and `parse_error` during parsing. |
+| `message` | string | Human-readable cause. |
+
+## `AnalysisFailure` object { #analysisfailure-object }
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `analysis` | string | One of: `complexity`, `deadcode`, `clones`, `cbo`, `lcom`, `system`, `communities`, `mockdata`, `di`. |
+| `code` | string | Currently `execution_error`. |
+| `message` | string | Human-readable analyzer failure. |
+| `file_path` | string \| absent | Source file when the failure belongs to one file. |
 
 ## `summary` object { #summary-object }
 
@@ -62,7 +83,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 
 | Field            | Type    | Description                                      |
 | ---------------- | ------- | ------------------------------------------------ |
-| `total_files`    | integer | Number of Python files discovered.               |
+| `total_files`    | integer | Number of Python files required by the requested analysis set. Dependency and community analysis include matching `.pyi` modules. |
 | `analyzed_files` | integer | Number of files successfully analyzed.           |
 | `skipped_files`  | integer | Files dropped because they could not be read or parsed. A non-zero value means every score below covers less than `total_files`. |
 
@@ -85,8 +106,13 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | Field                   | Type    | Description                                      |
 | ----------------------- | ------- | ------------------------------------------------ |
 | `total_functions`       | integer | Total functions analyzed.                        |
+| `total_class_scopes`    | integer | Executable class suites analyzed.                |
 | `average_complexity`    | number  | Mean cyclomatic complexity. `0` when no functions. |
 | `high_complexity_count` | integer | Functions with complexity > 10 (medium threshold). |
+| `max_class_complexity` | integer | Highest class-suite cyclomatic complexity. |
+| `max_class_cognitive_complexity` | integer | Highest class-suite cognitive complexity. |
+| `max_class_nesting_depth` | integer | Highest class-suite nesting depth. |
+| `high_complexity_class_scope_count` | integer | Class scopes classified as high risk. |
 
 ### Dead code metrics
 
@@ -208,25 +234,28 @@ Mirrors `domain.ComplexityResponse`.
 ```json
 {
   "functions": [ /* FunctionComplexity array */ ],
+  "class_scopes": [ /* FunctionComplexity array; omitted when empty */ ],
   "by_directory": [ /* DirectoryComplexityMetrics array; empty when no functions are reported */ ],
   "summary": { /* ComplexitySummary */ },
   "raw_metrics": [ /* RawMetrics array, present when computed */ ],
   "raw_metrics_summary": { /* RawMetricsSummary, present when computed */ },
-  "warnings": [ "..." ],
-  "errors": [ "..." ],
-  "generated_at": "2026-04-14T10:18:23Z",
+   "warnings": [ "..." ],
+   "errors": [ "..." ],
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "2026-04-14T10:18:23Z",
   "version": "0.14.0",
   "config": null
 }
 ```
 
-The standalone complexity formatter uses `by_directory` at the report root beside `results`, `summary`, and `metadata`. Its entries and semantics are identical to unified output.
+The standalone complexity formatter uses `by_directory` at the report root beside `results`, optional `class_scopes`, `summary`, and `metadata`. `results` retains the established module/function collection; `class_scopes` contains executable class suites. Directory entries remain function-only and their semantics are identical to unified output.
 
-### `functions[]` element (`FunctionComplexity`)
+### `functions[]` and `class_scopes[]` element (`FunctionComplexity`)
 
 | Field          | Type    | Description                                           |
 | -------------- | ------- | ----------------------------------------------------- |
-| `name`         | string  | Function name. `__main__` for module-level code.      |
+| `name`         | string  | Qualified scope name. `<module>` for module-level code. |
+| `scope_kind`   | string  | Required execution owner: `module`, `function`, or `class`. |
 | `file_path`    | string  | Path to source file.                                  |
 | `start_line`   | integer | 1-based start line.                                   |
 | `start_column` | integer | 0-based start column.                                 |
@@ -250,19 +279,29 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 
 ### `summary` object (`ComplexitySummary`)
 
-| Field                     | Type    | Description                                                                                                |
-| ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
-| `total_functions`         | integer | Total functions analyzed.                                                                                  |
-| `average_complexity`      | number  | Arithmetic mean of `Complexity` across all functions.                                                      |
-| `max_complexity`          | integer | Highest observed complexity.                                                                               |
-| `min_complexity`          | integer | Lowest observed complexity.                                                                                |
-| `files_analyzed`          | integer | Files that were parsed and contributed to the metrics above.                                               |
-| `total_files`             | integer | Files the request covered, parsed or not.                                                                  |
-| `skipped_files`           | integer | Files dropped because they could not be read or parsed. Their contents are absent from every metric above. |
-| `low_risk_functions`      | integer | Functions with `RiskLevel = low`.                                                                          |
-| `medium_risk_functions`   | integer | Functions with `RiskLevel = medium`.                                                                       |
-| `high_risk_functions`     | integer | Functions with `RiskLevel = high`.                                                                         |
-| `complexity_distribution` | object  | Histogram keyed by complexity bucket (string) to count (integer), or `null`.                               |
+| Field                              | Type    | Description                                                                                                |
+| ---------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `total_functions`                  | integer | Total module and function scopes analyzed.                                                                 |
+| `total_class_scopes`               | integer | Total executable class suites analyzed.                                                                    |
+| `functions_parsed`                 | integer | Compatibility count matching the complete `total_functions` population.                                   |
+| `average_complexity`               | number  | Arithmetic mean of `complexity` across module and function scopes.                                         |
+| `average_cognitive_complexity`     | number  | Arithmetic mean of `cognitive_complexity` across module and function scopes.                               |
+| `average_nesting_depth`            | number  | Arithmetic mean of `nesting_depth` across module and function scopes.                                      |
+| `max_complexity`                   | integer | Highest complexity among module and function scopes.                                                       |
+| `min_complexity`                   | integer | Lowest complexity among module and function scopes.                                                        |
+| `max_class_complexity`             | integer | Highest class-suite cyclomatic complexity.                                                                 |
+| `max_class_cognitive_complexity`   | integer | Highest class-suite cognitive complexity.                                                                  |
+| `max_class_nesting_depth`          | integer | Highest class-suite nesting depth.                                                                          |
+| `high_risk_class_scopes`           | integer | Class suites classified as high risk.                                                                       |
+| `files_analyzed`                   | integer | Files that were parsed and contributed to the metrics above.                                               |
+| `total_files`                      | integer | Files the request covered, parsed or not.                                                                  |
+| `skipped_files`                    | integer | Files dropped because they could not be read or parsed. Their contents are absent from every metric above. |
+| `low_risk_functions`               | integer | Module and function scopes with `risk_level = low`.                                                        |
+| `medium_risk_functions`            | integer | Module and function scopes with `risk_level = medium`.                                                     |
+| `high_risk_functions`              | integer | Module and function scopes with `risk_level = high`.                                                       |
+| `complexity_distribution`          | object  | Function-only histogram keyed by complexity bucket (string) to count (integer), or `null`.                 |
+
+Class-scope counts and maxima are additive hotspot metrics. Adding a class scope does not change the legacy function collections, counts, averages, extrema, risk distribution, complexity distribution, module or directory rollups, or health score.
 
 ### `raw_metrics[]` element (`RawMetrics`)
 
@@ -286,9 +325,10 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 {
   "files": [ /* FileDeadCode array */ ],
   "summary": { /* DeadCodeSummary */ },
-  "warnings": null,
-  "errors": null,
-  "generated_at": "",
+   "warnings": null,
+   "errors": null,
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "",
   "version": "",
   "config": null
 }
@@ -299,32 +339,37 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | Field               | Type    | Description                                    |
 | ------------------- | ------- | ---------------------------------------------- |
 | `file_path`         | string  | Path to source file.                           |
-| `functions`         | array   | Per-function results (see below).              |
-| `total_findings`    | integer | Sum of findings across functions in this file. |
-| `total_functions`   | integer | Functions analyzed in this file.               |
-| `affected_functions`| integer | Functions with at least one finding.           |
-| `dead_code_ratio`   | number  | Dead blocks / total blocks, `0`–`1`.           |
+| `functions`             | array   | Per-function results. Existing field; remains function-only. |
+| `class_scopes`          | array \| absent | Executable class-suite results. Uses the same row model as `functions`. |
+| `total_findings`        | integer | Sum of findings across functions and class scopes in this file. |
+| `total_functions`       | integer | Functions analyzed in this file. Existing field; remains function-only. |
+| `affected_functions`    | integer | Functions with at least one finding. Existing field; remains function-only. |
+| `total_class_scopes`    | integer | Executable class suites analyzed in this file. |
+| `affected_class_scopes` | integer | Executable class suites with at least one finding. |
+| `dead_code_ratio`       | number  | Dead blocks / total blocks across both scope collections, `0`–`1`. |
 
-### `files[].functions[]` element (`FunctionDeadCode`)
+### `files[].functions[]` and `files[].class_scopes[]` element (`FunctionDeadCode`)
 
 | Field             | Type    | Description                                  |
 | ----------------- | ------- | -------------------------------------------- |
-| `name`            | string  | Function name.                               |
+| `name`            | string  | Function or class name.                      |
+| `scope_kind`      | string  | Required execution owner: `function` in `functions`; `class` in `class_scopes`. |
 | `file_path`       | string  | Path to source file.                         |
-| `findings`        | array   | Findings in this function (see below).       |
-| `total_blocks`    | integer | Total CFG blocks in the function.            |
+| `findings`        | array   | Findings in this execution scope (see below). |
+| `total_blocks`    | integer | Total CFG blocks in the execution scope.     |
 | `dead_blocks`     | integer | Unreachable CFG blocks.                      |
 | `reachable_ratio` | number  | `(total_blocks - dead_blocks) / total_blocks`, `0`–`1`. |
 | `critical_count`  | integer | Findings of severity `critical`.             |
 | `warning_count`   | integer | Findings of severity `warning`.              |
 | `info_count`      | integer | Findings of severity `info`.                 |
 
-### `files[].functions[].findings[]` element (`DeadCodeFinding`)
+### `findings[]` element (`DeadCodeFinding`)
 
 | Field           | Type    | Description                                                   |
 | --------------- | ------- | ------------------------------------------------------------- |
 | `location`      | object  | See [`DeadCodeLocation`](#deadcodelocation-object).           |
-| `function_name` | string  | Enclosing function name.                                      |
+| `function_name` | string  | Enclosing execution-scope name (historical field name).       |
+| `scope_kind`    | string  | Required execution owner: `function` or `class`.              |
 | `code`          | string  | The dead source code snippet.                                 |
 | `reason`        | string  | Classification — see enumeration below.                       |
 | `severity`      | string  | One of: `critical`, `warning`, `info`.                        |
@@ -358,15 +403,17 @@ Mirrors `domain.DeadCodeResponse`. Uses snake_case field names throughout.
 | -------------------------- | ------- | ------------------------------------------------ |
 | `total_files`              | integer | Files analyzed.                                  |
 | `total_functions`          | integer | Functions analyzed.                              |
-| `total_findings`           | integer | Total findings across all files.                 |
+| `total_findings`           | integer | Total findings across functions and class scopes. |
 | `files_with_dead_code`     | integer | Files with at least one finding.                 |
 | `functions_with_dead_code` | integer | Functions with at least one finding.             |
+| `total_class_scopes`       | integer | Executable class suites analyzed.                |
+| `class_scopes_with_dead_code` | integer | Executable class suites with at least one finding. |
 | `critical_findings`        | integer | Findings with severity `critical`.               |
 | `warning_findings`         | integer | Findings with severity `warning`.                |
 | `info_findings`            | integer | Findings with severity `info`.                   |
 | `findings_by_reason`       | object \| null | Histogram keyed by `reason` value.         |
-| `total_blocks`             | integer | CFG blocks across all functions.                 |
-| `dead_blocks`              | integer | Unreachable CFG blocks across all functions.     |
+| `total_blocks`             | integer | CFG blocks across functions and class scopes.    |
+| `dead_blocks`              | integer | Unreachable CFG blocks across functions and class scopes. |
 | `overall_dead_ratio`       | number  | `dead_blocks / total_blocks`, `0`–`1`.           |
 
 ## `clone` object
@@ -381,7 +428,8 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
   "statistics": { /* CloneStatistics */ },
   "duration_ms": 123,
   "success": true,
-  "error": ""
+  "error": "",
+  "failures": [ /* AnalysisFailure array, absent when empty */ ]
 }
 ```
 
@@ -470,9 +518,10 @@ Mirrors `domain.CBOResponse`.
 {
   "classes": [ /* ClassCoupling array */ ],
   "summary": { /* CBOSummary */ },
-  "warnings": null,
-  "errors": null,
-  "generated_at": "",
+   "warnings": null,
+   "errors": null,
+   "failures": [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at": "",
   "version": "",
   "config": null
 }
@@ -530,6 +579,7 @@ Mirrors `domain.LCOMResponse`.
   "summary": { /* LCOMSummary */ },
   "warnings": null,
   "errors": null,
+  "failures": [ /* AnalysisFailure array, absent when empty */ ],
   "generated_at": "",
   "version": "",
   "config": null
@@ -584,9 +634,10 @@ Mirrors `domain.SystemAnalysisResponse`.
   "summary":              { /* SystemAnalysisSummary */ },
   "issues":               [ /* SystemIssue array */ ],
   "recommendations":      [ /* SystemRecommendation array */ ],
-  "warnings":             [ ],
-  "errors":               [ ],
-  "generated_at":          "0001-01-01T00:00:00Z",
+   "warnings":             [ ],
+   "errors":               [ ],
+   "failures":             [ /* AnalysisFailure array, absent when empty */ ],
+   "generated_at":          "0001-01-01T00:00:00Z",
   "duration":             0,
   "version":              "",
   "config":               null
@@ -748,6 +799,9 @@ Health Score,<integer>
 Grade,<A|B|C|D|F|N/A>
 Total Files,<integer>
 Analyzed Files,<integer>
+Skipped Files,<integer>
+Total Functions,<integer>
+Class Scopes,<integer>
 Average Complexity,<float with 2 decimals>
 High Complexity Count,<integer>
 Dead Code Count,<integer>
@@ -759,6 +813,8 @@ Total Classes Analyzed,<integer>
 High Coupling (CBO) Classes,<integer>
 Average CBO,<float with 2 decimals>
 Module Quality Count,<integer>
+Diagnostic,<file_path> [<code>]: <message>
+Analysis Failure,<analysis> <file_path> [<code>]: <message>
 Module 1 Name,<string>
 Module 1 File Path,<string>
 Module 1 Lines of Code,<integer>
@@ -781,7 +837,13 @@ Directory 1 Average Nesting Depth,<float with 2 decimals>
 Directory 1 Max Nesting Depth,<integer>
 ```
 
-The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all legacy summary, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-function and per-finding detail.
+The `Diagnostic` and `Analysis Failure` rows repeat once per corresponding entry and are omitted when empty. They appear before the numbered module rows. The numbered module and directory row groups repeat once per corresponding entry in the same order. Directory rows are appended after all summary, diagnostic, failure, module, and optional community rows, and are omitted when complexity analysis is disabled. CSV remains a summary format; use `--json` or `--yaml` for per-scope and per-finding detail.
+
+The standalone complexity formatter emits one row per reported module, function, or class scope. Existing columns remain in place and `Scope Kind` is appended:
+
+```csv
+Function,Complexity,Cognitive Complexity,Risk,Nodes,Edges,Nesting Depth,If Statements,Loop Statements,Exception Handlers,SLOC,Scope Kind
+```
 
 ## `community_analysis` object { #community-analysis-object }
 
@@ -805,6 +867,7 @@ Mirrors `domain.CommunityAnalysisResult`. Emitted as a top-level field in unifie
 | `community_context_map` | object \| absent | Compact, agent-optimized map of which modules to inspect together. See [`community_context_map`](#community-context-map-object). Absent when no communities were detected. |
 | `warnings`          | array \| absent | Non-fatal analysis warnings.                              |
 | `errors`            | array \| absent | Fatal analysis errors.                                    |
+| `failures`          | array \| absent | Typed analyzer execution failures. See [`AnalysisFailure`](#analysisfailure-object). |
 | `generated_at`      | string (RFC 3339) | Community analysis completion time.                 |
 | `version`           | string  | pyscn semantic version.                                           |
 | `config`            | object \| absent | Effective community-detection settings.                    |
@@ -874,6 +937,22 @@ A compact, deterministic view of the communities optimized for AI coding/review 
 ### Determinism
 
 Community detection is deterministic for a fixed codebase snapshot and configuration: repeated runs yield identical `communities`, `bridge_modules`, and `modularity`. Module and community ordering in JSON is stable (sorted ids and module names). Numeric fields are rounded to four decimal places for diff-friendly output. Results may change across pyscn versions or when `min_community_size`, `resolution`, or `include_lazy_edges` change. See [Module Community Detection](../guides/module-community-detection.md#determinism) for details.
+
+## `mock_data` object
+
+Mirrors `domain.MockDataResponse`.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `files` | array | Per-file mock-data findings. |
+| `summary` | object | File, finding, severity, and type totals. |
+| `warnings` | array | Non-fatal detector warnings. |
+| `errors` | array | Fatal detector errors retained for output compatibility. |
+| `diagnostics` | array \| absent | Typed file read and parse failures. See [`AnalysisDiagnostic`](#analysisdiagnostic-object). |
+| `failures` | array \| absent | Typed detector execution failures. See [`AnalysisFailure`](#analysisfailure-object). |
+| `generated_at` | string | Analysis completion time. |
+| `version` | string | pyscn semantic version. |
+| `config` | object \| null | Effective mock-data settings. |
 
 ## Timestamps and versioning
 

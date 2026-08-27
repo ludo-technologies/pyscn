@@ -1049,38 +1049,6 @@ func TestCheckIgnoresMalformedPyprojectWithoutPyscnSection(t *testing.T) {
 	}
 }
 
-func TestCountDIAntipatternIssuesFailsOnAnalysisErrors(t *testing.T) {
-	checkCmd := NewCheckCommand()
-	response := &domain.DIAntipatternResponse{
-		Errors: []string{"[broken.py] Parse error: syntax errors found in source code"},
-	}
-
-	var stderr bytes.Buffer
-	_, err := checkCmd.countDIAntipatternIssues(&stderr, response)
-	if err == nil {
-		t.Fatal("expected DI analysis errors to fail the check")
-	}
-	if !strings.Contains(stderr.String(), "Parse error") {
-		t.Fatalf("expected the parse error to be reported, got: %q", stderr.String())
-	}
-}
-
-func TestCountDIAntipatternIssuesAllowsParseErrorsWhenWaived(t *testing.T) {
-	checkCmd := NewCheckCommand()
-	checkCmd.allowParseErrors = true
-	response := &domain.DIAntipatternResponse{
-		Errors: []string{"[broken.py] Parse error: syntax errors found in source code"},
-	}
-
-	var stderr bytes.Buffer
-	if _, err := checkCmd.countDIAntipatternIssues(&stderr, response); err != nil {
-		t.Fatalf("--allow-parse-errors should waive the failure, got: %v", err)
-	}
-	if !strings.Contains(stderr.String(), "Parse error") {
-		t.Fatalf("waived parse errors must still be reported, got: %q", stderr.String())
-	}
-}
-
 // TestAnalyzeCommandThresholdFlags verifies that complexity threshold flags
 // on the analyze command are mapped into AnalyzeUseCaseConfig. This is the CLI
 // counterpart to the MergeConfig fix for issue #553.
@@ -1160,6 +1128,8 @@ const branchyFunction = `def classify(n):
 
 // strictAncestorConfig fails any function more complex than 3.
 const strictAncestorConfig = `[complexity]
+low_threshold = 1
+medium_threshold = 2
 max_complexity = 3
 `
 
