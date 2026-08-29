@@ -227,7 +227,7 @@
   <div class="card">
     <div class="card-h"><h2>Complexity</h2></div>
     <div class="strip">
-      <div class="s"><div class="v num">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}{{.Complexity.Summary.TotalFunctions}} / {{.Complexity.Summary.FunctionsParsed}}{{else}}{{.Complexity.Summary.TotalFunctions}}{{end}}</div><div class="l">{{if and (gt .Complexity.Summary.FunctionsParsed 0) (ne .Complexity.Summary.FunctionsParsed .Complexity.Summary.TotalFunctions)}}reported / parsed{{else}}functions{{end}}</div></div>
+      {{$reported := len .Complexity.Functions}}<div class="s"><div class="v num">{{if ne $reported .Complexity.Summary.TotalFunctions}}{{$reported}} / {{.Complexity.Summary.TotalFunctions}}{{else}}{{.Complexity.Summary.TotalFunctions}}{{end}}</div><div class="l">{{if ne $reported .Complexity.Summary.TotalFunctions}}reported / parsed{{else}}functions{{end}}</div></div>
       <div class="s"><div class="v num">{{printf "%.2f" .Complexity.Summary.AverageComplexity}}</div><div class="l">average CC</div></div>
       <div class="s"><div class="v num">{{.Complexity.Summary.MaxComplexity}}</div><div class="l">max CC</div></div>
       <div class="s"><div class="v num{{if .Complexity.Summary.HighRiskFunctions}} bad{{end}}">{{.Complexity.Summary.HighRiskFunctions}}</div><div class="l">high risk</div></div>

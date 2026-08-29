@@ -310,3 +310,22 @@ func TestMedian(t *testing.T) {
 	assert.Equal(t, "5", formatMedian(5))
 	assert.Equal(t, "2.5", formatMedian(2.5))
 }
+
+func TestWriteAnalyzeHTML_ShowsReportedVersusParsedFunctions(t *testing.T) {
+	response := &domain.AnalyzeResponse{
+		Summary: domain.AnalyzeSummary{ComplexityEnabled: true, TotalFiles: 1, TotalFunctions: 3},
+		Complexity: &domain.ComplexityResponse{
+			Functions: []domain.FunctionComplexity{
+				{Name: "gnarly", FilePath: "pkg/a.py", Metrics: domain.ComplexityMetrics{Complexity: 12}, RiskLevel: domain.RiskLevelMedium},
+			},
+			Summary: domain.ComplexitySummary{TotalFunctions: 3, FunctionsParsed: 3, MaxComplexity: 12},
+		},
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	html := buf.String()
+
+	assert.Contains(t, html, "1 / 3")
+	assert.Contains(t, html, "reported / parsed")
+}

@@ -214,7 +214,7 @@ Reflet de `domain.ComplexityResponse`.
 | ---------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------ |
 | `total_functions`                  | integer | Total des portées de module et de fonction analysées.                                                              |
 | `total_class_scopes`               | integer | Total des suites de classe exécutables analysées.                                                                 |
-| `functions_parsed`                 | integer | Compteur de compatibilité égal à la population complète de `total_functions`.                                     |
+| `functions_parsed`                 | integer | Obsolète. Toujours égal à `total_functions` ; conservé pour la compatibilité du schéma et sera supprimé.          |
 | `average_complexity`               | number  | Moyenne arithmétique de `complexity` sur les portées de module et de fonction.                                     |
 | `average_cognitive_complexity`     | number  | Moyenne arithmétique de `cognitive_complexity` sur les portées de module et de fonction.                           |
 | `average_nesting_depth`            | number  | Moyenne arithmétique de `nesting_depth` sur les portées de module et de fonction.                                  |

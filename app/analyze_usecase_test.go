@@ -233,15 +233,19 @@ func TestAnalyzeUseCaseExecutePreservesPartialFailureCause(t *testing.T) {
 	}
 	cause := &testAnalyzerError{operation: "build cfg"}
 	complexityUseCase := NewSnapshotComplexityUseCase(
-		failingComplexityService{response: &domain.ComplexityResponse{Failures: []domain.AnalysisFailure{
-			domain.NewAnalysisFailure(
-				domain.AnalysisKindComplexity,
-				domain.AnalysisFailureCodeExecution,
-				"source.py",
-				"CFG construction failed: "+cause.Error(),
-				cause,
-			),
-		}}},
+		failingComplexityService{response: &domain.ComplexityResponse{
+			AnalyzedFunctions:   []domain.FunctionComplexity{},
+			AnalyzedClassScopes: []domain.FunctionComplexity{},
+			Failures: []domain.AnalysisFailure{
+				domain.NewAnalysisFailure(
+					domain.AnalysisKindComplexity,
+					domain.AnalysisFailureCodeExecution,
+					"source.py",
+					"CFG construction failed: "+cause.Error(),
+					cause,
+				),
+			},
+		}},
 		service.NewFileReader(),
 		service.NewOutputFormatter(),
 		service.NewConfigurationLoader(),

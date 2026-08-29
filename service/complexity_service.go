@@ -27,13 +27,7 @@ func NewComplexityService() *ComplexityServiceImpl {
 
 // Analyze performs complexity analysis on multiple files
 func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
-	var allScopes []domain.FunctionComplexity
-	var allRawMetrics []domain.RawMetrics
-	var rawMetricResults []*analyzer.RawMetricsResult
-	var warnings []string
-	var issues []analysisIssue
-	filesProcessed := 0
-	filesSkipped := 0
+	var results complexityFileResults
 
 	for _, filePath := range req.Paths {
 		// Check context cancellation
@@ -43,74 +37,14 @@ func (s *ComplexityServiceImpl) Analyze(ctx context.Context, req domain.Complexi
 		default:
 		}
 
-		// Progress reporting removed - file parsing is fast
-
-		// Analyze single file
-		scopes, rawMetrics, fileWarnings, fileIssues := s.analyzeFile(ctx, filePath, req)
-
-		if rawMetrics != nil {
-			allRawMetrics = append(allRawMetrics, *s.convertRawMetrics(rawMetrics))
-			rawMetricResults = append(rawMetricResults, rawMetrics)
-		}
-
-		if len(fileIssues) > 0 {
-			issues = append(issues, fileIssues...)
-			filesSkipped++
-			continue // Skip this file but continue with others
-		}
-
-		allScopes = append(allScopes, scopes...)
-		warnings = append(warnings, fileWarnings...)
-		filesProcessed++
+		results.add(s.analyzeFile(ctx, filePath, req))
 	}
 
-	if len(allScopes) == 0 && len(allRawMetrics) == 0 {
+	if results.empty() {
 		return nil, domain.NewAnalysisError("no execution scopes found to analyze", nil)
 	}
 
-	// Filter and sort results
-	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)
-	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions, _ := s.filterScopes(allFunctions, req)
-	filteredClassScopes, _ := s.filterScopes(allClassScopes, req)
-	sortedFunctions, err := domain.SortComplexityScopesBy(filteredFunctions, req.SortBy)
-	if err != nil {
-		return nil, domain.NewAnalysisError("invalid complexity sort", err)
-	}
-	sortedClassScopes, err := domain.SortComplexityScopesBy(filteredClassScopes, req.SortBy)
-	if err != nil {
-		return nil, domain.NewAnalysisError("invalid complexity sort", err)
-	}
-
-	// Generate summary over the complete population so min_complexity only
-	// affects which functions are displayed, not the aggregate metrics.
-	summary := s.generateSummary(allFunctions, allClassScopes, complexitySummaryCounts{
-		filesAnalyzed: filesProcessed,
-		filesSkipped:  filesSkipped,
-	})
-	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
-
-	response := &domain.ComplexityResponse{
-		Functions:           sortedFunctions,
-		ClassScopes:         sortedClassScopes,
-		AnalyzedFunctions:   allFunctions,
-		AnalyzedClassScopes: allClassScopes,
-		Summary:             summary,
-		ModuleRollups:       moduleRollups,
-		RawMetrics:          allRawMetrics,
-		RawMetricsSummary:   rawMetricsSummary,
-		Warnings:            warnings,
-		Errors:              analysisIssueMessages(issues),
-		Failures:            analyzerFailures(domain.AnalysisKindComplexity, issues),
-		GeneratedAt:         time.Now().Format(time.RFC3339),
-		Version:             version.Version, // Get version from version package
-		Config:              s.buildConfigForResponse(req),
-		Request:             &req,
-	}
-	if err := response.ValidateAnalyzedScopes(); err != nil {
-		return nil, domain.NewAnalysisError("invalid complexity analysis result", err)
-	}
-	return response, nil
+	return s.buildComplexityResponse(&results, req)
 }
 
 // AnalyzeSnapshot performs complexity analysis using already parsed project files.
@@ -119,13 +53,7 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		return nil, fmt.Errorf("project snapshot cannot be nil")
 	}
 
-	var allScopes []domain.FunctionComplexity
-	var allRawMetrics []domain.RawMetrics
-	var rawMetricResults []*analyzer.RawMetricsResult
-	var warnings []string
-	var issues []analysisIssue
-	filesProcessed := 0
-	filesSkipped := 0
+	var results complexityFileResults
 	parsedFiles := 0
 
 	for _, file := range snapshot.analysisProjectFiles() {
@@ -137,44 +65,72 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		if file.Parsed() {
 			parsedFiles++
 		}
-		scopes, rawMetrics, fileWarnings, fileIssues := s.analyzeProjectFile(file, req)
-
-		if rawMetrics != nil {
-			allRawMetrics = append(allRawMetrics, *s.convertRawMetrics(rawMetrics))
-			rawMetricResults = append(rawMetricResults, rawMetrics)
-		}
-
-		if len(fileIssues) > 0 {
-			issues = append(issues, fileIssues...)
-			filesSkipped++
-			continue
-		}
-
-		allScopes = append(allScopes, scopes...)
-		warnings = append(warnings, fileWarnings...)
-		filesProcessed++
+		results.add(s.analyzeProjectFile(file, req))
 	}
-	if parsedFiles > 0 && len(allScopes) == 0 && len(allRawMetrics) == 0 {
+	if parsedFiles > 0 && results.empty() {
 		return nil, domain.NewAnalysisError("no execution scopes found to analyze", nil)
 	}
 
-	allFunctions, allClassScopes := partitionComplexityScopes(allScopes)
+	return s.buildComplexityResponse(&results, req)
+}
+
+// complexityFileResults accumulates per-file analysis output before the
+// response is assembled.
+type complexityFileResults struct {
+	scopes           []domain.FunctionComplexity
+	rawMetricResults []*analyzer.RawMetricsResult
+	warnings         []string
+	issues           []analysisIssue
+	filesProcessed   int
+	filesSkipped     int
+}
+
+// add records one file's analysis output. Files with issues are skipped so
+// other files continue to be analyzed.
+func (r *complexityFileResults) add(scopes []domain.FunctionComplexity, rawMetrics *analyzer.RawMetricsResult, warnings []string, issues []analysisIssue) {
+	if rawMetrics != nil {
+		r.rawMetricResults = append(r.rawMetricResults, rawMetrics)
+	}
+	if len(issues) > 0 {
+		r.issues = append(r.issues, issues...)
+		r.filesSkipped++
+		return
+	}
+	r.scopes = append(r.scopes, scopes...)
+	r.warnings = append(r.warnings, warnings...)
+	r.filesProcessed++
+}
+
+func (r *complexityFileResults) empty() bool {
+	return len(r.scopes) == 0 && len(r.rawMetricResults) == 0
+}
+
+// buildComplexityResponse derives the reported scopes, summary, and module
+// rollups from the complete analyzed population.
+func (s *ComplexityServiceImpl) buildComplexityResponse(results *complexityFileResults, req domain.ComplexityRequest) (*domain.ComplexityResponse, error) {
+	allFunctions, allClassScopes := partitionComplexityScopes(results.scopes)
 	moduleRollups := domain.AggregateComplexityByModule(allFunctions)
-	filteredFunctions, _ := s.filterScopes(allFunctions, req)
-	filteredClassScopes, _ := s.filterScopes(allClassScopes, req)
-	sortedFunctions, err := domain.SortComplexityScopesBy(filteredFunctions, req.SortBy)
+	sortedFunctions, err := domain.SortComplexityScopesBy(s.filterScopes(allFunctions, req), req.SortBy)
 	if err != nil {
 		return nil, domain.NewAnalysisError("invalid complexity sort", err)
 	}
-	sortedClassScopes, err := domain.SortComplexityScopesBy(filteredClassScopes, req.SortBy)
+	sortedClassScopes, err := domain.SortComplexityScopesBy(s.filterScopes(allClassScopes, req), req.SortBy)
 	if err != nil {
 		return nil, domain.NewAnalysisError("invalid complexity sort", err)
 	}
+
+	// Generate summary over the complete population so min_complexity only
+	// affects which functions are displayed, not the aggregate metrics.
 	summary := s.generateSummary(allFunctions, allClassScopes, complexitySummaryCounts{
-		filesAnalyzed: filesProcessed,
-		filesSkipped:  filesSkipped,
+		filesAnalyzed: results.filesProcessed,
+		filesSkipped:  results.filesSkipped,
 	})
-	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(rawMetricResults))
+
+	var rawMetrics []domain.RawMetrics
+	for _, result := range results.rawMetricResults {
+		rawMetrics = append(rawMetrics, *s.convertRawMetrics(result))
+	}
+	rawMetricsSummary := s.convertAggregateRawMetrics(analyzer.CalculateAggregateRawMetrics(results.rawMetricResults))
 
 	response := &domain.ComplexityResponse{
 		Functions:           sortedFunctions,
@@ -183,11 +139,11 @@ func (s *ComplexityServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *P
 		AnalyzedClassScopes: allClassScopes,
 		Summary:             summary,
 		ModuleRollups:       moduleRollups,
-		RawMetrics:          allRawMetrics,
+		RawMetrics:          rawMetrics,
 		RawMetricsSummary:   rawMetricsSummary,
-		Warnings:            warnings,
-		Errors:              analysisIssueMessages(issues),
-		Failures:            analyzerFailures(domain.AnalysisKindComplexity, issues),
+		Warnings:            results.warnings,
+		Errors:              analysisIssueMessages(results.issues),
+		Failures:            analyzerFailures(domain.AnalysisKindComplexity, results.issues),
 		GeneratedAt:         time.Now().Format(time.RFC3339),
 		Version:             version.Version,
 		Config:              s.buildConfigForResponse(req),
@@ -344,20 +300,17 @@ func partitionComplexityScopes(scopes []domain.FunctionComplexity) (functions, c
 	return functions, classScopes
 }
 
-// filterScopes returns visible execution scopes and the count before min_complexity.
-// report_unchanged remains part of the reporting contract, while module rollups
-// consume the complete analyzer population before either presentation filter.
-func (s *ComplexityServiceImpl) filterScopes(functions []domain.FunctionComplexity, req domain.ComplexityRequest) ([]domain.FunctionComplexity, int) {
+// filterScopes returns the execution scopes to display. report_unchanged and
+// min_complexity are presentation filters only: summaries and module rollups
+// consume the complete analyzer population.
+func (s *ComplexityServiceImpl) filterScopes(functions []domain.FunctionComplexity, req domain.ComplexityRequest) []domain.FunctionComplexity {
 	var filtered []domain.FunctionComplexity
 	complexityConfig := s.buildComplexityConfig(req)
-	functionsParsed := 0
 
 	for _, function := range functions {
 		if !complexityConfig.ShouldReport(function.Metrics.Complexity) {
 			continue
 		}
-		functionsParsed++
-		// Apply minimum complexity filter
 		if function.Metrics.Complexity < req.MinComplexity {
 			continue
 		}
@@ -367,7 +320,7 @@ func (s *ComplexityServiceImpl) filterScopes(functions []domain.FunctionComplexi
 		filtered = append(filtered, function)
 	}
 
-	return filtered, functionsParsed
+	return filtered
 }
 
 // complexitySummaryCounts carries the labeled counts for generateSummary so

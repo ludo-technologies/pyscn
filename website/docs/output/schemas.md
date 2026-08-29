@@ -283,7 +283,7 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 | ---------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------- |
 | `total_functions`                  | integer | Total module and function scopes analyzed.                                                                 |
 | `total_class_scopes`               | integer | Total executable class suites analyzed.                                                                    |
-| `functions_parsed`                 | integer | Compatibility count matching the complete `total_functions` population.                                   |
+| `functions_parsed`                 | integer | Deprecated. Always equal to `total_functions`; kept for schema compatibility and will be removed.          |
 | `average_complexity`               | number  | Arithmetic mean of `complexity` across module and function scopes.                                         |
 | `average_cognitive_complexity`     | number  | Arithmetic mean of `cognitive_complexity` across module and function scopes.                               |
 | `average_nesting_depth`            | number  | Arithmetic mean of `nesting_depth` across module and function scopes.                                      |

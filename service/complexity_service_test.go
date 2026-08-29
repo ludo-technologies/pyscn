@@ -567,7 +567,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 0,
 		}
 
-		filtered, _ := service.filterScopes(functions, req)
+		filtered := service.filterScopes(functions, req)
 
 		require.Len(t, filtered, 3)
 		assert.Equal(t, "func2", filtered[0].Name)
@@ -582,7 +582,7 @@ func TestComplexityService_FilterFunctions(t *testing.T) {
 			MaxComplexity: 8, // This should NOT filter out functions
 		}
 
-		filtered, _ := service.filterScopes(functions, req)
+		filtered := service.filterScopes(functions, req)
 
 		// All 4 functions should be returned (MaxComplexity doesn't filter)
 		require.Len(t, filtered, 4)
@@ -682,7 +682,7 @@ func TestComplexityService_GenerateSummary(t *testing.T) {
 		}
 
 		req := domain.ComplexityRequest{MinComplexity: 5}
-		filtered, _ := service.filterScopes(allFunctions, req)
+		filtered := service.filterScopes(allFunctions, req)
 		summary := service.generateSummary(allFunctions, nil, complexitySummaryCounts{
 			filesAnalyzed: 1,
 		})

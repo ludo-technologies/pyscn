@@ -214,7 +214,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | ---------------------------------- | ------- | ------------------------------------------------------------ |
 | `total_functions`                  | integer | 分析的模块与函数作用域总数。                                 |
 | `total_class_scopes`               | integer | 分析的可执行类套件总数。                                     |
-| `functions_parsed`                 | integer | 与完整 `total_functions` 总体一致的兼容计数。                |
+| `functions_parsed`                 | integer | 已弃用。始终等于 `total_functions`，仅为兼容性保留，将来会移除。 |
 | `average_complexity`               | number  | 模块与函数作用域 `complexity` 的算术平均值。                  |
 | `average_cognitive_complexity`     | number  | 模块与函数作用域 `cognitive_complexity` 的算术平均值。        |
 | `average_nesting_depth`            | number  | 模块与函数作用域 `nesting_depth` 的算术平均值。               |
