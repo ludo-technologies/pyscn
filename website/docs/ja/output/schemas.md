@@ -214,7 +214,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | ---------------------------------- | ------- | -------------------------------------------------------------------- |
 | `total_functions`                  | integer | 分析されたモジュールおよび関数スコープの合計数。                     |
 | `total_class_scopes`               | integer | 分析された実行可能なクラススイートの合計数。                         |
-| `functions_parsed`                 | integer | `total_functions` の完全な母集団と一致する互換カウント。             |
+| `functions_parsed`                 | integer | 非推奨。常に `total_functions` と同じ値。互換性のために残しており、将来削除されます。 |
 | `average_complexity`               | number  | モジュールおよび関数スコープの `complexity` の算術平均。             |
 | `average_cognitive_complexity`     | number  | モジュールおよび関数スコープの `cognitive_complexity` の算術平均。   |
 | `average_nesting_depth`            | number  | モジュールおよび関数スコープの `nesting_depth` の算術平均。          |

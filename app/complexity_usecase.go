@@ -267,7 +267,13 @@ func (uc *ComplexityUseCase) AnalyzeFile(ctx context.Context, filePath string, r
 	return nil
 }
 
+// attachDirectoryComplexity rolls the complete analyzed population up by
+// directory. It rejects responses that only carry the reported subset so the
+// section cannot silently disappear.
 func attachDirectoryComplexity(response *domain.ComplexityResponse, projectRoot string) error {
+	if response.AnalyzedFunctions == nil {
+		return fmt.Errorf("complexity response has no analyzed function population")
+	}
 	byDirectory, err := aggregateComplexityByDirectory(response.AnalyzedFunctions, projectRoot)
 	if err != nil {
 		return err

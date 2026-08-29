@@ -243,7 +243,9 @@ type AnalyzeSummary struct {
 	MaxClassCognitiveComplexity   int `json:"max_class_cognitive_complexity" yaml:"max_class_cognitive_complexity"`
 	MaxClassNestingDepth          int `json:"max_class_nesting_depth" yaml:"max_class_nesting_depth"`
 	HighComplexityClassScopeCount int `json:"high_complexity_class_scope_count" yaml:"high_complexity_class_scope_count"`
-	// FunctionsParsed is retained for output compatibility and matches TotalFunctions.
+	// FunctionsParsed is always equal to TotalFunctions. It is retained only
+	// for JSON/YAML schema compatibility and will be removed; consumers should
+	// read TotalFunctions.
 	FunctionsParsed            int     `json:"functions_parsed" yaml:"functions_parsed"`
 	AverageComplexity          float64 `json:"average_complexity" yaml:"average_complexity"`
 	AverageCognitiveComplexity float64 `json:"average_cognitive_complexity" yaml:"average_cognitive_complexity"`

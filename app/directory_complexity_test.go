@@ -56,7 +56,7 @@ func TestAggregateComplexityByDirectory_UsesAnalyzedFunctions(t *testing.T) {
 	}
 }
 
-func TestAttachDirectoryComplexity_DoesNotFallbackToReportedFunctions(t *testing.T) {
+func TestAttachDirectoryComplexity_RejectsMissingAnalyzedFunctions(t *testing.T) {
 	root := t.TempDir()
 	response := &domain.ComplexityResponse{
 		Functions: []domain.FunctionComplexity{
@@ -68,8 +68,9 @@ func TestAttachDirectoryComplexity_DoesNotFallbackToReportedFunctions(t *testing
 		},
 	}
 
-	if err := attachDirectoryComplexity(response, root); err != nil {
-		t.Fatalf("attach directory complexity: %v", err)
+	err := attachDirectoryComplexity(response, root)
+	if err == nil {
+		t.Fatal("expected an error when the analyzed function population is missing")
 	}
 	if len(response.ByDirectory) != 0 {
 		t.Fatalf("expected no rollups without the complete analyzed population, got %+v", response.ByDirectory)

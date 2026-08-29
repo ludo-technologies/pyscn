@@ -62,7 +62,7 @@ func (f *OutputFormatterImpl) formatText(response *domain.ComplexityResponse) (s
 
 	// Summary counts describe the complete population used by aggregate metrics.
 	stats := map[string]interface{}{
-		"Total Functions": formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed),
+		"Total Functions": formatFunctionCoverage(len(response.Functions), response.Summary.TotalFunctions),
 		"Class Scopes":    response.Summary.TotalClassScopes,
 		"Files Analyzed":  response.Summary.FilesAnalyzed,
 	}
@@ -370,7 +370,7 @@ func (f *OutputFormatterImpl) formatSummaryText(response *domain.ComplexityRespo
 	var builder strings.Builder
 
 	builder.WriteString("Summary:\n")
-	builder.WriteString(fmt.Sprintf("  Total Functions: %s\n", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+	builder.WriteString(fmt.Sprintf("  Total Functions: %s\n", formatFunctionCoverage(len(response.Functions), response.Summary.TotalFunctions)))
 	builder.WriteString(fmt.Sprintf("  Class Scopes: %d\n", response.Summary.TotalClassScopes))
 	if response.Summary.TotalFunctions > 0 {
 		builder.WriteString(fmt.Sprintf("  Average Complexity: %.2f\n", response.Summary.AverageComplexity))
@@ -408,12 +408,11 @@ func (f *OutputFormatterImpl) formatHTML(response *domain.ComplexityResponse) (s
 	return htmlFormatter.FormatComplexityAsHTML(response, projectName)
 }
 
-// formatFunctionCoverage preserves the legacy "reported / parsed" display for
-// externally constructed responses whose counts differ. Service-produced
-// responses use one complete-population count for both values.
-func formatFunctionCoverage(reported, parsed int) string {
-	if parsed > 0 && parsed != reported {
-		return fmt.Sprintf("%d reported / %d parsed", reported, parsed)
+// formatFunctionCoverage shows "reported / parsed" when presentation filters
+// (min_complexity, report_unchanged) hide part of the analyzed population.
+func formatFunctionCoverage(reported, total int) string {
+	if reported != total {
+		return fmt.Sprintf("%d reported / %d parsed", reported, total)
 	}
-	return fmt.Sprintf("%d", reported)
+	return fmt.Sprintf("%d", total)
 }

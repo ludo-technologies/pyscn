@@ -91,7 +91,11 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 	// Analysis modules results
 	if response.Summary.ComplexityEnabled {
 		fmt.Fprint(writer, utils.FormatSectionHeader("COMPLEXITY ANALYSIS"))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(response.Summary.TotalFunctions, response.Summary.FunctionsParsed)))
+		reportedFunctions := 0
+		if response.Complexity != nil {
+			reportedFunctions = len(response.Complexity.Functions)
+		}
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Total Functions", formatFunctionCoverage(reportedFunctions, response.Summary.TotalFunctions)))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Class Scopes", response.Summary.TotalClassScopes))
 		if response.Summary.TotalClassScopes > 0 {
 			fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Max Class Complexity", response.Summary.MaxClassComplexity))
