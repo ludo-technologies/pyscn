@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1190,5 +1191,35 @@ func TestBuildComplexityTaskRequest_UsesExecutionConfigBooleans(t *testing.T) {
 	}
 	if req.ShowDetails == nil || !*req.ShowDetails {
 		t.Error("ShowDetails: expected explicit true from execution config")
+	}
+}
+
+func TestCalculateSummaryDuplicationPercentageNotClamped(t *testing.T) {
+	// Regression for #724: CodeDuplication must carry the true fragment-clone
+	// ratio even above the 30% scoring saturation point, instead of being
+	// clamped to DuplicationThresholdHigh before storage.
+	summary := &domain.AnalyzeSummary{}
+	response := &domain.AnalyzeResponse{
+		Clone: &domain.CloneResponse{
+			Statistics: &domain.CloneStatistics{
+				TotalFragments: 61,
+				TotalClones:    32,
+			},
+		},
+	}
+
+	(&AnalyzeUseCase{}).calculateSummary(summary, response)
+
+	want := 32.0 / 61.0 * 100 // 52.46%, above the old 30.0 cap
+	if math.Abs(summary.CodeDuplication-want) > 1e-9 {
+		t.Errorf("CodeDuplication = %f, want %f (unclamped ratio)", summary.CodeDuplication, want)
+	}
+	if summary.Grade == "N/A" {
+		t.Fatal("health score calculation failed for a valid summary")
+	}
+	// Scoring is unchanged: DuplicationPenalty saturates at 30%, so any ratio
+	// at or above it yields the same (zero) duplication score.
+	if summary.DuplicationScore != 0 {
+		t.Errorf("DuplicationScore = %d, want 0 (penalty saturated at 30%%)", summary.DuplicationScore)
 	}
 }
