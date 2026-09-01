@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/internal/parser"
@@ -414,6 +415,51 @@ func TestCalculateMaxNestingDepth_StopsAtNestedScopes(t *testing.T) {
 	}
 }
 
+// Regression test for issue #728: a flat if/elif chain must not count each
+// elif arm as one more nesting level. The AST builder chains elif arms through
+// Orelse, so the arms are structurally nested even though the source is flat.
+func TestCalculateMaxNestingDepth_ElifChainStaysFlat(t *testing.T) {
+	source := `def dispatch(kind):
+    if kind == "a":
+        return 1
+    elif kind == "b":
+        return 2
+    elif kind == "c":
+        return 3
+    elif kind == "d":
+        return 4
+    elif kind == "e":
+        if kind:
+            return 5
+    else:
+        return 6
+    raise NotImplementedError
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	var funcNode *parser.Node
+	for _, stmt := range parseResult.AST.Body {
+		if stmt.Type == parser.NodeFunctionDef && stmt.Name == "dispatch" {
+			funcNode = stmt
+		}
+	}
+	if funcNode == nil {
+		t.Fatal("Function 'dispatch' not found in parsed AST")
+	}
+
+	result := CalculateMaxNestingDepth(funcNode)
+
+	// The only real nesting is the if inside the last elif arm (depth 2).
+	if result.MaxDepth != 2 {
+		t.Errorf("Expected max depth 2 for flat elif chain with one nested if, got %d", result.MaxDepth)
+	}
+}
+
 func TestIsNestingNode(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -436,6 +482,7 @@ func TestIsNestingNode(t *testing.T) {
 		{"Pass statement", parser.NodePass, false},
 		{"Assign statement", parser.NodeAssign, false},
 		{"Else clause", parser.NodeElseClause, false},
+		{"Elif clause", parser.NodeElifClause, false},
 	}
 
 	for _, tt := range tests {

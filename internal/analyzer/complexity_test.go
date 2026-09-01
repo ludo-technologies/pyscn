@@ -365,8 +365,9 @@ class Config:
 	if classResult.IfStatements != 2 || classResult.LoopStatements != 1 {
 		t.Fatalf("class statement metrics = if:%d loop:%d, want 2/1", classResult.IfStatements, classResult.LoopStatements)
 	}
-	if classResult.NestingDepth != 2 {
-		t.Fatalf("class nesting depth = %d, want 2", classResult.NestingDepth)
+	// The if/elif/else chain is flat, so the deepest nesting is 1 (issue #728).
+	if classResult.NestingDepth != 1 {
+		t.Fatalf("class nesting depth = %d, want 1", classResult.NestingDepth)
 	}
 }
 
