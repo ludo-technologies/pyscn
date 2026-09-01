@@ -3848,7 +3848,7 @@
 <p><code>TotalFiles</code> はパースに失敗したファイルも含めて数えるため、パースエラーがある対象では正規化係数がわずかに大きくなり、デッドコードのペナルティは解析できたファイルだけで計算した場合よりわずかに小さくなります。影響は対数的で、同じ状況に対して最低 11 点を課す「パースエラー」ペナルティに比べれば無視できる大きさです。</p>
 <p>ソース: <code>domain/analyze.go:283-296</code>。正規化係数は <code>CalculateHealthScore()</code> の <code>domain/analyze.go:474-477</code> で導出されます。</p>
 <h3 id="_8">重複<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
-<p><strong>入力.</strong> <code>CodeDuplication</code> (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。上流の計算で 30 に上限が設定されています。</p>
+<p><strong>入力.</strong> <code>CodeDuplication</code> (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。この値にクランプはなく、下記のペナルティ計算式自体が <code>DuplicationThresholdHigh</code> で飽和します。</p>
 <p><strong>計算式.</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
@@ -3883,7 +3883,7 @@
 </tbody>
 </table>
 <p><strong>上流の計算.</strong> <code>CodeDuplication</code> 自体は <code>app/analyze_usecase.go</code> で計算されます:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>ここで <code>TotalClones</code> はクローンペアまたはグループに含まれるユニークなフラグメント数、<code>TotalFragments</code> は抽出されたコードフラグメントの総数です（<code>domain/clone.go:128-131</code>）。</p>
 <p><strong>飽和.</strong> <code>CodeDuplication &gt;= 30.0</code> で 20 に到達します。</p>

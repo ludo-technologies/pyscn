@@ -3848,7 +3848,7 @@
 <p><code>TotalFiles</code> compte aussi les fichiers dont l'analyse syntaxique a échoué : sur une cible comportant des erreurs de syntaxe, le facteur de normalisation est donc légèrement plus grand et la pénalité de code mort légèrement plus faible qu'elle ne le serait sur les seuls fichiers analysés. L'effet est logarithmique et reste négligeable face à la pénalité « Erreurs d'analyse syntaxique », qui facture au moins 11 points pour la même situation.</p>
 <p>Source : <code>domain/analyze.go:283-296</code>. Facteur de normalisation dérivé dans <code>CalculateHealthScore()</code> à <code>domain/analyze.go:474-477</code>.</p>
 <h3 id="duplication">Duplication<a class="headerlink" href="#duplication" title="Permanent link">&para;</a></h3>
-<p><strong>Entrées.</strong> <code>CodeDuplication</code> (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones, plafonné à 30 par le calcul en amont.</p>
+<p><strong>Entrées.</strong> <code>CodeDuplication</code> (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones. La valeur n'est pas plafonnée ; la formule de pénalité ci-dessous sature d'elle-même à <code>DuplicationThresholdHigh</code>.</p>
 <p><strong>Formule.</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
@@ -3883,7 +3883,7 @@
 </tbody>
 </table>
 <p><strong>Calcul en amont.</strong> <code>CodeDuplication</code> est calculé dans <code>app/analyze_usecase.go</code> :</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>Où <code>TotalClones</code> est le nombre de fragments uniques participant à au moins une paire ou un groupe de clones, et <code>TotalFragments</code> est le nombre total de fragments de code extraits (<code>domain/clone.go:128-131</code>).</p>
 <p><strong>Saturation.</strong> Atteint 20 lorsque <code>CodeDuplication &gt;= 30.0</code>.</p>

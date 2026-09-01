@@ -3848,7 +3848,7 @@
 <p><code>TotalFiles</code> 也会计入解析失败的文件，因此在存在解析错误的目标上，归一化因子会略大，死代码惩罚会略小于仅按已分析文件计算的结果。该影响是对数级的，与针对同一情况至少扣除 11 分的「解析错误」惩罚相比可以忽略。</p>
 <p>来源：<code>domain/analyze.go:283-296</code>。归一化因子在 <code>CalculateHealthScore()</code> 的 <code>domain/analyze.go:474-477</code> 中计算。</p>
 <h3 id="_8">代码重复<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
-<p><strong>输入。</strong> <code>CodeDuplication</code>（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比，上游计算限制为 30。</p>
+<p><strong>输入。</strong> <code>CodeDuplication</code>（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比。该值不做截断；下方的惩罚公式自身会在 <code>DuplicationThresholdHigh</code> 处饱和。</p>
 <p><strong>公式。</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
@@ -3883,7 +3883,7 @@
 </tbody>
 </table>
 <p><strong>上游计算。</strong> <code>CodeDuplication</code> 本身在 <code>app/analyze_usecase.go</code> 中计算：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>其中 <code>TotalClones</code> 是至少参与一个克隆对或克隆组的唯一片段数量，<code>TotalFragments</code> 是提取出的代码片段总数（<code>domain/clone.go:128-131</code>）。</p>
 <p><strong>饱和。</strong> 当 <code>CodeDuplication &gt;= 30.0</code> 时达到 20。</p>

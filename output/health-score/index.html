@@ -3848,7 +3848,7 @@
 <p><code>TotalFiles</code> counts files that failed to parse as well as those that were analyzed, so on a target with parse errors the normalization factor is slightly larger and the dead-code penalty slightly smaller than it would be over the analyzed files alone. The effect is logarithmic and is dwarfed by the <a href="#parse-errors">parse-error penalty</a>, which charges at least 11 points for the same condition.</p>
 <p>Source: <code>domain/analyze.go:283-296</code>. Normalization factor derived in <code>CalculateHealthScore()</code> at <code>domain/analyze.go:474-477</code>.</p>
 <h3 id="duplication">Duplication<a class="headerlink" href="#duplication" title="Permanent link">&para;</a></h3>
-<p><strong>Inputs.</strong> <code>CodeDuplication</code> (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups, capped at 30 by the upstream calculation.</p>
+<p><strong>Inputs.</strong> <code>CodeDuplication</code> (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups. The value is not clamped; the penalty formula below saturates on its own at <code>DuplicationThresholdHigh</code>.</p>
 <p><strong>Formula.</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
@@ -3883,7 +3883,7 @@
 </tbody>
 </table>
 <p><strong>Upstream computation.</strong> <code>CodeDuplication</code> itself is computed in <code>app/analyze_usecase.go</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>Where <code>TotalClones</code> is the number of unique fragments that participate in at least one clone pair or group, and <code>TotalFragments</code> is the total number of extracted code fragments (<code>domain/clone.go:128-131</code>).</p>
 <p><strong>Saturation.</strong> Reaches 20 when <code>CodeDuplication &gt;= 30.0</code>.</p>

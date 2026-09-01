@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
     <url>
         <loc>https://docs.codescan.dev/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/"/>
@@ -11,7 +11,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/faq/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/faq/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/faq/"/>
@@ -20,7 +20,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/cli/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/"/>
@@ -29,7 +29,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/cli/analyze/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/analyze/"/>
@@ -38,7 +38,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/cli/check/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/check/"/>
@@ -47,7 +47,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/cli/init/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/init/"/>
@@ -56,7 +56,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/cli/version/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/version/"/>
@@ -65,7 +65,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/configuration/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/"/>
@@ -74,7 +74,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/configuration/examples/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/examples/"/>
@@ -83,7 +83,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/configuration/format/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/format/"/>
@@ -92,7 +92,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/configuration/reference/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/reference/"/>
@@ -101,7 +101,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/getting-started/installation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/getting-started/installation/"/>
@@ -110,7 +110,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/getting-started/quick-start/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/getting-started/quick-start/"/>
@@ -119,7 +119,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/guides/find-duplicate-code-python/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/find-duplicate-code-python/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/guides/find-duplicate-code-python/"/>
@@ -128,7 +128,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/guides/module-community-detection/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/module-community-detection/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/guides/module-community-detection/"/>
@@ -137,7 +137,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/integrations/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/"/>
@@ -146,7 +146,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/integrations/ci-cd/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/ci-cd/"/>
@@ -155,7 +155,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/integrations/mcp/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/mcp/"/>
@@ -164,7 +164,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/integrations/python-packaging/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/python-packaging/"/>
@@ -173,7 +173,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/integrations/skills/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/skills/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/skills/"/>
@@ -182,7 +182,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/output/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/"/>
@@ -191,7 +191,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/output/health-score/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/health-score/"/>
@@ -200,7 +200,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/output/html-report/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/html-report/"/>
@@ -209,7 +209,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/output/schemas/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/schemas/"/>
@@ -218,7 +218,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/"/>
@@ -227,7 +227,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/circular-import/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/circular-import/"/>
@@ -236,7 +236,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/concrete-instantiation-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/concrete-instantiation-dependency/"/>
@@ -245,7 +245,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/concrete-type-hint-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/concrete-type-hint-dependency/"/>
@@ -254,7 +254,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/deep-import-chain/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/deep-import-chain/"/>
@@ -263,7 +263,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/duplicate-code-identical/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-identical/"/>
@@ -272,7 +272,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/duplicate-code-modified/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-modified/"/>
@@ -281,7 +281,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/duplicate-code-renamed/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-renamed/"/>
@@ -290,7 +290,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/duplicate-code-semantic/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-semantic/"/>
@@ -299,7 +299,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/global-state-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/global-state-dependency/"/>
@@ -308,7 +308,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/high-class-coupling/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/high-class-coupling/"/>
@@ -317,7 +317,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/high-cyclomatic-complexity/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/high-cyclomatic-complexity/"/>
@@ -326,7 +326,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/layer-violation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/layer-violation/"/>
@@ -335,7 +335,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/low-class-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/low-class-cohesion/"/>
@@ -344,7 +344,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/low-package-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/low-package-cohesion/"/>
@@ -353,7 +353,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/mock-domain-in-string/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/mock-domain-in-string/"/>
@@ -362,7 +362,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/mock-email-address/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/mock-email-address/"/>
@@ -371,7 +371,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/mock-keyword-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/mock-keyword-in-code/"/>
@@ -380,7 +380,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/module-variable-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/module-variable-dependency/"/>
@@ -389,7 +389,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/placeholder-comment/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/placeholder-comment/"/>
@@ -398,7 +398,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/placeholder-phone-number/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/placeholder-phone-number/"/>
@@ -407,7 +407,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/placeholder-uuid/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/placeholder-uuid/"/>
@@ -416,7 +416,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/repetitive-string-literal/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/repetitive-string-literal/"/>
@@ -425,7 +425,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/service-locator-pattern/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/service-locator-pattern/"/>
@@ -434,7 +434,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/single-responsibility/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/single-responsibility/"/>
@@ -443,7 +443,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/singleton-pattern-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/singleton-pattern-dependency/"/>
@@ -452,7 +452,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/test-credential-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/test-credential-in-code/"/>
@@ -461,7 +461,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/too-many-constructor-parameters/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/too-many-constructor-parameters/"/>
@@ -470,7 +470,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/unreachable-after-break/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-break/"/>
@@ -479,7 +479,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/unreachable-after-continue/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-continue/"/>
@@ -488,7 +488,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/unreachable-after-infinite-loop/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-infinite-loop/"/>
@@ -497,7 +497,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/unreachable-after-raise/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-raise/"/>
@@ -506,7 +506,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/unreachable-after-return/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-return/"/>
@@ -515,7 +515,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/rules/unreachable-branch/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-branch/"/>
@@ -524,7 +524,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/"/>
@@ -533,7 +533,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/faq/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/faq/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/faq/"/>
@@ -542,7 +542,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/cli/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/cli/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/"/>
@@ -551,7 +551,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/cli/analyze/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/analyze/"/>
@@ -560,7 +560,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/cli/check/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/check/"/>
@@ -569,7 +569,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/cli/init/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/init/"/>
@@ -578,7 +578,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/cli/version/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/version/"/>
@@ -587,7 +587,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/configuration/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/configuration/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/"/>
@@ -596,7 +596,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/configuration/examples/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/examples/"/>
@@ -605,7 +605,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/configuration/format/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/format/"/>
@@ -614,7 +614,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/configuration/reference/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/reference/"/>
@@ -623,7 +623,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/getting-started/installation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/installation/"/>
@@ -632,7 +632,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/getting-started/quick-start/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/quick-start/"/>
@@ -641,7 +641,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/guides/find-duplicate-code-python/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/guides/find-duplicate-code-python/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/find-duplicate-code-python/"/>
@@ -650,7 +650,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/guides/module-community-detection/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/guides/module-community-detection/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/module-community-detection/"/>
@@ -659,7 +659,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/integrations/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/integrations/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/"/>
@@ -668,7 +668,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/integrations/ci-cd/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/ci-cd/"/>
@@ -677,7 +677,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/integrations/mcp/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/mcp/"/>
@@ -686,7 +686,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/integrations/python-packaging/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/python-packaging/"/>
@@ -695,7 +695,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/integrations/skills/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/integrations/skills/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/skills/"/>
@@ -704,7 +704,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/output/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/output/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/"/>
@@ -713,7 +713,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/output/health-score/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/health-score/"/>
@@ -722,7 +722,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/output/html-report/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/html-report/"/>
@@ -731,7 +731,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/output/schemas/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/schemas/"/>
@@ -740,7 +740,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/"/>
@@ -749,7 +749,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/circular-import/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/circular-import/"/>
@@ -758,7 +758,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/concrete-instantiation-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-instantiation-dependency/"/>
@@ -767,7 +767,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/concrete-type-hint-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-type-hint-dependency/"/>
@@ -776,7 +776,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/deep-import-chain/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/deep-import-chain/"/>
@@ -785,7 +785,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/duplicate-code-identical/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-identical/"/>
@@ -794,7 +794,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/duplicate-code-modified/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-modified/"/>
@@ -803,7 +803,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/duplicate-code-renamed/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-renamed/"/>
@@ -812,7 +812,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/duplicate-code-semantic/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-semantic/"/>
@@ -821,7 +821,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/global-state-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/global-state-dependency/"/>
@@ -830,7 +830,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/high-class-coupling/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-class-coupling/"/>
@@ -839,7 +839,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/high-cyclomatic-complexity/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-cyclomatic-complexity/"/>
@@ -848,7 +848,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/layer-violation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/layer-violation/"/>
@@ -857,7 +857,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/low-class-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-class-cohesion/"/>
@@ -866,7 +866,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/low-package-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-package-cohesion/"/>
@@ -875,7 +875,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/mock-domain-in-string/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-domain-in-string/"/>
@@ -884,7 +884,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/mock-email-address/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-email-address/"/>
@@ -893,7 +893,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/mock-keyword-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-keyword-in-code/"/>
@@ -902,7 +902,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/module-variable-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/module-variable-dependency/"/>
@@ -911,7 +911,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/placeholder-comment/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-comment/"/>
@@ -920,7 +920,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/placeholder-phone-number/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-phone-number/"/>
@@ -929,7 +929,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/placeholder-uuid/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-uuid/"/>
@@ -938,7 +938,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/repetitive-string-literal/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/repetitive-string-literal/"/>
@@ -947,7 +947,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/service-locator-pattern/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/service-locator-pattern/"/>
@@ -956,7 +956,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/single-responsibility/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/single-responsibility/"/>
@@ -965,7 +965,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/singleton-pattern-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/singleton-pattern-dependency/"/>
@@ -974,7 +974,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/test-credential-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/test-credential-in-code/"/>
@@ -983,7 +983,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/too-many-constructor-parameters/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/too-many-constructor-parameters/"/>
@@ -992,7 +992,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/unreachable-after-break/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-break/"/>
@@ -1001,7 +1001,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/unreachable-after-continue/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-continue/"/>
@@ -1010,7 +1010,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/unreachable-after-infinite-loop/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-infinite-loop/"/>
@@ -1019,7 +1019,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/unreachable-after-raise/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-raise/"/>
@@ -1028,7 +1028,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/unreachable-after-return/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-return/"/>
@@ -1037,7 +1037,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/ja/rules/unreachable-branch/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="ja" href="https://docs.codescan.dev/ja/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-branch/"/>
@@ -1046,7 +1046,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/"/>
@@ -1055,7 +1055,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/faq/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/faq/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/faq/"/>
@@ -1064,7 +1064,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/cli/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/cli/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/"/>
@@ -1073,7 +1073,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/cli/analyze/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/analyze/"/>
@@ -1082,7 +1082,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/cli/check/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/check/"/>
@@ -1091,7 +1091,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/cli/init/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/init/"/>
@@ -1100,7 +1100,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/cli/version/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/version/"/>
@@ -1109,7 +1109,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/configuration/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/configuration/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/"/>
@@ -1118,7 +1118,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/configuration/examples/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/examples/"/>
@@ -1127,7 +1127,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/configuration/format/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/format/"/>
@@ -1136,7 +1136,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/configuration/reference/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/reference/"/>
@@ -1145,7 +1145,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/getting-started/installation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/installation/"/>
@@ -1154,7 +1154,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/getting-started/quick-start/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/quick-start/"/>
@@ -1163,7 +1163,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/guides/find-duplicate-code-python/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/guides/find-duplicate-code-python/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/find-duplicate-code-python/"/>
@@ -1172,7 +1172,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/guides/module-community-detection/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/guides/module-community-detection/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/module-community-detection/"/>
@@ -1181,7 +1181,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/integrations/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/integrations/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/"/>
@@ -1190,7 +1190,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/integrations/ci-cd/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/ci-cd/"/>
@@ -1199,7 +1199,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/integrations/mcp/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/mcp/"/>
@@ -1208,7 +1208,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/integrations/python-packaging/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/python-packaging/"/>
@@ -1217,7 +1217,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/integrations/skills/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/integrations/skills/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/skills/"/>
@@ -1226,7 +1226,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/output/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/output/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/"/>
@@ -1235,7 +1235,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/output/health-score/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/health-score/"/>
@@ -1244,7 +1244,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/output/html-report/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/html-report/"/>
@@ -1253,7 +1253,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/output/schemas/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/schemas/"/>
@@ -1262,7 +1262,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/"/>
@@ -1271,7 +1271,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/circular-import/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/circular-import/"/>
@@ -1280,7 +1280,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/concrete-instantiation-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-instantiation-dependency/"/>
@@ -1289,7 +1289,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/concrete-type-hint-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-type-hint-dependency/"/>
@@ -1298,7 +1298,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/deep-import-chain/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/deep-import-chain/"/>
@@ -1307,7 +1307,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/duplicate-code-identical/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-identical/"/>
@@ -1316,7 +1316,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/duplicate-code-modified/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-modified/"/>
@@ -1325,7 +1325,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/duplicate-code-renamed/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-renamed/"/>
@@ -1334,7 +1334,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/duplicate-code-semantic/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-semantic/"/>
@@ -1343,7 +1343,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/global-state-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/global-state-dependency/"/>
@@ -1352,7 +1352,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/high-class-coupling/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-class-coupling/"/>
@@ -1361,7 +1361,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/high-cyclomatic-complexity/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-cyclomatic-complexity/"/>
@@ -1370,7 +1370,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/layer-violation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/layer-violation/"/>
@@ -1379,7 +1379,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/low-class-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-class-cohesion/"/>
@@ -1388,7 +1388,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/low-package-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-package-cohesion/"/>
@@ -1397,7 +1397,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/mock-domain-in-string/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-domain-in-string/"/>
@@ -1406,7 +1406,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/mock-email-address/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-email-address/"/>
@@ -1415,7 +1415,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/mock-keyword-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-keyword-in-code/"/>
@@ -1424,7 +1424,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/module-variable-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/module-variable-dependency/"/>
@@ -1433,7 +1433,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/placeholder-comment/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-comment/"/>
@@ -1442,7 +1442,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/placeholder-phone-number/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-phone-number/"/>
@@ -1451,7 +1451,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/placeholder-uuid/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-uuid/"/>
@@ -1460,7 +1460,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/repetitive-string-literal/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/repetitive-string-literal/"/>
@@ -1469,7 +1469,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/service-locator-pattern/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/service-locator-pattern/"/>
@@ -1478,7 +1478,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/single-responsibility/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/single-responsibility/"/>
@@ -1487,7 +1487,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/singleton-pattern-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/singleton-pattern-dependency/"/>
@@ -1496,7 +1496,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/test-credential-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/test-credential-in-code/"/>
@@ -1505,7 +1505,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/too-many-constructor-parameters/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/too-many-constructor-parameters/"/>
@@ -1514,7 +1514,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/unreachable-after-break/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-break/"/>
@@ -1523,7 +1523,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/unreachable-after-continue/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-continue/"/>
@@ -1532,7 +1532,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/unreachable-after-infinite-loop/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-infinite-loop/"/>
@@ -1541,7 +1541,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/unreachable-after-raise/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-raise/"/>
@@ -1550,7 +1550,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/unreachable-after-return/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-return/"/>
@@ -1559,7 +1559,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/zh/rules/unreachable-branch/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="zh" href="https://docs.codescan.dev/zh/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-branch/"/>
@@ -1568,7 +1568,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/"/>
@@ -1577,7 +1577,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/faq/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/faq/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/faq/"/>
@@ -1586,7 +1586,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/cli/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/"/>
@@ -1595,7 +1595,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/cli/analyze/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/analyze/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/analyze/"/>
@@ -1604,7 +1604,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/cli/check/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/check/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/check/"/>
@@ -1613,7 +1613,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/cli/init/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/init/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/init/"/>
@@ -1622,7 +1622,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/cli/version/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/cli/version/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/cli/version/"/>
@@ -1631,7 +1631,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/configuration/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/"/>
@@ -1640,7 +1640,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/configuration/examples/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/examples/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/examples/"/>
@@ -1649,7 +1649,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/configuration/format/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/format/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/format/"/>
@@ -1658,7 +1658,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/configuration/reference/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/configuration/reference/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/configuration/reference/"/>
@@ -1667,7 +1667,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/getting-started/installation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/getting-started/installation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/installation/"/>
@@ -1676,7 +1676,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/getting-started/quick-start/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/getting-started/quick-start/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/getting-started/quick-start/"/>
@@ -1685,7 +1685,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/guides/find-duplicate-code-python/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/guides/find-duplicate-code-python/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/find-duplicate-code-python/"/>
@@ -1694,7 +1694,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/integrations/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/"/>
@@ -1703,7 +1703,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/integrations/ci-cd/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/ci-cd/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/ci-cd/"/>
@@ -1712,7 +1712,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/integrations/mcp/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/mcp/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/mcp/"/>
@@ -1721,7 +1721,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/integrations/python-packaging/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/python-packaging/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/python-packaging/"/>
@@ -1730,7 +1730,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/integrations/skills/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/integrations/skills/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/integrations/skills/"/>
@@ -1739,7 +1739,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/output/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/"/>
@@ -1748,7 +1748,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/output/health-score/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/health-score/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/health-score/"/>
@@ -1757,7 +1757,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/output/html-report/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/html-report/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/html-report/"/>
@@ -1766,7 +1766,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/output/schemas/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/output/schemas/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/output/schemas/"/>
@@ -1775,7 +1775,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/"/>
@@ -1784,7 +1784,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/circular-import/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/circular-import/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/circular-import/"/>
@@ -1793,7 +1793,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/concrete-instantiation-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/concrete-instantiation-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-instantiation-dependency/"/>
@@ -1802,7 +1802,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/concrete-type-hint-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/concrete-type-hint-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/concrete-type-hint-dependency/"/>
@@ -1811,7 +1811,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/deep-import-chain/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/deep-import-chain/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/deep-import-chain/"/>
@@ -1820,7 +1820,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/duplicate-code-identical/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-identical/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-identical/"/>
@@ -1829,7 +1829,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/duplicate-code-modified/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-modified/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-modified/"/>
@@ -1838,7 +1838,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/duplicate-code-renamed/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-renamed/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-renamed/"/>
@@ -1847,7 +1847,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/duplicate-code-semantic/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/duplicate-code-semantic/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/duplicate-code-semantic/"/>
@@ -1856,7 +1856,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/global-state-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/global-state-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/global-state-dependency/"/>
@@ -1865,7 +1865,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/high-class-coupling/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/high-class-coupling/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-class-coupling/"/>
@@ -1874,7 +1874,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/high-cyclomatic-complexity/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/high-cyclomatic-complexity/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/high-cyclomatic-complexity/"/>
@@ -1883,7 +1883,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/layer-violation/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/layer-violation/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/layer-violation/"/>
@@ -1892,7 +1892,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/low-class-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/low-class-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-class-cohesion/"/>
@@ -1901,7 +1901,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/low-package-cohesion/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/low-package-cohesion/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/low-package-cohesion/"/>
@@ -1910,7 +1910,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/mock-domain-in-string/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/mock-domain-in-string/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-domain-in-string/"/>
@@ -1919,7 +1919,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/mock-email-address/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/mock-email-address/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-email-address/"/>
@@ -1928,7 +1928,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/mock-keyword-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/mock-keyword-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/mock-keyword-in-code/"/>
@@ -1937,7 +1937,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/module-variable-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/module-variable-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/module-variable-dependency/"/>
@@ -1946,7 +1946,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/placeholder-comment/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/placeholder-comment/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-comment/"/>
@@ -1955,7 +1955,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/placeholder-phone-number/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/placeholder-phone-number/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-phone-number/"/>
@@ -1964,7 +1964,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/placeholder-uuid/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/placeholder-uuid/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/placeholder-uuid/"/>
@@ -1973,7 +1973,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/repetitive-string-literal/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/repetitive-string-literal/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/repetitive-string-literal/"/>
@@ -1982,7 +1982,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/service-locator-pattern/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/service-locator-pattern/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/service-locator-pattern/"/>
@@ -1991,7 +1991,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/single-responsibility/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/single-responsibility/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/single-responsibility/"/>
@@ -2000,7 +2000,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/singleton-pattern-dependency/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/singleton-pattern-dependency/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/singleton-pattern-dependency/"/>
@@ -2009,7 +2009,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/test-credential-in-code/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/test-credential-in-code/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/test-credential-in-code/"/>
@@ -2018,7 +2018,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/too-many-constructor-parameters/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/too-many-constructor-parameters/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/too-many-constructor-parameters/"/>
@@ -2027,7 +2027,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/unreachable-after-break/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-break/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-break/"/>
@@ -2036,7 +2036,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/unreachable-after-continue/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-continue/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-continue/"/>
@@ -2045,7 +2045,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/unreachable-after-infinite-loop/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-infinite-loop/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-infinite-loop/"/>
@@ -2054,7 +2054,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/unreachable-after-raise/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-raise/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-raise/"/>
@@ -2063,7 +2063,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/unreachable-after-return/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-after-return/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-after-return/"/>
@@ -2072,7 +2072,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/rules/unreachable-branch/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/rules/unreachable-branch/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/rules/unreachable-branch/"/>
@@ -2081,7 +2081,7 @@
     </url>
     <url>
         <loc>https://docs.codescan.dev/fr/guides/module-community-detection/</loc>
-        <lastmod>2026-08-29</lastmod>
+        <lastmod>2026-09-01</lastmod>
         <changefreq>daily</changefreq>
         <xhtml:link rel="alternate" hreflang="fr" href="https://docs.codescan.dev/fr/guides/module-community-detection/"/>
         <xhtml:link rel="alternate" hreflang="en" href="https://docs.codescan.dev/guides/module-community-detection/"/>
