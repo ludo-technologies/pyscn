@@ -120,7 +120,7 @@ else:
 
 ### 代码重复
 
-**输入。** `CodeDuplication`（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比，上游计算限制为 30。
+**输入。** `CodeDuplication`（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比。该值不做截断；下方的惩罚公式自身会在 `DuplicationThresholdHigh` 处饱和。
 
 **公式。**
 
@@ -142,7 +142,7 @@ else:
 **上游计算。** `CodeDuplication` 本身在 `app/analyze_usecase.go` 中计算：
 
 ```
-CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+CodeDuplication = TotalClones / TotalFragments * 100
 ```
 
 其中 `TotalClones` 是至少参与一个克隆对或克隆组的唯一片段数量，`TotalFragments` 是提取出的代码片段总数（`domain/clone.go:128-131`）。
