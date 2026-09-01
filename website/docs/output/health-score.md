@@ -120,7 +120,7 @@ Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateH
 
 ### Duplication
 
-**Inputs.** `CodeDuplication` (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups, capped at 30 by the upstream calculation.
+**Inputs.** `CodeDuplication` (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups. The value is not clamped; the penalty formula below saturates on its own at `DuplicationThresholdHigh`.
 
 **Formula.**
 
@@ -142,7 +142,7 @@ else:
 **Upstream computation.** `CodeDuplication` itself is computed in `app/analyze_usecase.go`:
 
 ```
-CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+CodeDuplication = TotalClones / TotalFragments * 100
 ```
 
 Where `TotalClones` is the number of unique fragments that participate in at least one clone pair or group, and `TotalFragments` is the total number of extracted code fragments (`domain/clone.go:128-131`).

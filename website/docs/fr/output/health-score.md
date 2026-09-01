@@ -120,7 +120,7 @@ Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `Ca
 
 ### Duplication
 
-**Entrées.** `CodeDuplication` (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones, plafonné à 30 par le calcul en amont.
+**Entrées.** `CodeDuplication` (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones. La valeur n'est pas plafonnée ; la formule de pénalité ci-dessous sature d'elle-même à `DuplicationThresholdHigh`.
 
 **Formule.**
 
@@ -142,7 +142,7 @@ else:
 **Calcul en amont.** `CodeDuplication` est calculé dans `app/analyze_usecase.go` :
 
 ```
-CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+CodeDuplication = TotalClones / TotalFragments * 100
 ```
 
 Où `TotalClones` est le nombre de fragments uniques participant à au moins une paire ou un groupe de clones, et `TotalFragments` est le nombre total de fragments de code extraits (`domain/clone.go:128-131`).
