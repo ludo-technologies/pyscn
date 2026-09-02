@@ -45,6 +45,11 @@ func createTestAnalyzeResponse() *domain.AnalyzeResponse {
 			DeadCodeEnabled:       true,
 			CloneEnabled:          true,
 			CBOEnabled:            true,
+			LCOMEnabled:           true,
+			LCOMClasses:           8,
+			HighLCOMClasses:       1,
+			MediumLCOMClasses:     2,
+			AverageLCOM:           2.5,
 		},
 		Complexity: &domain.ComplexityResponse{
 			Functions: []domain.FunctionComplexity{
@@ -82,6 +87,14 @@ func createTestAnalyzeResponse() *domain.AnalyzeResponse {
 				HighRiskClasses:   1,
 				MediumRiskClasses: 2,
 				AverageCBO:        3.2,
+			},
+		},
+		LCOM: &domain.LCOMResponse{
+			Summary: domain.LCOMSummary{
+				TotalClasses:      8,
+				HighRiskClasses:   1,
+				MediumRiskClasses: 2,
+				AverageLCOM:       2.5,
 			},
 		},
 	}
@@ -162,6 +175,7 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 				"DEAD CODE DETECTION",
 				"CLONE DETECTION",
 				"DEPENDENCY ANALYSIS",
+				"COHESION ANALYSIS",
 			},
 		},
 		{
@@ -175,6 +189,7 @@ func TestAnalyzeFormatter_Write_Text(t *testing.T) {
 			notExpected: []string{
 				"COMPLEXITY ANALYSIS",
 				"DEAD CODE DETECTION",
+				"COHESION ANALYSIS",
 			},
 		},
 	}
@@ -543,6 +558,8 @@ func TestAnalyzeFormatter_Write_CSV(t *testing.T) {
 	assert.Contains(t, output, "Grade,B")
 	assert.Contains(t, output, "Total Files,10")
 	assert.Contains(t, output, "Analyzed Files,10")
+	assert.Contains(t, output, "High Cohesion Risk (LCOM4) Classes,1")
+	assert.Contains(t, output, "Average LCOM4,2.50")
 }
 
 func TestAnalyzeFormatter_Write_CSVIncludesModuleQuality(t *testing.T) {

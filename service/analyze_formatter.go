@@ -128,6 +128,15 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 
+	if response.Summary.LCOMEnabled {
+		fmt.Fprint(writer, utils.FormatSectionHeader("COHESION ANALYSIS"))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Classes Analyzed", response.Summary.LCOMClasses))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "High LCOM Classes", response.Summary.HighLCOMClasses))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Medium LCOM Classes", response.Summary.MediumLCOMClasses))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Average LCOM4", fmt.Sprintf("%.1f", response.Summary.AverageLCOM)))
+		fmt.Fprint(writer, utils.FormatSectionSeparator())
+	}
+
 	if len(response.ModuleQuality) > 0 {
 		fmt.Fprint(writer, utils.FormatSectionHeader("MODULE QUALITY HOTSPOTS"))
 		for index, module := range response.ModuleQuality {
@@ -176,7 +185,7 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 	if response.Complexity != nil {
 		directories = response.Complexity.ByDirectory
 	}
-	rowCapacity := 17 + len(response.Diagnostics) + len(response.Failures) + (12 * len(response.ModuleQuality))
+	rowCapacity := 20 + len(response.Diagnostics) + len(response.Failures) + (12 * len(response.ModuleQuality))
 	if response.Complexity != nil {
 		rowCapacity += 1 + (7 * len(directories))
 	}
@@ -203,6 +212,9 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 		[]string{"Total Classes Analyzed", fmt.Sprint(response.Summary.CBOClasses)},
 		[]string{"High Coupling (CBO) Classes", fmt.Sprint(response.Summary.HighCouplingClasses)},
 		[]string{"Average CBO", fmt.Sprintf("%.2f", response.Summary.AverageCoupling)},
+		[]string{"LCOM Classes Analyzed", fmt.Sprint(response.Summary.LCOMClasses)},
+		[]string{"High Cohesion Risk (LCOM4) Classes", fmt.Sprint(response.Summary.HighLCOMClasses)},
+		[]string{"Average LCOM4", fmt.Sprintf("%.2f", response.Summary.AverageLCOM)},
 		[]string{"Module Quality Count", fmt.Sprint(len(response.ModuleQuality))},
 	)
 	for _, diagnostic := range response.Diagnostics {
