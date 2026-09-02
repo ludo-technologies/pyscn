@@ -120,7 +120,7 @@ else:
 
 ### 重複
 
-**入力.** `CodeDuplication` (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。上流の計算で 30 に上限が設定されています。
+**入力.** `CodeDuplication` (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。この値にクランプはなく、下記のペナルティ計算式自体が `DuplicationThresholdHigh` で飽和します。
 
 **計算式.**
 
@@ -142,7 +142,7 @@ else:
 **上流の計算.** `CodeDuplication` 自体は `app/analyze_usecase.go` で計算されます:
 
 ```
-CodeDuplication = min(DuplicationThresholdHigh, TotalClones / TotalFragments * 100)
+CodeDuplication = TotalClones / TotalFragments * 100
 ```
 
 ここで `TotalClones` はクローンペアまたはグループに含まれるユニークなフラグメント数、`TotalFragments` は抽出されたコードフラグメントの総数です（`domain/clone.go:128-131`）。
