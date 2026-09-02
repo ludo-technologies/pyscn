@@ -988,7 +988,9 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		totalClones := response.Clone.Statistics.TotalClones
 
 		if totalFragments > 0 && totalClones > 0 {
-			summary.CodeDuplication = math.Min(domain.DuplicationThresholdHigh, float64(totalClones)/float64(totalFragments)*100)
+			// Store the true ratio; DuplicationPenalty saturates at
+			// DuplicationThresholdHigh on its own, so no clamp is needed here.
+			summary.CodeDuplication = float64(totalClones) / float64(totalFragments) * 100
 		}
 	}
 
