@@ -1062,9 +1062,13 @@ func (a *CBOAnalyzer) addDependency(dependencies *cboDependencies, className str
 
 	dependencies.all[className] = true
 
+	// A dependency reached through an imported name is recorded in the imports
+	// bucket for its provenance AND in the bucket for its usage kind below.
+	// Previously the import check returned early, which made the four kind
+	// counters unreachable for cross-module coupling (see #692). Buckets may
+	// therefore overlap and do not sum to CouplingCount.
 	if a.isImportedDependency(className) {
 		dependencies.imports[className] = true
-		return
 	}
 
 	switch kind {

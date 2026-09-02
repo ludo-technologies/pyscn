@@ -1781,6 +1781,47 @@ class TOKENS:
 	assert.Contains(t, tokens.DependentClasses, "ast.Attribute")
 }
 
+func TestCBOAnalyzer_ImportedDependenciesKeepKindBreakdown(t *testing.T) {
+	// A dependency reached through an imported name must be counted under its
+	// actual usage kind (inheritance, type hint, instantiation, ...) as well
+	// as in the imports bucket. Before #692 the import check returned early
+	// and the kind was dropped, so the four kind counters were always zero
+	// for cross-module coupling.
+	pythonCode := `
+from base import Base, Helper
+
+class Child(Base):
+    def __init__(self) -> None:
+        self.helper = Helper()
+
+    def make(self) -> Helper:
+        return Helper()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	child := resultMap["Child"]
+	require.NotNil(t, child)
+	assert.Equal(t, 2, child.CouplingCount)
+	assert.ElementsMatch(t, []string{"Base", "Helper"}, child.DependentClasses)
+	assert.Equal(t, 1, child.InheritanceDependencies, "Base is inherited")
+	assert.Equal(t, 1, child.TypeHintDependencies, "Helper is a return annotation")
+	assert.Equal(t, 1, child.InstantiationDependencies, "Helper is instantiated")
+	// Both dependencies arrive via the import, so the imports bucket keeps
+	// recording their provenance. Buckets overlap by design and do not sum
+	// to CouplingCount.
+	assert.Equal(t, 2, child.ImportDependencies)
+}
+
 func parseCode(code string) (*parser.Node, error) {
 	p := parser.New()
 	ctx := context.Background()
