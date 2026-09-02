@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.30.1] - 2026-09-03
+
+### Fixed
+- Add LCOM4 rows to the analyze text and CSV reports (#730)
+- Stop counting `elif` arms as extra nesting levels (#729)
+- Record the actual dependency kind for imported names in the CBO breakdown (#727)
+- Report the unclamped code duplication percentage (#726)
+- Restore the "reported / parsed" function indicator and fail fast on unset `AnalyzedFunctions` (#723)
+
 ## [1.30.0] - 2026-08-26
 
 ### Added
