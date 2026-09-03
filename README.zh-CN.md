@@ -10,9 +10,9 @@
   <img alt="pyscn" src="assets/logo-light.svg" width="320">
 </picture>
 
-**面向 Python 氛围编程者的代码质量分析工具。**
+**AI 编程时代的 Python 代码质量分析。**
 
-使用 Cursor、Claude 或 ChatGPT 开发？pyscn 通过结构化分析帮助保持代码库的可维护性。
+使用 Cursor、Claude 或 ChatGPT 开发？pyscn 通过结构化分析保持 AI 生成代码的可维护性。
 
 [![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
 [![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
