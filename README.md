@@ -10,9 +10,9 @@
   <img alt="pyscn" src="assets/logo-light.svg" width="320">
 </picture>
 
-**A code quality analyzer for Python vibe coders.**
+**Code quality analysis for Python in the age of AI coding.**
 
-Building with Cursor, Claude, or ChatGPT? pyscn performs structural analysis to keep your codebase maintainable.
+Building with Cursor, Claude, or ChatGPT? pyscn keeps AI-generated code maintainable with structural analysis.
 
 [![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
 [![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)

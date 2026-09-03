@@ -10,9 +10,9 @@
   <img alt="pyscn" src="assets/logo-light.svg" width="320">
 </picture>
 
-**Python のバイブコーダー向けコード品質アナライザー。**
+**AI コーディング時代の Python コード品質解析。**
 
-Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析により、コードベースの保守性を保ちます。
+Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析により、AI が生成したコードの保守性を保ちます。
 
 [![Article](https://img.shields.io/badge/dev.to-Article-0A0A0A?style=flat-square&logo=dev.to)](https://dev.to/daisukeyoda/pyscn-the-code-quality-analyzer-for-vibe-coders-18hk)
 [![PyPI](https://img.shields.io/pypi/v/pyscn?style=flat-square&logo=pypi)](https://pypi.org/project/pyscn/)
