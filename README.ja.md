@@ -183,9 +183,9 @@ directory = "reports"
 
 > ⚙️ `pyscn init` を実行すると、利用可能なすべてのオプションを含む完全な設定ファイルが生成されます
 
-## 毎週 CLI を実行したくないですか？
+## GitHub App もあります
 
-[GitHub に Polyscan をインストール](https://codescan.dev/pyscn-bot) — 毎週のヘルススコアを GitHub Issue として作成します。すべてのリポジトリで無料です。
+[GitHub に Polyscan をインストール](https://codescan.dev/pyscn-bot) — 毎週、コードベースのヘルススコアを GitHub Issue でお知らせします。すべてのリポジトリで無料です。
 
 ---
 
