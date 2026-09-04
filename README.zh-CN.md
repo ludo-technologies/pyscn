@@ -183,14 +183,9 @@ directory = "reports"
 
 > ⚙️ 运行 `pyscn init` 可生成包含所有可用选项的完整配置文件
 
-## Pyscn Bot（GitHub App）
+## 也可使用 GitHub App
 
-[Pyscn Bot](https://github.com/marketplace/pyscn-bot) 自动监控 Python 代码质量。
-
-### 功能
-
-- **PR 代码审查** - 在每个 Pull Request 上自动进行代码审查
-- **每周代码审计** - 扫描整个仓库并为架构问题创建 Issue
+[在 GitHub 上安装 Polyscan](https://codescan.dev/pyscn-bot) — 每周通过 GitHub Issue 报告代码库健康评分。所有仓库均可免费使用。
 
 ---
 
