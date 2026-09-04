@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -420,6 +421,45 @@ func TestCloneDetector_ClassifyClonePair(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
+}
+
+type stubSimilarityAnalyzer struct {
+	name string
+	sim  float64
+}
+
+func (s stubSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) float64 { return s.sim }
+func (s stubSimilarityAnalyzer) GetName() string                                { return s.name }
+
+func TestCloneDetector_SemanticType4SimilarityIsCapped(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.EnableMultiDimensionalAnalysis = true
+	config.EnableSemanticAnalysis = true
+	detector := NewCloneDetector(config)
+
+	// Force the classifier down the semantic Type-4 path with a raw semantic
+	// similarity above the Type-1 threshold.
+	detector.classifier.textualAnalyzer = nil
+	detector.classifier.syntacticAnalyzer = stubSimilarityAnalyzer{name: "syntactic", sim: 0}
+	detector.classifier.structuralAnalyzer = stubSimilarityAnalyzer{name: "structural", sim: 0}
+	detector.classifier.semanticAnalyzer = stubSimilarityAnalyzer{name: "semantic", sim: 0.98}
+
+	f1 := parseFirstFragmentWithContent(t, "a.py", "def a():\n    return 1\n")
+	f2 := parseFirstFragmentWithContent(t, "b.py", "def b():\n    return 2\n")
+
+	pair := detector.compareFragmentsWithClassifier(f1, f2)
+	require.NotNil(t, pair)
+	assert.Equal(t, Type4Clone, pair.CloneType)
+	// Non-textual pairs never report a Type-1-level similarity (#733).
+	assert.Less(t, pair.Similarity, config.Type1Threshold)
+	assert.Equal(t, math.Nextafter(config.Type1Threshold, 0), pair.Similarity)
+
+	// Below the threshold the measured similarity passes through unchanged.
+	detector.classifier.semanticAnalyzer = stubSimilarityAnalyzer{name: "semantic", sim: 0.7}
+	pair = detector.compareFragmentsWithClassifier(f1, f2)
+	require.NotNil(t, pair)
+	assert.Equal(t, Type4Clone, pair.CloneType)
+	assert.Equal(t, 0.7, pair.Similarity)
 }
 
 func TestCloneDetector_Type1RequiresTextualMatch(t *testing.T) {
