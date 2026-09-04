@@ -184,9 +184,9 @@ directory = "reports"
 
 > ⚙️ Run `pyscn init` to generate a full configuration file with all available options
 
-## Pyscn Bot (GitHub App)
+## Polyscan App (GitHub App)
 
-[Pyscn Bot](https://github.com/marketplace/pyscn-bot) monitors your Python code quality automatically.
+[Pyscn Bot](https://codescan.dev/ja/pyscn-bot) monitors your Python code quality automatically.
 
 ### Features
 
