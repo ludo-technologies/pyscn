@@ -183,14 +183,9 @@ directory = "reports"
 
 > ⚙️ `pyscn init` を実行すると、利用可能なすべてのオプションを含む完全な設定ファイルが生成されます
 
-## Pyscn Bot（GitHub App）
+## 毎週 CLI を実行したくないですか？
 
-[Pyscn Bot](https://github.com/marketplace/pyscn-bot) は Python コード品質を自動的に監視します。
-
-### 機能
-
-- **PR コードレビュー** - すべてのプルリクエストで自動コードレビュー
-- **週次コード監査** - リポジトリ全体をスキャンし、アーキテクチャ上の問題を Issue として作成
+[GitHub に Polyscan をインストール](https://codescan.dev/pyscn-bot) — 毎週のヘルススコアを GitHub Issue として作成します。すべてのリポジトリで無料です。
 
 ---
 
