@@ -157,6 +157,38 @@ class Dependency:
 	assert.InDelta(t, 0.0, response.ModuleMetrics[balancedService].Distance, 0.01)
 }
 
+func TestSystemAnalysisReportsImportResolutionDiagnosticsAndRootWarnings(t *testing.T) {
+	dir := t.TempDir()
+	consumer := filepath.Join(dir, "pkg", "consumer.py")
+	provider := filepath.Join(dir, "pkg", "provider.py")
+	require.NoError(t, os.MkdirAll(filepath.Dir(consumer), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte("[project]\nname = \"root-diagnostics\"\n"), 0o644))
+	require.NoError(t, os.WriteFile(consumer, []byte("from . import provider\nimport pkg.missing\n"), 0o644))
+	require.NoError(t, os.WriteFile(provider, []byte("value = 1\n"), 0o644))
+
+	service := NewSystemAnalysisService()
+	response, err := service.Analyze(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             []string{consumer, provider},
+		IncludeThirdParty: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, response.DependencyAnalysis)
+	assert.Equal(t, 1, response.DependencyAnalysis.ResolvedImports)
+	assert.Equal(t, 1, response.DependencyAnalysis.UnresolvedImports)
+	assert.Equal(t, 1, response.Summary.ResolvedImports)
+	assert.Equal(t, 1, response.Summary.UnresolvedImports)
+	assert.Contains(t, strings.Join(response.Warnings, "\n"), "unresolved")
+	assert.Contains(t, strings.Join(response.Warnings, "\n"), "project root")
+
+	response, err = service.Analyze(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             []string{consumer, provider},
+		ProjectRoot:       dir,
+		IncludeThirdParty: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, strings.Join(response.Warnings, "\n"), "inferred project root")
+}
+
 func TestAnalyzeBuildsEquivalentDependencyAndArchitectureResults(t *testing.T) {
 	dir := t.TempDir()
 	files := map[string]string{

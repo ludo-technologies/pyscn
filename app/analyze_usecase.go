@@ -46,8 +46,9 @@ type AnalyzeUseCaseConfig struct {
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
-	ConfigFile string
-	Verbose    bool
+	ConfigFile  string
+	ProjectRoot string
+	Verbose     bool
 }
 
 // AnalyzeRequestOverrides contains request-scoped values that take precedence
@@ -497,9 +498,13 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	// timings recorded by previous runs on this project (if any)
 	estimatedSeconds := uc.estimateTaskSeconds(len(allFiles), useCaseCfg, executionCfg)
 
+	projectRoot := useCaseCfg.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = service.FindProjectRoot(paths)
+	}
 	snapshot := service.BuildAnalysisProjectSnapshot(ctx, analysisFiles, moduleFiles, service.ProjectSnapshotOptions{
 		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
-		ProjectRoot:       service.FindProjectRoot(paths),
+		ProjectRoot:       projectRoot,
 	})
 
 	var moduleGraph *service.ProjectModuleGraph
@@ -751,7 +756,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					return nil, fmt.Errorf("prepare system analysis graph: %w", err)
 				}
 				request := domain.SystemAnalysisRequest{
-					Paths:                files,
+					Paths:                append([]string(nil), sourcePaths...),
+					ProjectRoot:          config.ProjectRoot,
 					Recursive:            domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns:      []string{},
 					ExcludePatterns:      []string{},

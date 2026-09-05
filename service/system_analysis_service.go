@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -111,12 +114,78 @@ func (s *SystemAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *ana
 		GeneratedAt:          time.Now(),
 		Duration:             time.Since(startTime).Milliseconds(),
 		Version:              version.Version,
-		Warnings:             warnings,
+		Warnings:             append(warnings, systemAnalysisWarnings(graph, req)...),
 		Errors:               analysisIssueMessages(issues),
 		Failures:             analyzerFailures(domain.AnalysisKindSystem, issues),
 	}
 
 	return response, nil
+}
+
+func systemAnalysisWarnings(graph *analyzer.DependencyGraph, req domain.SystemAnalysisRequest) []string {
+	if graph == nil {
+		return nil
+	}
+	warnings := make([]string, 0, 2)
+	if req.ProjectRoot == "" {
+		scopeRoot := analysisScopeRoot(req.Paths)
+		if scopeRoot != "" && !sameAnalysisPath(scopeRoot, graph.ProjectRoot) {
+			warnings = append(warnings, fmt.Sprintf("inferred project root %q differs from analyzed directory %q; use --project-root to make the analysis root explicit", graph.ProjectRoot, scopeRoot))
+		}
+	}
+	totalImports := graph.ResolvedImports + graph.UnresolvedImports
+	if totalImports > 0 && graph.UnresolvedImports*2 >= totalImports {
+		warnings = append(warnings, fmt.Sprintf("%d of %d internal imports remain unresolved; verify the project root or pass --project-root", graph.UnresolvedImports, totalImports))
+	}
+	return warnings
+}
+
+func analysisScopeRoot(paths []string) string {
+	if len(paths) == 0 {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return ""
+		}
+		return cwd
+	}
+
+	var roots []string
+	for _, path := range paths {
+		absolute, err := filepath.Abs(path)
+		if err != nil {
+			continue
+		}
+		if info, err := os.Stat(absolute); err == nil && !info.IsDir() {
+			absolute = filepath.Dir(absolute)
+		}
+		roots = append(roots, absolute)
+	}
+	if len(roots) == 0 {
+		return ""
+	}
+	common := roots[0]
+	for _, root := range roots[1:] {
+		for !pathWithinDirectory(root, common) {
+			parent := filepath.Dir(common)
+			if parent == common {
+				break
+			}
+			common = parent
+		}
+	}
+	return common
+}
+
+func sameAnalysisPath(left, right string) bool {
+	leftAbs, leftErr := filepath.Abs(left)
+	rightAbs, rightErr := filepath.Abs(right)
+	if leftErr != nil || rightErr != nil {
+		return filepath.Clean(left) == filepath.Clean(right)
+	}
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(filepath.Clean(leftAbs), filepath.Clean(rightAbs))
+	}
+	return filepath.Clean(leftAbs) == filepath.Clean(rightAbs)
 }
 
 func (s *SystemAnalysisServiceImpl) buildSystemAnalysisSummary(
@@ -130,6 +199,8 @@ func (s *SystemAnalysisServiceImpl) buildSystemAnalysisSummary(
 		summary.ProjectRoot = graph.ProjectRoot
 		summary.TotalModules = graph.TotalModules
 		summary.TotalDependencies = graph.TotalEdges
+		summary.ResolvedImports = graph.ResolvedImports
+		summary.UnresolvedImports = graph.UnresolvedImports
 		summary.TotalPackages = len(graph.GetPackages())
 	}
 
@@ -138,6 +209,8 @@ func (s *SystemAnalysisServiceImpl) buildSystemAnalysisSummary(
 	if dependencyResult != nil {
 		summary.TotalModules = dependencyResult.TotalModules
 		summary.TotalDependencies = dependencyResult.TotalDependencies
+		summary.ResolvedImports = dependencyResult.ResolvedImports
+		summary.UnresolvedImports = dependencyResult.UnresolvedImports
 		if packageCount := countSystemAnalysisPackages(dependencyResult.ModuleMetrics); packageCount > 0 {
 			summary.TotalPackages = packageCount
 		}
@@ -387,6 +460,8 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 		return &domain.DependencyAnalysisResult{
 			TotalModules:      0,
 			TotalDependencies: 0,
+			ResolvedImports:   graph.ResolvedImports,
+			UnresolvedImports: graph.UnresolvedImports,
 			RootModules:       []string{},
 			LeafModules:       []string{},
 			MaxDepth:          0,
@@ -437,6 +512,8 @@ func (s *SystemAnalysisServiceImpl) buildDependencyAnalysisResult(ctx context.Co
 	result := &domain.DependencyAnalysisResult{
 		TotalModules:         graph.TotalModules,
 		TotalDependencies:    graph.TotalEdges,
+		ResolvedImports:      graph.ResolvedImports,
+		UnresolvedImports:    graph.UnresolvedImports,
 		RootModules:          graph.GetRootModules(),
 		LeafModules:          graph.GetLeafModules(),
 		ModuleMetrics:        moduleMetrics,
@@ -573,7 +650,10 @@ func (s *SystemAnalysisServiceImpl) buildDependencyGraph(ctx context.Context, re
 		return nil, fmt.Errorf("module graph cancelled: %w", err)
 	}
 
-	projectRoot := FindProjectRoot(req.Paths)
+	projectRoot := req.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = FindProjectRoot(req.Paths)
+	}
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
 		IncludeStdLib:     req.IncludeStdLib,
