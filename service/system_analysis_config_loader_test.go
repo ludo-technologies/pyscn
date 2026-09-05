@@ -55,3 +55,14 @@ func TestSystemAnalysisConfigurationLoader_MergeConfigZeroValueKeepsBase(t *test
 		t.Errorf("expected include_stdlib true preserved, got %v", merged.IncludeStdLib)
 	}
 }
+
+func TestSystemAnalysisConfigurationLoader_MergesExplicitProjectRoot(t *testing.T) {
+	loader := NewSystemAnalysisConfigurationLoader()
+	base := loader.LoadDefaultConfig("")
+	base.ProjectRoot = "inferred"
+
+	merged := loader.MergeConfig(base, &domain.SystemAnalysisRequest{ProjectRoot: "explicit"})
+	if merged.ProjectRoot != "explicit" {
+		t.Fatalf("expected explicit project root to override base, got %q", merged.ProjectRoot)
+	}
+}

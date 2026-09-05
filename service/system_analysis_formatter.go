@@ -101,6 +101,8 @@ func (f *SystemAnalysisFormatterImpl) writeDependenciesSection(builder *strings.
 	stats := map[string]interface{}{
 		"Total Modules":      deps.TotalModules,
 		"Total Dependencies": deps.TotalDependencies,
+		"Resolved Imports":   deps.ResolvedImports,
+		"Unresolved Imports": deps.UnresolvedImports,
 		"Root Modules":       len(deps.RootModules),
 		"Leaf Modules":       len(deps.LeafModules),
 		"Max Depth":          deps.MaxDepth,
@@ -262,6 +264,8 @@ func (f *SystemAnalysisFormatterImpl) formatCSV(response *domain.SystemAnalysisR
 		// Dependency metrics
 		_ = writer.Write([]string{"Dependencies", "Total Modules", strconv.Itoa(response.DependencyAnalysis.TotalModules)})
 		_ = writer.Write([]string{"Dependencies", "Total Dependencies", strconv.Itoa(response.DependencyAnalysis.TotalDependencies)})
+		_ = writer.Write([]string{"Dependencies", "Resolved Imports", strconv.Itoa(response.DependencyAnalysis.ResolvedImports)})
+		_ = writer.Write([]string{"Dependencies", "Unresolved Imports", strconv.Itoa(response.DependencyAnalysis.UnresolvedImports)})
 		_ = writer.Write([]string{"Dependencies", "Root Modules", strconv.Itoa(len(response.DependencyAnalysis.RootModules))})
 		_ = writer.Write([]string{"Dependencies", "Leaf Modules", strconv.Itoa(len(response.DependencyAnalysis.LeafModules))})
 		_ = writer.Write([]string{"Dependencies", "Max Depth", strconv.Itoa(response.DependencyAnalysis.MaxDepth)})
@@ -478,6 +482,8 @@ func (f *SystemAnalysisFormatterImpl) writeHTMLDependenciesContent(builder *stri
 	builder.WriteString(`<div class="metric-grid">`)
 	builder.WriteString(GenerateMetricCard(strconv.Itoa(deps.TotalModules), "Total Modules"))
 	builder.WriteString(GenerateMetricCard(strconv.Itoa(deps.TotalDependencies), "Total Dependencies"))
+	builder.WriteString(GenerateMetricCard(strconv.Itoa(deps.ResolvedImports), "Resolved Imports"))
+	builder.WriteString(GenerateMetricCard(strconv.Itoa(deps.UnresolvedImports), "Unresolved Imports"))
 	builder.WriteString(GenerateMetricCard(strconv.Itoa(deps.MaxDepth), "Max Dependency Depth"))
 
 	if deps.CircularDependencies != nil {

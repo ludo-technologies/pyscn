@@ -94,11 +94,16 @@ type DependencyGraph struct {
 	Edges []*DependencyEdge      // All dependency relationships
 
 	// Graph metadata
-	TotalModules int      // Total number of modules
-	TotalEdges   int      // Total number of dependencies
-	RootModules  []string // Modules with no dependencies
-	LeafModules  []string // Modules with no dependents
-	ProjectRoot  string   // Project root directory
+	TotalModules int // Total number of modules
+	TotalEdges   int // Total number of dependencies
+	// ResolvedImports and UnresolvedImports count internal import statements,
+	// excluding standard-library and third-party imports that are not part of
+	// the analyzed graph.
+	ResolvedImports   int
+	UnresolvedImports int
+	RootModules       []string // Modules with no dependencies
+	LeafModules       []string // Modules with no dependents
+	ProjectRoot       string   // Project root directory
 
 	// Analysis results
 	CyclicGroups  [][]string                // Strongly connected components (cycles)
@@ -572,6 +577,8 @@ func (g *DependencyGraph) Clone() *DependencyGraph {
 
 	clone.TotalModules = g.TotalModules
 	clone.TotalEdges = g.TotalEdges
+	clone.ResolvedImports = g.ResolvedImports
+	clone.UnresolvedImports = g.UnresolvedImports
 	clone.RootModules = append([]string(nil), g.RootModules...)
 	clone.LeafModules = append([]string(nil), g.LeafModules...)
 	clone.CyclicGroups = make([][]string, len(g.CyclicGroups))

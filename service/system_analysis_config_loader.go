@@ -133,6 +133,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) MergeConfig(base *domain.System
 	}
 	merged.OutputPath = config.Merge(merged.OutputPath, override.OutputPath)
 	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
+	merged.ProjectRoot = config.Merge(merged.ProjectRoot, override.ProjectRoot)
 
 	// Boolean flags - CLI always takes precedence for explicit settings
 	merged.NoOpen = override.NoOpen

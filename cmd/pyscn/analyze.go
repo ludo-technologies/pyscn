@@ -60,8 +60,9 @@ type AnalyzeCommand struct {
 	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
 	// System analysis options
-	detectCycles bool // Detect circular dependencies
-	validateArch bool // Validate architecture rules
+	detectCycles bool   // Detect circular dependencies
+	validateArch bool   // Validate architecture rules
+	projectRoot  string // Explicit project root for import resolution
 }
 
 // NewAnalyzeCommand creates a new analyze command
@@ -123,7 +124,10 @@ Examples:
   pyscn analyze --min-complexity 10 --min-severity critical --min-cbo 5 src/
 
   # Skip dependency analysis
-  pyscn analyze --skip-cbo src/`,
+  pyscn analyze --skip-cbo src/
+
+  # Analyze a subdirectory with an explicit import-resolution root
+  pyscn analyze --project-root . src/`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runAnalyze,
 	}
@@ -136,6 +140,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.text, "text", false, "Generate plain-text report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
+	cmd.Flags().StringVar(&c.projectRoot, "project-root", "", "Project root used for module import resolution (overrides inference)")
 
 	// Analysis selection flags
 	cmd.Flags().BoolVar(&c.skipComplexity, "skip-complexity", false, "Skip complexity analysis")
@@ -182,6 +187,20 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	default:
 		return fmt.Errorf("invalid --min-severity value %q (expected: critical, warning, info)", c.minSeverity)
 	}
+	if c.projectRoot != "" {
+		absoluteRoot, err := filepath.Abs(c.projectRoot)
+		if err != nil {
+			return fmt.Errorf("invalid --project-root %q: %w", c.projectRoot, err)
+		}
+		info, err := os.Stat(absoluteRoot)
+		if err != nil {
+			return fmt.Errorf("invalid --project-root %q: %w", c.projectRoot, err)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("invalid --project-root %q: path is not a directory", c.projectRoot)
+		}
+		c.projectRoot = absoluteRoot
+	}
 
 	// Create use case configuration
 	config := c.createUseCaseConfig()
@@ -226,6 +245,7 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 	config := app.AnalyzeUseCaseConfig{
 		ConfigFile:              c.configFile,
+		ProjectRoot:             c.projectRoot,
 		Verbose:                 c.verbose,
 		MinComplexity:           c.minComplexity,
 		CloneSimilarity:         c.cloneSimilarity,
@@ -508,6 +528,11 @@ func getScoreIcon(score int) string {
 // printSummary prints a summary of the analysis results
 func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.AnalyzeResponse) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n📊 Analysis Summary:\n")
+	if response.System != nil && len(response.System.Warnings) > 0 {
+		for _, warning := range response.System.Warnings {
+			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  %s\n", warning)
+		}
+	}
 	fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (Grade: %s)\n", response.Summary.HealthScore, response.Summary.Grade)
 	// Restate the shortfall next to the score. The per-file warnings are
 	// printed before the analysis runs and scroll away, which is how an

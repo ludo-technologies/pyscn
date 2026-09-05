@@ -13,6 +13,16 @@ Dependency analysis examines the `import` relationships between Python modules i
 
 Understanding these relationships is critical for maintaining a healthy codebase. Excessive coupling, deep dependency chains, and circular imports all increase the cost of change and the risk of introducing bugs.
 
+### Project-root diagnostics
+
+The `analyze` command accepts `--project-root` when the analyzed path is a
+subdirectory or when automatic marker-based inference is ambiguous. The
+explicit root is used for module naming and import resolution. System-analysis
+reports include `resolved_imports` and `unresolved_imports` counts for internal
+imports. A visible warning is emitted when the inferred root differs from the
+analyzed directory, or when at least half of the detected internal imports are
+unresolved.
+
 ## Module Dependency Graph Construction
 
 ### Data Model

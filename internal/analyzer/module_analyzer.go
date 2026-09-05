@@ -372,6 +372,7 @@ func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph
 		// circular-dependency detection. See issue #460.
 
 		targetModule := ma.resolveImport(graph, imp, parsedModule.path, capturedOnly)
+		ma.recordImportResolution(graph, imp, parsedModule.path, targetModule)
 		if targetModule == "" {
 			continue
 		}
@@ -388,6 +389,81 @@ func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph
 	}
 
 	return nil
+}
+
+// recordImportResolution tracks internal imports separately from imports that
+// are intentionally outside the analyzed project (stdlib and third-party
+// dependencies). This keeps the diagnostic ratio useful when third-party
+// fallback is enabled.
+func (ma *ModuleAnalyzer) recordImportResolution(graph *DependencyGraph, imp *ImportInfo, fromFile, targetModule string) {
+	if graph == nil || imp == nil {
+		return
+	}
+	moduleName := ma.moduleNameFromImport(imp)
+	if moduleName == "" || (!imp.IsRelative && ma.isStandardLibrary(moduleName)) {
+		return
+	}
+
+	if ma.isLikelyInternalImport(graph, imp, fromFile, targetModule) {
+		if targetModule != "" && ma.importTargetsAnalyzedModule(graph, imp, targetModule) {
+			graph.ResolvedImports++
+			return
+		}
+		graph.UnresolvedImports++
+	}
+}
+
+func (ma *ModuleAnalyzer) importTargetsAnalyzedModule(graph *DependencyGraph, imp *ImportInfo, targetModule string) bool {
+	if graph == nil || targetModule == "" {
+		return false
+	}
+	for _, target := range ma.importDependencyTargets(graph, imp, targetModule) {
+		if graph.GetModule(target) != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (ma *ModuleAnalyzer) isLikelyInternalImport(graph *DependencyGraph, imp *ImportInfo, fromFile, targetModule string) bool {
+	if imp.IsRelative {
+		return true
+	}
+	moduleName := ma.moduleNameFromImport(imp)
+	if moduleName == "" || ma.isStandardLibrary(moduleName) {
+		return false
+	}
+	if ma.importTargetsAnalyzedModule(graph, imp, targetModule) || ma.hasProjectImport(moduleName, fromFile) {
+		return true
+	}
+
+	// A missing module under a namespace already represented in the graph is
+	// likely an internal import. This catches the common wrong-root case where
+	// the resolver gives the captured files a different qualified name.
+	namespace := moduleName
+	if dot := strings.IndexByte(namespace, '.'); dot >= 0 {
+		namespace = namespace[:dot]
+	}
+	for name := range graph.Nodes {
+		if name == namespace || strings.HasPrefix(name, namespace+".") {
+			return true
+		}
+	}
+	return false
+}
+
+func (ma *ModuleAnalyzer) hasProjectImport(moduleName, fromFile string) bool {
+	searchPaths := append([]string{
+		filepath.Dir(fromFile),
+		filepath.Dir(filepath.Dir(fromFile)),
+	}, ma.moduleRoots...)
+	for _, searchPath := range searchPaths {
+		modulePath := filepath.Join(searchPath, strings.ReplaceAll(moduleName, ".", string(filepath.Separator)))
+		if ma.resolveModuleFile(modulePath) != "" || ma.resolvePackageInit(modulePath) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (ma *ModuleAnalyzer) dependencyEdgeType(imp *ImportInfo) DependencyEdgeType {

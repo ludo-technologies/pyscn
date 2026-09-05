@@ -12,6 +12,9 @@ type SystemAnalysisRequest struct {
 	// Input files or directories to analyze
 	Paths []string
 
+	// ProjectRoot overrides automatic project-root inference when set.
+	ProjectRoot string
+
 	// Output configuration
 	OutputFormat OutputFormat
 	OutputWriter io.Writer
@@ -80,6 +83,8 @@ type SystemAnalysisSummary struct {
 	TotalPackages     int    `json:"total_packages" yaml:"total_packages"`         // Total number of packages
 	TotalDependencies int    `json:"total_dependencies" yaml:"total_dependencies"` // Total dependency relationships
 	ProjectRoot       string `json:"project_root" yaml:"project_root"`             // Project root directory
+	ResolvedImports   int    `json:"resolved_imports" yaml:"resolved_imports"`     // Internal imports resolved to analyzed modules
+	UnresolvedImports int    `json:"unresolved_imports" yaml:"unresolved_imports"` // Internal imports that could not be resolved
 
 	// Quality scores (0-100, higher is better)
 	OverallQualityScore  float64 `json:"overall_quality_score" yaml:"overall_quality_score"` // Composite quality score
@@ -106,6 +111,8 @@ type DependencyAnalysisResult struct {
 	// Dependency graph information
 	TotalModules      int      `json:"total_modules" yaml:"total_modules"`           // Total number of modules
 	TotalDependencies int      `json:"total_dependencies" yaml:"total_dependencies"` // Total number of dependencies
+	ResolvedImports   int      `json:"resolved_imports" yaml:"resolved_imports"`     // Internal imports resolved to analyzed modules
+	UnresolvedImports int      `json:"unresolved_imports" yaml:"unresolved_imports"` // Internal imports that could not be resolved
 	RootModules       []string `json:"root_modules" yaml:"root_modules"`             // Modules with no dependencies
 	LeafModules       []string `json:"leaf_modules" yaml:"leaf_modules"`             // Modules with no dependents
 
