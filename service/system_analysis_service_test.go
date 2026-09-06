@@ -189,6 +189,25 @@ func TestSystemAnalysisReportsImportResolutionDiagnosticsAndRootWarnings(t *test
 	assert.NotContains(t, strings.Join(response.Warnings, "\n"), "inferred project root")
 }
 
+func TestSystemAnalysisRootWarningComparesAgainstWorkingDirectory(t *testing.T) {
+	root := t.TempDir()
+	srcDir := filepath.Join(root, "src")
+	require.NoError(t, os.MkdirAll(srcDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte("[tool.pyscn]\n"), 0o644))
+	consumer := filepath.Join(srcDir, "consumer.py")
+	provider := filepath.Join(srcDir, "provider.py")
+	require.NoError(t, os.WriteFile(consumer, []byte("from . import provider\n"), 0o644))
+	require.NoError(t, os.WriteFile(provider, []byte("value = 1\n"), 0o644))
+
+	t.Chdir(root)
+	response, err := NewSystemAnalysisService().Analyze(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             []string{filepath.Join("src", "consumer.py"), filepath.Join("src", "provider.py")},
+		IncludeThirdParty: domain.BoolPtr(false),
+	})
+	require.NoError(t, err)
+	assert.NotContains(t, strings.Join(response.Warnings, "\n"), "inferred project root")
+}
+
 func TestAnalyzeBuildsEquivalentDependencyAndArchitectureResults(t *testing.T) {
 	dir := t.TempDir()
 	files := map[string]string{

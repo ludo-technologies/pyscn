@@ -7,17 +7,12 @@ import (
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func TestAnalyzeCommandSupportsExplicitProjectRoot(t *testing.T) {
+func TestAnalyzeCommandDoesNotExposeProjectRootFlag(t *testing.T) {
 	command := NewAnalyzeCommand()
 	flag := command.CreateCobraCommand().Flags().Lookup("project-root")
-	require.NotNil(t, flag)
-	assert.Equal(t, "", flag.DefValue)
-
-	command.projectRoot = "project"
-	assert.Equal(t, "project", command.createUseCaseConfig().ProjectRoot)
+	assert.Nil(t, flag)
 }
 
 func TestAnalyzeSummaryPrintsSystemWarnings(t *testing.T) {

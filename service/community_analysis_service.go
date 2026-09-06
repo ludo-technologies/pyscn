@@ -132,7 +132,10 @@ func (s *CommunityAnalysisServiceImpl) buildDependencyGraph(ctx context.Context,
 	if len(rootPaths) == 0 {
 		rootPaths = req.Paths
 	}
-	projectRoot := FindProjectRoot(rootPaths)
+	projectRoot := req.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = FindProjectRoot(rootPaths)
+	}
 	options := &analyzer.ModuleAnalysisOptions{
 		ProjectRoot:       projectRoot,
 		IncludeStdLib:     req.IncludeStdLib,

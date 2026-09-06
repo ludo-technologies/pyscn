@@ -18,6 +18,7 @@ type ToolConfig struct {
 
 // PyprojectPyscnSection represents the [tool.pyscn] section in pyproject.toml
 type PyprojectPyscnSection struct {
+	ProjectRoot    string                   `toml:"project_root"`
 	Complexity     ComplexityTomlConfig     `toml:"complexity"`
 	DeadCode       DeadCodeTomlConfig       `toml:"dead_code"`
 	Output         OutputTomlConfig         `toml:"output"`
@@ -47,7 +48,12 @@ func LoadPyprojectConfig(startDir string) (*PyscnConfig, error) {
 		return nil, err
 	}
 
-	return loadPyprojectConfigData(data)
+	config, err := loadPyprojectConfigData(data)
+	if err != nil {
+		return nil, err
+	}
+	applyConfigProjectRoot(config, configPath)
+	return config, nil
 }
 
 // LoadPyprojectConfigFromFile loads configuration from a specific pyproject.toml file path.
@@ -57,7 +63,12 @@ func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
 		return nil, err
 	}
 
-	return loadPyprojectConfigData(data)
+	config, err := loadPyprojectConfigData(data)
+	if err != nil {
+		return nil, err
+	}
+	applyConfigProjectRoot(config, filePath)
+	return config, nil
 }
 
 func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
@@ -69,6 +80,7 @@ func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
 
 	// Merge with defaults using shared merge logic
 	config := DefaultPyscnConfig()
+	config.ProjectRoot = pyproject.Tool.Pyscn.ProjectRoot
 	mergeComplexitySection(config, &pyproject.Tool.Pyscn.Complexity)
 	mergeDeadCodeSection(config, &pyproject.Tool.Pyscn.DeadCode)
 	mergeOutputSection(config, &pyproject.Tool.Pyscn.Output)

@@ -128,52 +128,15 @@ func systemAnalysisWarnings(graph *analyzer.DependencyGraph, req domain.SystemAn
 	}
 	warnings := make([]string, 0, 2)
 	if req.ProjectRoot == "" {
-		scopeRoot := analysisScopeRoot(req.Paths)
-		if scopeRoot != "" && !sameAnalysisPath(scopeRoot, graph.ProjectRoot) {
-			warnings = append(warnings, fmt.Sprintf("inferred project root %q differs from analyzed directory %q; use --project-root to make the analysis root explicit", graph.ProjectRoot, scopeRoot))
+		if cwd, err := os.Getwd(); err == nil && !sameAnalysisPath(cwd, graph.ProjectRoot) {
+			warnings = append(warnings, fmt.Sprintf("inferred project root %q differs from current working directory %q; set project_root in the configuration to make the analysis root explicit", graph.ProjectRoot, cwd))
 		}
 	}
 	totalImports := graph.ResolvedImports + graph.UnresolvedImports
 	if totalImports > 0 && graph.UnresolvedImports*2 >= totalImports {
-		warnings = append(warnings, fmt.Sprintf("%d of %d internal imports remain unresolved; verify the project root or pass --project-root", graph.UnresolvedImports, totalImports))
+		warnings = append(warnings, fmt.Sprintf("%d of %d internal imports remain unresolved; verify the project root or set project_root in the configuration", graph.UnresolvedImports, totalImports))
 	}
 	return warnings
-}
-
-func analysisScopeRoot(paths []string) string {
-	if len(paths) == 0 {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return ""
-		}
-		return cwd
-	}
-
-	var roots []string
-	for _, path := range paths {
-		absolute, err := filepath.Abs(path)
-		if err != nil {
-			continue
-		}
-		if info, err := os.Stat(absolute); err == nil && !info.IsDir() {
-			absolute = filepath.Dir(absolute)
-		}
-		roots = append(roots, absolute)
-	}
-	if len(roots) == 0 {
-		return ""
-	}
-	common := roots[0]
-	for _, root := range roots[1:] {
-		for !pathWithinDirectory(root, common) {
-			parent := filepath.Dir(common)
-			if parent == common {
-				break
-			}
-			common = parent
-		}
-	}
-	return common
 }
 
 func sameAnalysisPath(left, right string) bool {

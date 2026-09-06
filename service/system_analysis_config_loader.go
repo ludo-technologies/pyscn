@@ -74,6 +74,7 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	if rules := ArchitectureRulesFromPyscnConfig(cfg); rules != nil {
 		request.ArchitectureRules = rules
 	}
+	request.ProjectRoot = cfg.ProjectRoot
 
 	// Analysis settings (include/exclude patterns)
 	if cfg.HasExplicitAnalysisIncludePatterns() {
@@ -89,10 +90,10 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) pyscnConfigToSystemAnalysisRequ
 	return request
 }
 
-// LoadDefaultConfig returns the built-in defaults. System analysis config is
-// resolved by the caller, so there is nothing to discover from targetPath.
+// LoadDefaultConfig returns built-in defaults and discovers project config when
+// a target path is available.
 func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig(targetPath string) *domain.SystemAnalysisRequest {
-	return &domain.SystemAnalysisRequest{
+	defaults := &domain.SystemAnalysisRequest{
 		OutputFormat:                    domain.OutputFormatText,
 		AnalyzeDependencies:             domain.BoolPtr(true),
 		AnalyzeArchitecture:             domain.BoolPtr(true),
@@ -111,6 +112,16 @@ func (cl *SystemAnalysisConfigurationLoaderImpl) LoadDefaultConfig(targetPath st
 		IncludePatterns:                 domain.DefaultPythonModuleIncludePatterns(),
 		ExcludePatterns:                 domain.DefaultAnalysisExcludePatterns(),
 	}
+	if targetPath == "" {
+		return defaults
+	}
+	tomlLoader := config.NewTomlConfigLoader()
+	if configPath, err := tomlLoader.ResolveConfigPath("", targetPath); err == nil && configPath != "" {
+		if cfg, err := tomlLoader.LoadConfig(configPath); err == nil {
+			return cl.pyscnConfigToSystemAnalysisRequest(cfg)
+		}
+	}
+	return defaults
 }
 
 // MergeConfig merges CLI flags with configuration file

@@ -31,9 +31,13 @@ func (l *AnalyzeConfigurationLoaderImpl) LoadAnalyzeExecutionConfig(configPath s
 		return defaultAnalyzeExecutionConfig(), nil
 	}
 
-	cfg, err := config.LoadConfig(resolvedConfigPath)
+	pyscnCfg, err := tomlLoader.LoadConfig(resolvedConfigPath)
 	if err != nil {
 		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("failed to load configuration: %w", err)
+	}
+	cfg := config.PyscnConfigToConfig(pyscnCfg)
+	if err := cfg.Validate(); err != nil {
+		return domain.AnalyzeExecutionConfig{}, fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	overrides, err := loadAnalyzeEnabledOverrides(resolvedConfigPath)
@@ -43,6 +47,7 @@ func (l *AnalyzeConfigurationLoaderImpl) LoadAnalyzeExecutionConfig(configPath s
 
 	executionCfg := analyzeExecutionConfigFromConfig(cfg, overrides)
 	executionCfg.ConfigPath = resolvedConfigPath
+	executionCfg.ProjectRoot = pyscnCfg.ProjectRoot
 
 	return executionCfg, nil
 }

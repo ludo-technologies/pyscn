@@ -26,6 +26,7 @@ type CommunityAnalysisRequest struct {
 
 	// Configuration
 	ConfigPath      string
+	ProjectRoot     string
 	Recursive       *bool
 	IncludePatterns []string
 	ExcludePatterns []string

@@ -3,6 +3,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/app"
@@ -31,9 +32,12 @@ func analyzeArchitecture(t *testing.T, dir string) *domain.ArchitectureAnalysisR
 	t.Helper()
 	uc := newArchitectureUseCase()
 	var buf bytes.Buffer
+	projectRoot, err := filepath.Abs(dir)
+	require.NoError(t, err)
 	result, err := uc.AnalyzeArchitectureOnly(context.Background(), domain.SystemAnalysisRequest{
 		Paths:        []string{dir},
 		ConfigPath:   dir,
+		ProjectRoot:  projectRoot,
 		OutputFormat: domain.OutputFormatJSON,
 		OutputWriter: &buf,
 	})

@@ -17,7 +17,8 @@ type AnalyzeOutputFormatter interface {
 // AnalyzeExecutionConfig contains the resolved configuration that AnalyzeUseCase
 // needs after config file discovery and loading.
 type AnalyzeExecutionConfig struct {
-	ConfigPath string
+	ConfigPath  string
+	ProjectRoot string
 
 	IncludePatterns []string
 	ExcludePatterns []string

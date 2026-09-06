@@ -46,9 +46,8 @@ type AnalyzeUseCaseConfig struct {
 	// Clone detection options
 	EnableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
 
-	ConfigFile  string
-	ProjectRoot string
-	Verbose     bool
+	ConfigFile string
+	Verbose    bool
 }
 
 // AnalyzeRequestOverrides contains request-scoped values that take precedence
@@ -498,7 +497,7 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	// timings recorded by previous runs on this project (if any)
 	estimatedSeconds := uc.estimateTaskSeconds(len(allFiles), useCaseCfg, executionCfg)
 
-	projectRoot := useCaseCfg.ProjectRoot
+	projectRoot := executionCfg.ProjectRoot
 	if projectRoot == "" {
 		projectRoot = service.FindProjectRoot(paths)
 	}
@@ -757,7 +756,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 				}
 				request := domain.SystemAnalysisRequest{
 					Paths:                append([]string(nil), sourcePaths...),
-					ProjectRoot:          config.ProjectRoot,
+					ProjectRoot:          executionCfg.ProjectRoot,
 					Recursive:            domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns:      []string{},
 					ExcludePatterns:      []string{},
@@ -798,6 +797,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:      domain.OutputFormatJSON,
 					OutputWriter:      io.Discard,
 					ConfigPath:        config.ConfigFile,
+					ProjectRoot:       executionCfg.ProjectRoot,
 					IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraph.IncludeStdLib),
 					IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
 					FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),

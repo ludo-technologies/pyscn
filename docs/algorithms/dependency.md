@@ -15,13 +15,20 @@ Understanding these relationships is critical for maintaining a healthy codebase
 
 ### Project-root diagnostics
 
-The `analyze` command accepts `--project-root` when the analyzed path is a
-subdirectory or when automatic marker-based inference is ambiguous. The
-explicit root is used for module naming and import resolution. System-analysis
+The project root is taken from the directory containing the discovered
+`.pyscn.toml` or `pyproject.toml` file. An optional top-level `project_root`
+setting can select a path relative to that configuration file, for example:
+
+```toml
+project_root = "src"
+```
+
+This setting is shared by every command that builds a module graph. Without a
+configuration file, pyscn falls back to marker-based inference. System-analysis
 reports include `resolved_imports` and `unresolved_imports` counts for internal
 imports. A visible warning is emitted when the inferred root differs from the
-analyzed directory, or when at least half of the detected internal imports are
-unresolved.
+current working directory, or when at least half of the detected internal
+imports are unresolved.
 
 ## Module Dependency Graph Construction
 
