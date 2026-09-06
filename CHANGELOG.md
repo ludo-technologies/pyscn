@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.30.2] - 2026-09-06
+
+### Fixed
+- Prefer the discovered config directory as the project root, add an optional `project_root` config key, and report internal import resolution counts in all reports (#740)
+- Keep system analysis `LoadDefaultConfig` free of config discovery (#745)
+
+### Changed
+- Bump Go dependencies (#725)
+
 ## [1.30.1] - 2026-09-03
 
 ### Fixed
