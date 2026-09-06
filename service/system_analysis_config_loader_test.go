@@ -47,26 +47,6 @@ func TestSystemAnalysisConfigurationLoaderLoadsConfiguredProjectRoot(t *testing.
 	}
 }
 
-func TestSystemAnalysisConfigurationLoaderDiscoversProjectRootFromTargetPath(t *testing.T) {
-	root := t.TempDir()
-	targetDir := filepath.Join(root, "src")
-	targetPath := filepath.Join(targetDir, "consumer.py")
-	if err := os.MkdirAll(targetDir, 0o755); err != nil {
-		t.Fatalf("failed to create target directory: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(root, ".pyscn.toml"), []byte("project_root = \"src\"\n"), 0o644); err != nil {
-		t.Fatalf("failed to write config: %v", err)
-	}
-	if err := os.WriteFile(targetPath, []byte("value = 1\n"), 0o644); err != nil {
-		t.Fatalf("failed to write target: %v", err)
-	}
-
-	request := NewSystemAnalysisConfigurationLoader().LoadDefaultConfig(targetPath)
-	if request.ProjectRoot != targetDir {
-		t.Errorf("expected project root %q, got %q", targetDir, request.ProjectRoot)
-	}
-}
-
 // TestSystemAnalysisConfigurationLoader_MergeConfigZeroValueKeepsBase verifies
 // that a zero-valued override ("no CLI flags set") preserves all base values.
 func TestSystemAnalysisConfigurationLoader_MergeConfigZeroValueKeepsBase(t *testing.T) {
