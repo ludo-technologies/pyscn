@@ -10,6 +10,10 @@ import (
 // PyscnConfig represents the universal pyscn configuration from TOML files
 // This holds all configuration sections that can be loaded from .pyscn.toml or pyproject.toml
 type PyscnConfig struct {
+	// ProjectRoot is the effective absolute project root resolved from the
+	// configuration file location and its optional project_root value.
+	ProjectRoot string `mapstructure:"project_root" yaml:"project_root" json:"project_root"`
+
 	// Clone Analysis Configuration
 	Analysis CloneAnalysisConfig `mapstructure:"analysis" yaml:"analysis" json:"analysis"`
 

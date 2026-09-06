@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/app"
@@ -49,6 +50,7 @@ func analyzeCommunityFixture(t *testing.T, fixtureDir string) *domain.CommunityA
 	result, err := uc.AnalyzeAndReturn(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            []string{absDir},
 		SourcePaths:      []string{absDir},
+		ProjectRoot:      absDir,
 		OutputWriter:     ioDiscard{},
 		OutputFormat:     domain.OutputFormatJSON,
 		Recursive:        domain.BoolPtr(true),
@@ -214,6 +216,7 @@ func TestCommunity_DeterministicRepeatedRuns(t *testing.T) {
 	req := domain.CommunityAnalysisRequest{
 		Paths:            []string{absDir},
 		SourcePaths:      []string{absDir},
+		ProjectRoot:      absDir,
 		OutputWriter:     ioDiscard{},
 		OutputFormat:     domain.OutputFormatJSON,
 		Recursive:        domain.BoolPtr(true),
@@ -259,6 +262,7 @@ func TestCommunity_AnalyzeUseCase_SelectCommunities(t *testing.T) {
 		SkipSystem:         true,
 		SkipCommunities:    false,
 		SelectAnalysesUsed: true,
+		ConfigFile:         communityFixtureConfig(t, absDir),
 	}, []string{absDir})
 	require.NoError(t, err)
 	require.NotNil(t, response)
@@ -291,6 +295,14 @@ func TestCommunity_AnalyzeUseCase_SelectCommunities(t *testing.T) {
 	require.NoError(t, err)
 
 	assertCommunityJSONEqual(t, expected, buf.Bytes())
+}
+
+func communityFixtureConfig(t *testing.T, projectRoot string) string {
+	t.Helper()
+	configPath := filepath.Join(t.TempDir(), ".pyscn.toml")
+	content := []byte("project_root = " + strconv.Quote(projectRoot) + "\n")
+	require.NoError(t, os.WriteFile(configPath, content, 0o644))
+	return configPath
 }
 
 func communityIDs(result *domain.CommunityAnalysisResult) []string {

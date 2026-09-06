@@ -13,6 +13,23 @@ Dependency analysis examines the `import` relationships between Python modules i
 
 Understanding these relationships is critical for maintaining a healthy codebase. Excessive coupling, deep dependency chains, and circular imports all increase the cost of change and the risk of introducing bugs.
 
+### Project-root diagnostics
+
+The project root is taken from the directory containing the discovered
+`.pyscn.toml` or `pyproject.toml` file. An optional top-level `project_root`
+setting can select a path relative to that configuration file, for example:
+
+```toml
+project_root = "src"
+```
+
+This setting is shared by every command that builds a module graph. Without a
+configuration file, pyscn falls back to marker-based inference. System-analysis
+reports include `resolved_imports` and `unresolved_imports` counts for internal
+imports. A visible warning is emitted when the inferred root differs from the
+current working directory, or when at least half of the detected internal
+imports are unresolved.
+
 ## Module Dependency Graph Construction
 
 ### Data Model

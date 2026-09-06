@@ -497,9 +497,13 @@ func (uc *AnalyzeUseCase) executeProject(ctx context.Context, useCaseCfg Analyze
 	// timings recorded by previous runs on this project (if any)
 	estimatedSeconds := uc.estimateTaskSeconds(len(allFiles), useCaseCfg, executionCfg)
 
+	projectRoot := executionCfg.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = service.FindProjectRoot(paths)
+	}
 	snapshot := service.BuildAnalysisProjectSnapshot(ctx, analysisFiles, moduleFiles, service.ProjectSnapshotOptions{
 		IncludeRawMetrics: uc.complexityUseCase != nil && !useCaseCfg.SkipComplexity,
-		ProjectRoot:       service.FindProjectRoot(paths),
+		ProjectRoot:       projectRoot,
 	})
 
 	var moduleGraph *service.ProjectModuleGraph
@@ -751,7 +755,8 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					return nil, fmt.Errorf("prepare system analysis graph: %w", err)
 				}
 				request := domain.SystemAnalysisRequest{
-					Paths:                files,
+					Paths:                append([]string(nil), sourcePaths...),
+					ProjectRoot:          executionCfg.ProjectRoot,
 					Recursive:            domain.BoolPtr(executionCfg.Recursive),
 					IncludePatterns:      []string{},
 					ExcludePatterns:      []string{},
@@ -792,6 +797,7 @@ func (uc *AnalyzeUseCase) createAnalysisTasks(config AnalyzeUseCaseConfig, sourc
 					OutputFormat:      domain.OutputFormatJSON,
 					OutputWriter:      io.Discard,
 					ConfigPath:        config.ConfigFile,
+					ProjectRoot:       executionCfg.ProjectRoot,
 					IncludeStdLib:     domain.BoolPtr(executionCfg.ModuleGraph.IncludeStdLib),
 					IncludeThirdParty: domain.BoolPtr(executionCfg.ModuleGraph.IncludeThirdParty),
 					FollowRelative:    domain.BoolPtr(executionCfg.ModuleGraph.FollowRelative),

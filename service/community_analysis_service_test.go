@@ -24,6 +24,7 @@ func TestCommunityAnalysisService_Analyze_FixtureProject(t *testing.T) {
 	service := NewCommunityAnalysisService()
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:        files,
+		ProjectRoot:  fixtureRoot,
 		OutputFormat: domain.OutputFormatJSON,
 	})
 	require.NoError(t, err)
@@ -48,6 +49,7 @@ func TestCommunityAnalysisService_Analyze_MinimalSingleModule(t *testing.T) {
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:       files,
 		SourcePaths: []string{fixtureRoot},
+		ProjectRoot: fixtureRoot,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -103,6 +105,7 @@ func TestCommunityAnalysisService_Analyze_IsolatedModulesNoEdges(t *testing.T) {
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:       files,
 		SourcePaths: []string{fixtureRoot},
+		ProjectRoot: fixtureRoot,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -124,6 +127,7 @@ func TestCommunityAnalysisService_Analyze_PackageMismatch_BridgeFixture(t *testi
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -152,6 +156,7 @@ func TestCommunityAnalysisService_Analyze_PackageMismatch_SeparatedFixture(t *te
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -174,6 +179,7 @@ func TestCommunityAnalysisService_Analyze_PackageMismatch_MixedFixture(t *testin
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -204,6 +210,7 @@ func analyzeCommunityFixtureForRisk(t *testing.T, fixture string) *domain.Commun
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -242,6 +249,7 @@ func TestCommunityAnalysisService_RiskScore_IndependentOfBridgeReporting(t *test
 	base := domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	}
 
@@ -276,6 +284,7 @@ func TestCommunityAnalysisService_Analyze_Deterministic(t *testing.T) {
 	req := domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	}
 	service := NewCommunityAnalysisService()
@@ -309,6 +318,7 @@ func TestCommunityAnalysisService_Analyze_LayerMismatch_BridgeFixture(t *testing
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -331,6 +341,7 @@ func TestCommunityAnalysisService_Analyze_LayerMismatch_AlignedFixture(t *testin
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -353,6 +364,7 @@ func TestCommunityAnalysisService_Analyze_LayerMismatch_MixedFixture(t *testing.
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)
@@ -385,6 +397,7 @@ func TestCommunityAnalysisService_Analyze_LayerMismatch_OmittedWithoutArchitectu
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)

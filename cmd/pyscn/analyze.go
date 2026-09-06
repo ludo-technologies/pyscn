@@ -124,6 +124,7 @@ Examples:
 
   # Skip dependency analysis
   pyscn analyze --skip-cbo src/`,
+
 		Args: cobra.MinimumNArgs(1),
 		RunE: c.runAnalyze,
 	}
@@ -182,7 +183,6 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	default:
 		return fmt.Errorf("invalid --min-severity value %q (expected: critical, warning, info)", c.minSeverity)
 	}
-
 	// Create use case configuration
 	config := c.createUseCaseConfig()
 
@@ -508,6 +508,11 @@ func getScoreIcon(score int) string {
 // printSummary prints a summary of the analysis results
 func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.AnalyzeResponse) {
 	fmt.Fprintf(cmd.ErrOrStderr(), "\n📊 Analysis Summary:\n")
+	if response.System != nil && len(response.System.Warnings) > 0 {
+		for _, warning := range response.System.Warnings {
+			fmt.Fprintf(cmd.ErrOrStderr(), "⚠️  %s\n", warning)
+		}
+	}
 	fmt.Fprintf(cmd.ErrOrStderr(), "Health Score: %d/100 (Grade: %s)\n", response.Summary.HealthScore, response.Summary.Grade)
 	// Restate the shortfall next to the score. The per-file warnings are
 	// printed before the analysis runs and scroll away, which is how an
