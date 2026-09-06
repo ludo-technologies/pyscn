@@ -10,7 +10,9 @@ import (
 
 func TestCommunityConfigurationLoader_LoadConfig(t *testing.T) {
 	tempDir := t.TempDir()
-	configContent := `[communities]
+	configContent := `project_root = "src"
+
+[communities]
 enabled = true
 algorithm = "leiden"
 scope = "module"
@@ -47,6 +49,10 @@ resolution = 1.25
 	}
 	if req.Resolution != 1.25 {
 		t.Errorf("expected resolution 1.25, got %f", req.Resolution)
+	}
+	wantRoot := filepath.Join(tempDir, "src")
+	if req.ProjectRoot != wantRoot {
+		t.Errorf("expected project root %q, got %q", wantRoot, req.ProjectRoot)
 	}
 }
 

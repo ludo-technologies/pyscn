@@ -183,14 +183,9 @@ directory = "reports"
 
 > ⚙️ Exécutez `pyscn init` pour générer un fichier de configuration complet avec toutes les options disponibles
 
-## Pyscn Bot (GitHub App)
+## Une GitHub App est également disponible
 
-[Pyscn Bot](https://github.com/marketplace/pyscn-bot) surveille automatiquement la qualité de votre code Python.
-
-### Fonctionnalités
-
-- **Revue de code sur les PR** - Revue automatique sur chaque pull request
-- **Audit hebdomadaire du code** - Analyse l'ensemble du dépôt et crée des issues pour les problèmes architecturaux
+[Installez Polyscan sur GitHub](https://codescan.dev/pyscn-bot) — recevez chaque semaine le score de santé de votre code dans une issue GitHub. Gratuit pour tous les dépôts.
 
 ---
 

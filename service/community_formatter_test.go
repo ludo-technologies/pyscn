@@ -399,6 +399,7 @@ func analyzeCommunityBridgeFixture(t *testing.T) *domain.CommunityAnalysisResult
 	result, err := service.Analyze(context.Background(), domain.CommunityAnalysisRequest{
 		Paths:            files,
 		SourcePaths:      []string{fixtureRoot},
+		ProjectRoot:      fixtureRoot,
 		MinCommunitySize: 2,
 	})
 	require.NoError(t, err)

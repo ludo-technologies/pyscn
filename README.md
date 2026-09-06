@@ -184,14 +184,9 @@ directory = "reports"
 
 > ⚙️ Run `pyscn init` to generate a full configuration file with all available options
 
-## Polyscan App (GitHub App)
+## Don't want to run the CLI every week?
 
-[Pyscn Bot](https://codescan.dev/ja/pyscn-bot) monitors your Python code quality automatically.
-
-### Features
-
-- **PR Code Review** - Automatic code review on every pull request
-- **Weekly Code Audit** - Scans your entire repository and creates issues for architectural problems
+[Install Polyscan on GitHub](https://codescan.dev/pyscn-bot) — it files a weekly health score as a GitHub Issue. Free for every repository.
 
 ---
 

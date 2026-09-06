@@ -435,6 +435,9 @@ func (n *noOpSystemAnalysisConfigLoader) MergeConfig(base *domain.SystemAnalysis
 	if override.ConfigPath != "" {
 		merged.ConfigPath = override.ConfigPath
 	}
+	if override.ProjectRoot != "" {
+		merged.ProjectRoot = override.ProjectRoot
+	}
 
 	// NoOpen is a caller-only execution flag, not a persisted configuration.
 	merged.NoOpen = override.NoOpen

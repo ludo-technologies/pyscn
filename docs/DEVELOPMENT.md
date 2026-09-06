@@ -134,6 +134,8 @@ Supported configuration file names (in priority order):
 
 ```toml
 # .pyscn.toml or [tool.pyscn] section in pyproject.toml
+project_root = "src"  # Optional; relative to this configuration file
+
 [output]
 directory = "reports"  # Output directory for generated reports
 

@@ -55,6 +55,47 @@ func TestLoadComplexityFromPyscnToml(t *testing.T) {
 	}
 }
 
+func TestTomlConfigLoaderResolvesProjectRootFromConfig(t *testing.T) {
+	configDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(configDir, ".pyscn.toml"), []byte("project_root = \"src\"\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := NewTomlConfigLoader().LoadConfig(configDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	want, err := filepath.Abs(filepath.Join(configDir, "src"))
+	if err != nil {
+		t.Fatalf("failed to resolve expected root: %v", err)
+	}
+	if cfg.ProjectRoot != want {
+		t.Fatalf("expected project root %q, got %q", want, cfg.ProjectRoot)
+	}
+}
+
+func TestPyprojectConfigDefaultsProjectRootToConfigDirectory(t *testing.T) {
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, "pyproject.toml")
+	if err := os.WriteFile(configPath, []byte("[tool.pyscn]\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := LoadPyprojectConfig(configDir)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	want, err := filepath.Abs(configDir)
+	if err != nil {
+		t.Fatalf("failed to resolve expected root: %v", err)
+	}
+	if cfg.ProjectRoot != want {
+		t.Fatalf("expected project root %q, got %q", want, cfg.ProjectRoot)
+	}
+}
+
 func TestLoadComplexityFromPyscnTomlPartial(t *testing.T) {
 	// Create temporary directory
 	tempDir := t.TempDir()

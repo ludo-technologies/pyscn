@@ -53,3 +53,18 @@ func TestFindProjectRoot_UsesPathComponentBoundaries(t *testing.T) {
 	got := FindProjectRoot([]string{pkg, pkgExtra})
 	assert.Equal(t, root, got)
 }
+
+func TestFindProjectRoot_UsesConfiguredProjectRoot(t *testing.T) {
+	root := t.TempDir()
+	srcDir := filepath.Join(root, "src")
+	require.NoError(t, os.MkdirAll(srcDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".pyscn.toml"), []byte("project_root = \"src\"\n"), 0o644))
+	file := filepath.Join(root, "package", "module.py")
+	require.NoError(t, os.MkdirAll(filepath.Dir(file), 0o755))
+	require.NoError(t, os.WriteFile(file, []byte("pass\n"), 0o644))
+
+	got := FindProjectRoot([]string{file})
+	want, err := filepath.Abs(srcDir)
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}

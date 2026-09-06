@@ -113,6 +113,9 @@ lsh_auto_threshold = 123
 		if cfg.ConfigPath != configPath {
 			t.Errorf("expected config path %q, got %q", configPath, cfg.ConfigPath)
 		}
+		if cfg.ProjectRoot != projectDir {
+			t.Errorf("expected project root %q, got %q", projectDir, cfg.ProjectRoot)
+		}
 		if cfg.Recursive {
 			t.Error("expected recursive false")
 		}

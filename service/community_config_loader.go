@@ -59,6 +59,7 @@ func (cl *CommunityConfigurationLoaderImpl) MergeConfig(base *domain.CommunityAn
 	merged.NoOpen = override.NoOpen
 
 	merged.ConfigPath = config.Merge(merged.ConfigPath, override.ConfigPath)
+	merged.ProjectRoot = config.Merge(merged.ProjectRoot, override.ProjectRoot)
 	merged.Recursive = config.MergePtr(merged.Recursive, override.Recursive)
 	merged.IncludePatterns = config.MergeSlice(merged.IncludePatterns, override.IncludePatterns)
 	merged.ExcludePatterns = config.MergeSlice(merged.ExcludePatterns, override.ExcludePatterns)
@@ -85,6 +86,7 @@ func (cl *CommunityConfigurationLoaderImpl) configToRequest(pyscnCfg *config.Pys
 	}
 
 	req := domain.DefaultCommunityAnalysisRequest()
+	req.ProjectRoot = pyscnCfg.ProjectRoot
 	req.Algorithm = pyscnCfg.CommunitiesAlgorithm
 	req.Scope = pyscnCfg.CommunitiesScope
 	req.MinCommunitySize = pyscnCfg.CommunitiesMinCommunitySize

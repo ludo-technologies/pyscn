@@ -20,6 +20,8 @@ const (
 
 // PyscnTomlConfig represents the structure of .pyscn.toml
 type PyscnTomlConfig struct {
+	// ProjectRoot is resolved relative to the directory containing the config file.
+	ProjectRoot    string                   `toml:"project_root"`
 	Complexity     ComplexityTomlConfig     `toml:"complexity"`      // [complexity] section
 	DeadCode       DeadCodeTomlConfig       `toml:"dead_code"`       // [dead_code] section
 	Output         OutputTomlConfig         `toml:"output"`          // [output] section
@@ -341,6 +343,7 @@ func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
 
 	defaults := DefaultPyscnConfig()
 	l.mergePyscnTomlConfigs(defaults, &parsed)
+	applyConfigProjectRoot(defaults, filePath)
 	return defaults, nil
 }
 
@@ -376,6 +379,7 @@ func (l *TomlConfigLoader) loadFromPyscnToml(startDir string) (*PyscnConfig, err
 	// Merge with defaults
 	defaults := DefaultPyscnConfig()
 	l.mergePyscnTomlConfigs(defaults, &config)
+	applyConfigProjectRoot(defaults, configPath)
 
 	return defaults, nil
 }
@@ -520,9 +524,36 @@ func normalizeSearchDir(path string) (string, error) {
 	return absPath, nil
 }
 
+// applyConfigProjectRoot resolves the configured project root against the
+// directory containing the config file. A config file without an explicit
+// project_root uses its own directory as the project root.
+func applyConfigProjectRoot(cfg *PyscnConfig, configPath string) {
+	if cfg == nil || configPath == "" {
+		return
+	}
+
+	configDir, err := filepath.Abs(filepath.Dir(configPath))
+	if err != nil {
+		return
+	}
+	if cfg.ProjectRoot == "" {
+		cfg.ProjectRoot = configDir
+		return
+	}
+	if filepath.IsAbs(cfg.ProjectRoot) {
+		cfg.ProjectRoot = filepath.Clean(cfg.ProjectRoot)
+		return
+	}
+	cfg.ProjectRoot = filepath.Join(configDir, cfg.ProjectRoot)
+}
+
 // mergePyscnTomlConfigs merges .pyscn.toml config into defaults
 // using pointer booleans to detect unset values
 func (l *TomlConfigLoader) mergePyscnTomlConfigs(defaults *PyscnConfig, pyscnToml *PyscnTomlConfig) {
+	if pyscnToml.ProjectRoot != "" {
+		defaults.ProjectRoot = pyscnToml.ProjectRoot
+	}
+
 	// Merge from [complexity] section using shared merge logic
 	mergeComplexitySection(defaults, &pyscnToml.Complexity)
 
