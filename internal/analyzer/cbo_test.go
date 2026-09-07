@@ -1099,6 +1099,72 @@ class Builder:
 	assert.Equal(t, 1, builder.ImportDependencies)
 }
 
+func TestCBOAnalyzer_FromImportNamespaceMembersAreGrouped(t *testing.T) {
+	// Regression test for #732: "from pkg import mod" binds a namespace exactly
+	// like "import pkg.mod as mod", so its members must collapse to one edge.
+	// A CapWords binding may be a class, so it keeps per-member identity.
+	pythonCode := `
+from pkgmod import serialization
+from pkg import _enums as reflection
+from models import Widget
+
+class FromImportUser:
+    def run(self):
+        return serialization.Encoding.DER, serialization.PrivateFormat.X, serialization.NoEncryption()
+
+class AliasedFromImportUser:
+    def run(self, card):
+        return card == reflection.Cardinality.One or card == reflection.Cardinality.Many
+
+class ClassBindingUser:
+    def build(self, inner: Widget.Inner):
+        return Widget.create()
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyze := func(t *testing.T, group bool) map[string]*CBOResult {
+		options := DefaultCBOOptions()
+		options.GroupNamespaceImports = group
+
+		results, err := NewCBOAnalyzer(options).AnalyzeClasses(ast, "main.py")
+		require.NoError(t, err)
+		require.Len(t, results, 3)
+
+		byName := make(map[string]*CBOResult, len(results))
+		for _, result := range results {
+			byName[result.ClassName] = result
+		}
+		return byName
+	}
+
+	t.Run("group namespace imports", func(t *testing.T) {
+		byName := analyze(t, true)
+
+		fromImport := byName["FromImportUser"]
+		assert.Equal(t, []string{"serialization"}, fromImport.DependentClasses, "serialization.* should collapse to one edge")
+		assert.Equal(t, 1, fromImport.CouplingCount)
+		assert.Equal(t, 1, fromImport.ImportDependencies)
+
+		aliased := byName["AliasedFromImportUser"]
+		assert.Equal(t, []string{"reflection"}, aliased.DependentClasses)
+		assert.Equal(t, 1, aliased.CouplingCount)
+
+		classBinding := byName["ClassBindingUser"]
+		assert.Equal(t, []string{"Widget", "Widget.Inner"}, classBinding.DependentClasses, "a CapWords binding is not treated as a namespace")
+		assert.Equal(t, 2, classBinding.CouplingCount)
+	})
+
+	t.Run("keep per-member edges when disabled", func(t *testing.T) {
+		byName := analyze(t, false)
+
+		fromImport := byName["FromImportUser"]
+		assert.Equal(t, []string{"serialization.Encoding", "serialization.NoEncryption", "serialization.PrivateFormat"}, fromImport.DependentClasses)
+		assert.Equal(t, 3, fromImport.CouplingCount)
+	})
+}
+
 func TestCBOAnalyzer_NonAliasedModuleMembersAreNotGrouped(t *testing.T) {
 	pythonCode := `
 import datetime
