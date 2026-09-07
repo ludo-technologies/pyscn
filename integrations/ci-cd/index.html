@@ -3597,17 +3597,15 @@
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>pyscn<span class="w"> </span>check<span class="w"> </span>--config<span class="w"> </span>packages/tooling/.pyscn.toml<span class="w"> </span>packages/tooling
 </span></code></pre></div>
 <h2 id="pr-comment-from-json">PR comment from JSON<a class="headerlink" href="#pr-comment-from-json" title="Permanent link">&para;</a></h2>
-<p><code>pyscn analyze --json</code> writes to a timestamped file in <code>.pyscn/reports/</code>, not stdout. Pick up the generated file:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--no-open<span class="w"> </span>.
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nv">report</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-t<span class="w"> </span>.pyscn/reports/analyze_*.json<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="s1">  "## pyscn report\n" +</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="s1">  "- **Health Score:** " + (.summary.health_score | tostring) + " / 100 (" + .summary.grade + ")\n" +</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="s1">  "- Complexity: " + (.summary.complexity_score | tostring) + "\n" +</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="s1">  "- Dead code: " + (.summary.dead_code_score | tostring) + "\n"</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="s1">'</span><span class="w"> </span><span class="s2">"</span><span class="nv">$report</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span>comment.md
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="nv">$PR_NUMBER</span><span class="w"> </span>--body-file<span class="w"> </span>comment.md
+<p><code>pyscn analyze --json --output -</code> writes the report to stdout instead of a timestamped file in <code>.pyscn/reports/</code>, so it can be piped straight into <code>jq</code>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--output<span class="w"> </span>-<span class="w"> </span>.<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="s1">  "## pyscn report\n" +</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="s1">  "- **Health Score:** " + (.summary.health_score | tostring) + " / 100 (" + .summary.grade + ")\n" +</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="s1">  "- Complexity: " + (.summary.complexity_score | tostring) + "\n" +</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="s1">  "- Dead code: " + (.summary.dead_code_score | tostring) + "\n"</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="s1">'</span><span class="w"> </span>&gt;<span class="w"> </span>comment.md
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>gh<span class="w"> </span>pr<span class="w"> </span>comment<span class="w"> </span><span class="nv">$PR_NUMBER</span><span class="w"> </span>--body-file<span class="w"> </span>comment.md
 </span></code></pre></div>
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
