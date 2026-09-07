@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.31.0] - 2026-09-07
+
+### Added
+- `-o, --output <path>` flag for `analyze`; `-` streams the report to stdout and skips `.pyscn/reports/` (#748)
+
+### Fixed
+- Serialize empty `complexity.functions` and `dead_code` collections as `[]` instead of `null` (#747)
+- Cap semantic Type-4 clone similarity below the Type-1 threshold, matching the other clone types (#735)
+
 ## [1.30.2] - 2026-09-06
 
 ### Fixed
