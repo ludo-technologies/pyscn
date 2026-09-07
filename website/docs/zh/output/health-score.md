@@ -128,7 +128,7 @@ else:
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 ```
 
 **常量。**
@@ -136,7 +136,7 @@ else:
 | 名称                         | 值    | 含义                        |
 | ---------------------------- | ----- | --------------------------- |
 | `DuplicationThresholdLow`    | 0.0   | 0% 片段被克隆 = 0 惩罚     |
-| `DuplicationThresholdHigh`   | 30.0  | 30% 片段被克隆 = 最大惩罚  |
+| `DuplicationThresholdHigh`   | 60.0  | 60% 片段被克隆 = 最大惩罚  |
 | max                          | 20.0  | 惩罚上限                    |
 
 **上游计算。** `CodeDuplication` 本身在 `app/analyze_usecase.go` 中计算：
@@ -147,7 +147,7 @@ CodeDuplication = TotalClones / TotalFragments * 100
 
 其中 `TotalClones` 是至少参与一个克隆对或克隆组的唯一片段数量，`TotalFragments` 是提取出的代码片段总数（`domain/clone.go:128-131`）。
 
-**饱和。** 当 `CodeDuplication >= 30.0` 时达到 20。
+**饱和。** 当 `CodeDuplication >= 60.0` 时达到 20。
 
 **边界情况。** 无克隆片段或无分析片段 → `CodeDuplication = 0` → 惩罚 0。`Validate()` 拒绝 `[0, 100]` 范围外的值。
 

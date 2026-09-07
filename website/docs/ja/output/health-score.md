@@ -128,7 +128,7 @@ else:
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 ```
 
 **定数.**
@@ -136,7 +136,7 @@ else:
 | 名前                         | 値    | 意味                          |
 | ---------------------------- | ----- | ----------------------------- |
 | `DuplicationThresholdLow`    | 0.0   | クローン対象 0% = ペナルティ 0 |
-| `DuplicationThresholdHigh`   | 30.0  | クローン対象 30% = 最大ペナルティ |
+| `DuplicationThresholdHigh`   | 60.0  | クローン対象 60% = 最大ペナルティ |
 | max                          | 20.0  | ペナルティ上限                |
 
 **上流の計算.** `CodeDuplication` 自体は `app/analyze_usecase.go` で計算されます:
@@ -147,7 +147,7 @@ CodeDuplication = TotalClones / TotalFragments * 100
 
 ここで `TotalClones` はクローンペアまたはグループに含まれるユニークなフラグメント数、`TotalFragments` は抽出されたコードフラグメントの総数です（`domain/clone.go:128-131`）。
 
-**飽和.** `CodeDuplication >= 30.0` で 20 に到達します。
+**飽和.** `CodeDuplication >= 60.0` で 20 に到達します。
 
 **エッジケース.** クローン対象フラグメントなし、または分析対象フラグメントなしの場合 → `CodeDuplication = 0` → ペナルティ 0。`Validate()` は `[0, 100]` の範囲外の値を拒否します。
 
