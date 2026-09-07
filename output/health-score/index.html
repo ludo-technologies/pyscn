@@ -3853,7 +3853,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>else:
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 </span></code></pre></div>
 <p><strong>Constants.</strong></p>
 <table>
@@ -3872,8 +3872,8 @@
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
-<td>30.0</td>
-<td>30% fragments cloned = max penalty</td>
+<td>60.0</td>
+<td>60% fragments cloned = max penalty</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3886,7 +3886,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>Where <code>TotalClones</code> is the number of unique fragments that participate in at least one clone pair or group, and <code>TotalFragments</code> is the total number of extracted code fragments (<code>domain/clone.go:128-131</code>).</p>
-<p><strong>Saturation.</strong> Reaches 20 when <code>CodeDuplication &gt;= 30.0</code>.</p>
+<p><strong>Saturation.</strong> Reaches 20 when <code>CodeDuplication &gt;= 60.0</code>.</p>
 <p><strong>Edge cases.</strong> No clone fragments or no fragments analyzed → <code>CodeDuplication = 0</code> → penalty 0. <code>Validate()</code> rejects values outside <code>[0, 100]</code>.</p>
 <p>Source: <code>domain/analyze.go:336-350</code>.</p>
 <h3 id="coupling-cbo">Coupling (CBO)<a class="headerlink" href="#coupling-cbo" title="Permanent link">&para;</a></h3>

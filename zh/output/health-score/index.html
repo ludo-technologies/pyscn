@@ -3853,7 +3853,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>else:
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 </span></code></pre></div>
 <p><strong>常量。</strong></p>
 <table>
@@ -3872,8 +3872,8 @@
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
-<td>30.0</td>
-<td>30% 片段被克隆 = 最大惩罚</td>
+<td>60.0</td>
+<td>60% 片段被克隆 = 最大惩罚</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3886,7 +3886,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>其中 <code>TotalClones</code> 是至少参与一个克隆对或克隆组的唯一片段数量，<code>TotalFragments</code> 是提取出的代码片段总数（<code>domain/clone.go:128-131</code>）。</p>
-<p><strong>饱和。</strong> 当 <code>CodeDuplication &gt;= 30.0</code> 时达到 20。</p>
+<p><strong>饱和。</strong> 当 <code>CodeDuplication &gt;= 60.0</code> 时达到 20。</p>
 <p><strong>边界情况。</strong> 无克隆片段或无分析片段 → <code>CodeDuplication = 0</code> → 惩罚 0。<code>Validate()</code> 拒绝 <code>[0, 100]</code> 范围外的值。</p>
 <p>来源：<code>domain/analyze.go:336-350</code>。</p>
 <h3 id="cbo">耦合度（CBO）<a class="headerlink" href="#cbo" title="Permanent link">&para;</a></h3>

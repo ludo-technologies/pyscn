@@ -3853,7 +3853,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>else:
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 </span></code></pre></div>
 <p><strong>定数.</strong></p>
 <table>
@@ -3872,8 +3872,8 @@
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
-<td>30.0</td>
-<td>クローン対象 30% = 最大ペナルティ</td>
+<td>60.0</td>
+<td>クローン対象 60% = 最大ペナルティ</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3886,7 +3886,7 @@
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
 </span></code></pre></div>
 <p>ここで <code>TotalClones</code> はクローンペアまたはグループに含まれるユニークなフラグメント数、<code>TotalFragments</code> は抽出されたコードフラグメントの総数です（<code>domain/clone.go:128-131</code>）。</p>
-<p><strong>飽和.</strong> <code>CodeDuplication &gt;= 30.0</code> で 20 に到達します。</p>
+<p><strong>飽和.</strong> <code>CodeDuplication &gt;= 60.0</code> で 20 に到達します。</p>
 <p><strong>エッジケース.</strong> クローン対象フラグメントなし、または分析対象フラグメントなしの場合 → <code>CodeDuplication = 0</code> → ペナルティ 0。<code>Validate()</code> は <code>[0, 100]</code> の範囲外の値を拒否します。</p>
 <p>ソース: <code>domain/analyze.go:336-350</code>。</p>
 <h3 id="cbo">結合度（CBO）<a class="headerlink" href="#cbo" title="Permanent link">&para;</a></h3>
