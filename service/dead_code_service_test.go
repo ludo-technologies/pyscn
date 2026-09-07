@@ -111,6 +111,20 @@ func TestDeadCodeService_Analyze(t *testing.T) {
 		}
 	})
 
+	t.Run("clean file serializes files as empty list", func(t *testing.T) {
+		filePath := t.TempDir() + "/clean.py"
+		require.NoError(t, os.WriteFile(filePath, []byte("def f():\n    return 1\n"), 0o644))
+
+		response, err := service.Analyze(ctx, newDefaultDeadCodeRequest(filePath))
+
+		require.NoError(t, err)
+		require.NotNil(t, response.Files)
+		assert.Empty(t, response.Files)
+		data, err := json.Marshal(response)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), `"files":[]`)
+	})
+
 	t.Run("module rollups ignore severity filters", func(t *testing.T) {
 		filePath := "../testdata/python/edge_cases/dead_code_examples.py"
 		infoRequest := newDefaultDeadCodeRequest(filePath)
@@ -334,6 +348,7 @@ func TestDeadCodeService_FilterFiles(t *testing.T) {
 		assert.Equal(t, "file1.py", filtered[0].FilePath)
 		assert.Equal(t, "file2.py", filtered[1].FilePath)
 		assert.Equal(t, "class.py", filtered[2].FilePath)
+		assert.NotNil(t, filtered[2].Functions)
 		assert.Empty(t, filtered[2].Functions)
 		require.Len(t, filtered[2].ClassScopes, 1)
 		assert.Equal(t, 1, filtered[2].AffectedClassScopes)
@@ -393,6 +408,13 @@ func TestDeadCodeService_FilterFindingsBySeverity(t *testing.T) {
 		filtered := service.filterFindingsBySeverity(findings, domain.DeadCodeSeverityInfo)
 
 		assert.Len(t, filtered, 4)
+	})
+
+	t.Run("no matches yields empty list, not nil", func(t *testing.T) {
+		filtered := service.filterFindingsBySeverity(findings[:1], domain.DeadCodeSeverityCritical)
+
+		require.NotNil(t, filtered)
+		assert.Empty(t, filtered)
 	})
 }
 

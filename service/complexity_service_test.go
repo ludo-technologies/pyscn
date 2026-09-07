@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
@@ -200,6 +201,23 @@ def resolve(value):
 				assert.GreaterOrEqual(t, function.Metrics.Complexity, 5)
 			}
 		}
+	})
+
+	t.Run("filtered-out functions serialize as empty list", func(t *testing.T) {
+		filePath := t.TempDir() + "/trivial.py"
+		require.NoError(t, os.WriteFile(filePath, []byte("def f():\n    return 1\n"), 0o644))
+
+		req := newDefaultComplexityRequest(filePath)
+		req.MinComplexity = 5
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response.Functions)
+		assert.Empty(t, response.Functions)
+		data, err := json.Marshal(response)
+		require.NoError(t, err)
+		assert.Contains(t, string(data), `"functions":[]`)
 	})
 
 	t.Run("report_unchanged false filters complexity one functions", func(t *testing.T) {

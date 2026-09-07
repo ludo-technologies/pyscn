@@ -342,7 +342,7 @@ func (s *DeadCodeServiceImpl) analyzeCFGs(filePath string, cfgs analyzer.Control
 
 // convertToFunctionDeadCode converts analyzer results to domain model
 func (s *DeadCodeServiceImpl) convertToFunctionDeadCode(result *analyzer.DeadCodeResult, req domain.DeadCodeRequest) domain.FunctionDeadCode {
-	var findings []domain.DeadCodeFinding
+	findings := make([]domain.DeadCodeFinding, 0, len(result.Findings))
 
 	for _, analyzerFinding := range result.Findings {
 		if !shouldIncludeDeadCodeFinding(analyzerFinding.Reason, req) {
@@ -415,11 +415,11 @@ func (s *DeadCodeServiceImpl) convertSeverity(analyzerSeverity analyzer.Severity
 
 // filterFiles filters files based on request criteria
 func (s *DeadCodeServiceImpl) filterFiles(files []domain.FileDeadCode, req domain.DeadCodeRequest) []domain.FileDeadCode {
-	var filtered []domain.FileDeadCode
+	filtered := make([]domain.FileDeadCode, 0, len(files))
 
 	for _, file := range files {
 		// Filter both public scope collections without merging their counters.
-		var filteredFunctions []domain.FunctionDeadCode
+		filteredFunctions := make([]domain.FunctionDeadCode, 0, len(file.Functions))
 		for _, function := range file.Functions {
 			if function.HasFindingsAtSeverity(req.MinSeverity) {
 				filteredFunctions = append(filteredFunctions, function)
@@ -449,7 +449,7 @@ func (s *DeadCodeServiceImpl) filterFiles(files []domain.FileDeadCode, req domai
 
 // filterFindingsBySeverity filters findings by minimum severity level
 func (s *DeadCodeServiceImpl) filterFindingsBySeverity(findings []domain.DeadCodeFinding, minSeverity domain.DeadCodeSeverity) []domain.DeadCodeFinding {
-	var filtered []domain.DeadCodeFinding
+	filtered := make([]domain.DeadCodeFinding, 0, len(findings))
 	for _, finding := range findings {
 		if finding.Severity.IsAtLeast(minSeverity) {
 			filtered = append(filtered, finding)
