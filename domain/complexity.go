@@ -428,7 +428,7 @@ func SortComplexityScopesBy(scopes []FunctionComplexity, sortBy SortCriteria) ([
 }
 
 func sortComplexityScopes(scopes []FunctionComplexity, sortBy SortCriteria) []FunctionComplexity {
-	scopes = append([]FunctionComplexity(nil), scopes...)
+	scopes = append(make([]FunctionComplexity, 0, len(scopes)), scopes...)
 	sort.SliceStable(scopes, func(i, j int) bool {
 		left, right := scopes[i], scopes[j]
 		switch sortBy {
