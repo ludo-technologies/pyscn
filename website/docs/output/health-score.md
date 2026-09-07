@@ -128,7 +128,7 @@ Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateH
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 ```
 
 **Constants.**
@@ -136,7 +136,7 @@ else:
 | Name                         | Value | Meaning                          |
 | ---------------------------- | ----- | -------------------------------- |
 | `DuplicationThresholdLow`    | 0.0   | 0% fragments cloned = 0 penalty  |
-| `DuplicationThresholdHigh`   | 30.0  | 30% fragments cloned = max penalty |
+| `DuplicationThresholdHigh`   | 60.0  | 60% fragments cloned = max penalty |
 | max                          | 20.0  | Penalty cap                      |
 
 **Upstream computation.** `CodeDuplication` itself is computed in `app/analyze_usecase.go`:
@@ -147,7 +147,7 @@ CodeDuplication = TotalClones / TotalFragments * 100
 
 Where `TotalClones` is the number of unique fragments that participate in at least one clone pair or group, and `TotalFragments` is the total number of extracted code fragments (`domain/clone.go:128-131`).
 
-**Saturation.** Reaches 20 when `CodeDuplication >= 30.0`.
+**Saturation.** Reaches 20 when `CodeDuplication >= 60.0`.
 
 **Edge cases.** No clone fragments or no fragments analyzed → `CodeDuplication = 0` → penalty 0. `Validate()` rejects values outside `[0, 100]`.
 
