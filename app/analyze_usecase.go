@@ -885,9 +885,10 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 // buildResponse builds the analyze response from task results
 func (uc *AnalyzeUseCase) buildResponse(tasks []*analysisTask, startTime time.Time, pathIndex analysisPathIndex, coverage domain.AnalysisCoverage) (*domain.AnalyzeResponse, error) {
 	response := &domain.AnalyzeResponse{
-		GeneratedAt: time.Now(),
-		Duration:    time.Since(startTime).Milliseconds(),
-		Diagnostics: coverage.Diagnostics,
+		SchemaVersion: domain.AnalyzeSchemaVersion,
+		GeneratedAt:   time.Now(),
+		Duration:      time.Since(startTime).Milliseconds(),
+		Diagnostics:   coverage.Diagnostics,
 	}
 	response.Summary.TotalFiles = coverage.TotalFiles
 	response.Summary.AnalyzedFiles = coverage.AnalyzedFiles

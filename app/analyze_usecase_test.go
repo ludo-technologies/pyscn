@@ -174,6 +174,16 @@ func TestAnalyzeUseCaseBuildResponsePreservesEveryTypedFailure(t *testing.T) {
 	}
 }
 
+func TestAnalyzeUseCaseBuildResponseStampsSchemaVersion(t *testing.T) {
+	response, err := (&AnalyzeUseCase{}).buildResponse(nil, time.Now(), analysisPathIndex{reportedByIdentity: map[string]string{}}, domain.AnalysisCoverage{})
+	if err != nil {
+		t.Fatalf("build response: %v", err)
+	}
+	if response.SchemaVersion != domain.AnalyzeSchemaVersion {
+		t.Fatalf("expected schema_version %d, got %d", domain.AnalyzeSchemaVersion, response.SchemaVersion)
+	}
+}
+
 func TestAnalyzeUseCaseBuildResponseRejectsMismatchedTaskResult(t *testing.T) {
 	tasks := []*analysisTask{{
 		Name:    taskNameDeadCode,

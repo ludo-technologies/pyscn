@@ -277,6 +277,7 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 		ShowDetails: domain.BoolPtr(false),
 		Recursive:   domain.BoolPtr(true),
 	}
+	response.SchemaVersion = domain.AnalyzeSchemaVersion
 	var buf bytes.Buffer
 
 	err := formatter.Write(response, domain.OutputFormatJSON, &buf)
@@ -287,6 +288,7 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	err = json.Unmarshal(buf.Bytes(), &decoded)
 	require.NoError(t, err)
 
+	assert.Contains(t, buf.String(), `"schema_version": 1`)
 	assert.Equal(t, response.Summary.HealthScore, decoded.Summary.HealthScore)
 	assert.Equal(t, response.Summary.Grade, decoded.Summary.Grade)
 	assert.Equal(t, response.Summary.TotalFiles, decoded.Summary.TotalFiles)
