@@ -1122,3 +1122,86 @@ class Probe:
 	assert.Equal(t, 0, r.InstanceVariables, "the class stores no instance state")
 	assert.Equal(t, 1, r.ExcludedMethods, "__init__")
 }
+
+func TestLCOMAnalyzer_MethodAcessCountsAsInstanceVariable(t *testing.T) {
+
+	t.Run("Synthesized Class", func(t *testing.T) {
+		p := parser.New()
+		code := ` 
+class C:
+	def __init__(self):
+		self._a = 1
+		self._b = 2
+
+	def helper(self):
+		return self._a
+
+	def run(self):
+		self.helper()
+		return self._b
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 2, r.InstanceVariables, "self._a and self._b; helper is a call target, not a variable")
+		assert.Equal(t, 1, r.ExcludedMethods, "__init__")
+
+	})
+
+	t.Run("Foreign Class mentioned in Issue", func(t *testing.T) {
+		p := parser.New()
+		code := ` 
+class _SignalReceiver:
+    __slots__ = ['_sigs', '_chr', '_chw', '_checkpoints']
+
+    def __init__(self, sigs):
+        self._sigs = sigs
+        self._checkpoints = []
+
+    def _init_channel(self):
+        raise NotImplementedError
+
+    def _register_coros(self, runtime):
+        raise NotImplementedError
+
+    def _cancel_coros(self):
+        raise NotImplementedError
+
+    def __enter__(self):
+        self._chw, self._chr = self._init_channel()
+        self._register_coros(get_runtime())
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        runtime = get_runtime()
+        for sig in self._sigs:
+            runtime._sig_rem(sig)
+        self._cancel_coros()
+
+    def __iter__(self):
+        return self
+
+    def __aiter__(self):
+        return self
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 4, r.InstanceVariables, "self._sigs, self._chr, self._chw, self._checkpoints; call targets must not inflate this")
+		assert.Equal(t, 1, r.ExcludedMethods, "__init__")
+
+	})
+
+}

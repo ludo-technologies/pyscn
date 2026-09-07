@@ -237,7 +237,13 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		for name := range propertyNames {
 			if name != node.Name && vars[name] {
 				methodCalls[name] = true
-				delete(vars, name)
+				// delete(vars, name)
+			}
+		}
+
+		for method := range methodCalls {
+			if vars[method] {
+				delete(vars, method)
 			}
 		}
 
