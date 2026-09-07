@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,6 +65,61 @@ func TestAnalyzeCommandTextOutputFormat(t *testing.T) {
 	if _, _, err := analyzeCmd.determineOutputFormat(); err == nil {
 		t.Fatal("expected --text and --json to conflict")
 	}
+}
+
+func TestAnalyzeCommandOutputFlag(t *testing.T) {
+	fixture, err := filepath.Abs(filepath.Join("..", "..", "testdata", "python", "simple"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Run from an empty directory so anything that lands in .pyscn/reports/ is ours.
+	t.Chdir(t.TempDir())
+
+	run := func(output string) []byte {
+		t.Helper()
+		var stdout bytes.Buffer
+		cmd := NewAnalyzeCmd()
+		cmd.SetOut(&stdout)
+		cmd.SetErr(io.Discard)
+		cmd.SetArgs([]string{"--json", "--select", "complexity", "--output", output, fixture})
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("analyze --output %s: %v", output, err)
+		}
+		return stdout.Bytes()
+	}
+	assertReport := func(data []byte) {
+		t.Helper()
+		var report struct {
+			Summary struct {
+				Grade string `json:"grade"`
+			} `json:"summary"`
+		}
+		if err := json.Unmarshal(data, &report); err != nil || report.Summary.Grade == "" {
+			t.Fatalf("expected a JSON analyze report, got err=%v data=%.80q", err, data)
+		}
+	}
+	assertNoReportsDir := func() {
+		t.Helper()
+		if _, err := os.Stat(".pyscn"); !os.IsNotExist(err) {
+			t.Fatalf("--output must not create .pyscn/reports/, stat: %v", err)
+		}
+	}
+
+	// "-" streams the report to stdout.
+	assertReport(run("-"))
+	assertNoReportsDir()
+
+	// Any other value is used as the report path, with nothing on stdout.
+	path := filepath.Join(t.TempDir(), "report.json")
+	if out := run(path); len(out) != 0 {
+		t.Fatalf("expected empty stdout, got %.80q", out)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertReport(data)
+	assertNoReportsDir()
 }
 
 // TestCheckCommandInterface tests the check command interface

@@ -26,6 +26,7 @@ type AnalyzeCommand struct {
 	yaml   bool
 	text   bool
 	noOpen bool
+	output string // report path; "-" writes to stdout, "" picks a timestamped file
 
 	// Configuration
 	configFile string
@@ -116,6 +117,9 @@ Examples:
   # Analyze specific files with JSON output
   pyscn analyze --json src/myfile.py
 
+  # Write the JSON report to stdout instead of .pyscn/reports/
+  pyscn analyze --json --output - . | jq '.summary.health_score'
+
   # Skip clone detection, focus on complexity, dead code, and dependencies
   pyscn analyze --skip-clones src/
 
@@ -136,6 +140,7 @@ Examples:
 	cmd.Flags().BoolVar(&c.yaml, "yaml", false, "Generate YAML report file")
 	cmd.Flags().BoolVar(&c.text, "text", false, "Generate plain-text report file")
 	cmd.Flags().BoolVar(&c.noOpen, "no-open", false, "Don't auto-open HTML in browser")
+	cmd.Flags().StringVarP(&c.output, "output", "o", "", "Report path instead of a timestamped file in .pyscn/reports/ (\"-\" for stdout)")
 	cmd.Flags().StringVarP(&c.configFile, "config", "c", "", "Configuration file path")
 
 	// Analysis selection flags
@@ -433,35 +438,47 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 		return err
 	}
 
-	// Generate filename with timestamp
-	targetPath := getTargetPathFromArgs(args)
-	filename, err := generateOutputFilePath("analyze", extension, targetPath)
-	if err != nil {
-		return fmt.Errorf("failed to generate output path: %w", err)
-	}
-
 	// Add version to response
 	response.Version = version.Version
 
 	// Create formatter
 	formatter := service.NewAnalyzeFormatter()
 
-	// Create output file
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create output file %s: %w", filename, err)
+	// Resolve the destination: stdout, an explicit path, or a timestamped
+	// file under the reports directory. Only the last one touches .pyscn/reports/.
+	var out io.Writer
+	filename := c.output
+	if filename == "-" {
+		out = cmd.OutOrStdout()
+	} else {
+		if filename == "" {
+			filename, err = generateOutputFilePath("analyze", extension, getTargetPathFromArgs(args))
+			if err != nil {
+				return fmt.Errorf("failed to generate output path: %w", err)
+			}
+		}
+		file, createErr := os.Create(filename)
+		if createErr != nil {
+			return fmt.Errorf("failed to create output file %s: %w", filename, createErr)
+		}
+		defer file.Close()
+		out = file
 	}
-	defer file.Close()
 
 	// Write standalone community JSON when only communities were selected.
 	formatType := domain.OutputFormat(format)
 	if c.shouldWriteStandaloneCommunityJSON(response) {
 		communityFormatter := service.NewCommunityFormatter()
-		if err := communityFormatter.Write(response.Communities, formatType, file); err != nil {
+		if err := communityFormatter.Write(response.Communities, formatType, out); err != nil {
 			return fmt.Errorf("failed to write community analysis report: %w", err)
 		}
-	} else if err := formatter.Write(response, formatType, file); err != nil {
+	} else if err := formatter.Write(response, formatType, out); err != nil {
 		return fmt.Errorf("failed to write unified report: %w", err)
+	}
+
+	// Nothing to open or point at when the report went to stdout
+	if filename == "-" {
+		return nil
 	}
 
 	// Get absolute path for display
