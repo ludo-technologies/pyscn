@@ -189,17 +189,15 @@ pyscn check --config packages/tooling/.pyscn.toml packages/tooling
 
 ## PR comment from JSON
 
-`pyscn analyze --json` writes to a timestamped file in `.pyscn/reports/`, not stdout. Pick up the generated file:
+`pyscn analyze --json --output -` writes the report to stdout instead of a timestamped file in `.pyscn/reports/`, so it can be piped straight into `jq`:
 
 ```bash
-pyscn analyze --json --no-open .
-report=$(ls -t .pyscn/reports/analyze_*.json | head -1)
-jq -r '
+pyscn analyze --json --output - . | jq -r '
   "## pyscn report\n" +
   "- **Health Score:** " + (.summary.health_score | tostring) + " / 100 (" + .summary.grade + ")\n" +
   "- Complexity: " + (.summary.complexity_score | tostring) + "\n" +
   "- Dead code: " + (.summary.dead_code_score | tostring) + "\n"
-' "$report" > comment.md
+' > comment.md
 
 gh pr comment $PR_NUMBER --body-file comment.md
 ```

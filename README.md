@@ -141,6 +141,7 @@ Run comprehensive analysis with HTML report
 ```bash
 pyscn analyze .                              # All analyses with HTML report
 pyscn analyze --json .                       # Generate JSON report
+pyscn analyze --json --output - . | jq       # JSON report on stdout
 pyscn analyze --select complexity .          # Only complexity analysis
 pyscn analyze --select deps .                # Only dependency analysis
 pyscn analyze --select complexity,deps,deadcode . # Multiple analyses

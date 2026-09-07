@@ -39,8 +39,9 @@ Only one of these may be set per invocation. If none is set, HTML is generated.
 | `--csv`     | Generate CSV summary, module-quality, community, and directory-complexity rollups (no per-finding detail). |
 | `--text`    | Generate a human-readable plain-text report. |
 | `--no-open` | Do not open the HTML report in a browser. |
+| `-o, --output <path>` | Write the report to `<path>` instead of `.pyscn/reports/`. `-` writes it to stdout. |
 
-Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMSS.{ext}`. Configure the directory with `[output] directory = "..."`.
+Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMSS.{ext}`. Configure the directory with `[output] directory = "..."`, or bypass it for one run with `--output`.
 
 ### Analysis selection
 
@@ -90,6 +91,9 @@ pyscn analyze .
 
 # JSON for pipelines
 pyscn analyze --json src/
+
+# JSON on stdout, nothing written to .pyscn/reports/
+pyscn analyze --json --output - src/ | jq '.summary.health_score'
 
 # Skip the slowest analyzer
 pyscn analyze --skip-clones src/
