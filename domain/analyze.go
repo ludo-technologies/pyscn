@@ -94,7 +94,7 @@ const (
 	ComplexityPenaltyLow      = coredomain.ComplexityPenaltyLow
 
 	// Code duplication thresholds and penalties
-	// 0% = perfect, 30% = max penalty (using fragment ratio: clonedFragments/totalFragments)
+	// 0% = perfect, 60% = max penalty (using fragment ratio: clonedFragments/totalFragments)
 	DuplicationThresholdHigh   = coredomain.DuplicationThresholdHigh
 	DuplicationThresholdMedium = coredomain.DuplicationThresholdMedium
 	DuplicationThresholdLow    = coredomain.DuplicationThresholdLow

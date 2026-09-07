@@ -1107,9 +1107,13 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 
 	if result.CloneType == Type4Clone && result.Analyzer == "semantic" {
 		return &ClonePair{
-			Fragment1:  fragment1,
-			Fragment2:  fragment2,
-			Similarity: result.Similarity,
+			Fragment1: fragment1,
+			Fragment2: fragment2,
+			// Semantic Type-4 pairs are never exact textual matches (the
+			// classifier checks Type-1 first), so apply the same non-textual
+			// cap as classifyClonePair to keep similarity comparable across
+			// clone types.
+			Similarity: cd.pairClassifier.CapNonTextualSimilarity(result.Similarity),
 			Distance:   distance,
 			CloneType:  result.CloneType,
 			Confidence: result.Confidence,
