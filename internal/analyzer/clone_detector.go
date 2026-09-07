@@ -1113,7 +1113,7 @@ func (cd *CloneDetector) compareFragmentsWithClassifier(fragment1, fragment2 *Co
 			// classifier checks Type-1 first), so apply the same non-textual
 			// cap as classifyClonePair to keep similarity comparable across
 			// clone types.
-			Similarity: cd.capNonTextualSimilarity(result.Similarity),
+			Similarity: cd.pairClassifier.CapNonTextualSimilarity(result.Similarity),
 			Distance:   distance,
 			CloneType:  result.CloneType,
 			Confidence: result.Confidence,
@@ -1169,21 +1169,6 @@ func (cd *CloneDetector) compareWithAPTED(fragment1, fragment2 *CodeFragment) *C
 func (cd *CloneDetector) classifyClonePair(fragment1, fragment2 *CodeFragment, similarity float64) (CloneType, float64) {
 	coreType, capped := cd.pairClassifier.ClassifyPair(fragment1.coreFragment(), fragment2.coreFragment(), similarity)
 	return CloneType(coreType), capped
-}
-
-// capNonTextualSimilarity mirrors the core pair classifier's cap: similarity
-// for pairs without an exact textual match is clamped just below the Type-1
-// threshold so they never report a Type-1-level similarity. Used by the
-// semantic Type-4 path, which bypasses ClassifyPair.
-func (cd *CloneDetector) capNonTextualSimilarity(similarity float64) float64 {
-	if similarity < cd.cloneDetectorConfig.Type1Threshold {
-		return similarity
-	}
-	capped := math.Nextafter(cd.cloneDetectorConfig.Type1Threshold, 0)
-	if capped < cd.cloneDetectorConfig.Type2Threshold {
-		return cd.cloneDetectorConfig.Type2Threshold
-	}
-	return capped
 }
 
 // isSignificantClone determines if a clone pair is significant enough to report
