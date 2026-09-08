@@ -117,6 +117,8 @@ pipx install pyscn
 uv tool install pyscn
 ```
 
+> **macOS Intel (x86_64):** PyPI wheels are built for Apple Silicon only (the Intel wheel was dropped in v1.5.1), so `uvx`, `pipx`, `uv`, and `pip` cannot install pyscn on Intel Macs. Use `brew install pyscn` or `go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest` instead.
+
 <details>
 <summary>Alternative installation methods</summary>
 

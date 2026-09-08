@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/ludo-technologies/pyscn/service"
 )
 
@@ -171,6 +172,20 @@ func TestAnalyzeUseCaseBuildResponsePreservesEveryTypedFailure(t *testing.T) {
 	}
 	if !response.Summary.DeadCodeEnabled || response.DeadCode == nil {
 		t.Fatalf("expected typed kind to route dead-code result, got %+v", response)
+	}
+}
+
+func TestAnalyzeUseCaseBuildResponseStampsMetadata(t *testing.T) {
+	response, err := (&AnalyzeUseCase{}).buildResponse(nil, time.Now(), analysisPathIndex{reportedByIdentity: map[string]string{}}, domain.AnalysisCoverage{})
+	if err != nil {
+		t.Fatalf("build response: %v", err)
+	}
+	if response.SchemaVersion != domain.AnalyzeSchemaVersion {
+		t.Fatalf("expected schema_version %d, got %d", domain.AnalyzeSchemaVersion, response.SchemaVersion)
+	}
+	// Stamped here rather than in the CLI command so MCP responses carry it too.
+	if response.Version != version.Version {
+		t.Fatalf("expected version %q, got %q", version.Version, response.Version)
 	}
 }
 

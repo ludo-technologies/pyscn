@@ -74,7 +74,7 @@ type CBOAnalyzer struct {
 	builtinFunctions map[string]bool
 	standardLibs     map[string]bool
 	importedNames    map[string]string         // alias -> module.name mapping
-	namespaceAliases map[string]string         // module.name -> alias mapping (only for alias imports)
+	namespaceAliases map[string]string         // module.name -> alias mapping (alias imports and module-like from-imports)
 	regexCache       map[string]*regexp.Regexp // pattern -> compiled regex cache
 
 	// futureAnnotations is true when the file being analyzed has
@@ -651,7 +651,8 @@ func (r *nestedClassResolver) signatureScope(methodNode *parser.Node) *parser.No
 
 // collectImports collects import statements and their aliases.
 // It returns both the alias -> module.name map and a reverse map of
-// module.name -> alias for namespace aliases created by "import ... as ...".
+// module.name -> alias for namespace bindings created by "import ... as ..."
+// and by "from pkg import mod" when mod reads as a module.
 func (a *CBOAnalyzer) collectImports(ast *parser.Node) cboImportMaps {
 	imports := cboImportMaps{
 		importedNames:    make(map[string]string),
@@ -690,6 +691,19 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) cboImportMaps {
 			// from module import name as alias
 			module := node.Module
 			aliasedNames := make(map[string]bool)
+			bind := func(alias, name string) {
+				full := module + "." + name
+				imports.importedNames[alias] = full
+				// "from pkg import mod" binds a namespace exactly like
+				// "import pkg.mod as mod", so its members must collapse the same
+				// way (see #732). The statement alone cannot tell a module from a
+				// class, so apply the PEP 8 naming heuristic used elsewhere: a
+				// snake_case binding reads as a module; CapWords bindings are
+				// left alone so "Widget.Inner" keeps its own identity.
+				if !looksLikeClassName(full) {
+					imports.namespaceAliases[full] = alias
+				}
+			}
 			for _, child := range node.Children {
 				if child.Type == parser.NodeAlias {
 					name := child.Name
@@ -700,12 +714,12 @@ func (a *CBOAnalyzer) collectImports(ast *parser.Node) cboImportMaps {
 							aliasedNames[name] = true
 						}
 					}
-					imports.importedNames[alias] = module + "." + name
+					bind(alias, name)
 				}
 			}
 			for _, name := range node.Names {
 				if !aliasedNames[name] {
-					imports.importedNames[name] = module + "." + name
+					bind(name, name)
 				}
 			}
 		}
@@ -942,7 +956,12 @@ func (a *CBOAnalyzer) resolveImportedName(name string) string {
 // function (snake_case). Aliases resolve to their original imported name so
 // the convention is judged on the name the defining module chose.
 func (a *CBOAnalyzer) looksLikeClassReference(name string) bool {
-	resolved := a.resolveImportedName(name)
+	return looksLikeClassName(a.resolveImportedName(name))
+}
+
+// looksLikeClassName is looksLikeClassReference for an already resolved
+// dotted name, so it can be applied while imports are still being collected.
+func looksLikeClassName(resolved string) bool {
 	if knownLowercaseClasses[resolved] {
 		return true
 	}

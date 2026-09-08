@@ -11,7 +11,6 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -439,9 +438,6 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	if len(reports) > 1 && c.output != "" {
 		return fmt.Errorf("--output takes a single report format; drop it to write all %d reports to the reports directory", len(reports))
 	}
-
-	// Add version to response
-	response.Version = version.Version
 
 	// Timestamped reports from one run share a stem so they sort together.
 	var stem string

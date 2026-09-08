@@ -3,7 +3,7 @@
 ## Requirements
 
 - Python 3.8–3.13 (launcher only; pyscn has no Python runtime dependencies)
-- Linux / macOS / Windows, x86_64 or arm64
+- Linux x86_64, macOS arm64 (Apple Silicon), or Windows x86_64 for the PyPI wheels. macOS Intel has had no wheel since v1.5.1: use `brew install pyscn` or the Go install below.
 
 ## Install
 
