@@ -2880,6 +2880,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#migrating-from-1-29-x" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migrating from 1.29.x
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#top-level-structure-pyscn-analyze" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3909,6 +3920,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#migrating-from-1-29-x" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migrating from 1.29.x
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#top-level-structure-pyscn-analyze" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4707,7 +4729,7 @@
 
 
 <h1 id="output-schemas">Output Schemas<a class="headerlink" href="#output-schemas" title="Permanent link">&para;</a></h1>
-<p>This specification defines the exact shape of JSON, YAML, and CSV output produced by pyscn. All field names, types, and semantics documented here are stable across patch releases within the same major version.</p>
+<p>This specification defines the exact shape of JSON, YAML, and CSV output produced by pyscn. All field names, types, and semantics documented here are stable for as long as the report's top-level <code>schema_version</code> stays the same.</p>
 <h2 id="stability-contract">Stability contract<a class="headerlink" href="#stability-contract" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -4731,9 +4753,76 @@
 </tr>
 </tbody>
 </table>
-<p>Breaking changes are restricted to major version bumps. Consumers MUST ignore unknown fields.</p>
-<!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
-
+<p>Consumers MUST ignore unknown fields. Breaking changes to the <code>pyscn analyze</code> report increment its top-level <code>schema_version</code> and are listed as <strong>BREAKING</strong> in the <a href="https://github.com/ludo-technologies/pyscn/blob/main/CHANGELOG.md">CHANGELOG</a>. They are not restricted to major version bumps — the snake_case key rename described below shipped in the 1.30.0 minor release — so pin against <code>schema_version</code> rather than the semantic version.</p>
+<h2 id="migrating-from-1-29-x">Migrating from 1.29.x<a class="headerlink" href="#migrating-from-1-29-x" title="Permanent link">&para;</a></h2>
+<p>Every object key in <code>pyscn analyze</code> JSON/YAML is snake_case since 1.30.0. Releases up to 1.29.1 emitted Go-style PascalCase inside <code>complexity</code>, <code>cbo</code>, <code>lcom</code>, and <code>system</code> (including <code>complexity.request</code> and <code>dead_code.request</code>), and lowerCamelCase inside the <code>config</code> objects of <code>cbo</code>, <code>lcom</code>, and <code>community_analysis</code>. The rename is mechanical: convert the old key to snake_case and lowercase acronyms.</p>
+<table>
+<thead>
+<tr>
+<th>Old key (≤ 1.29.1)</th>
+<th>New key (≥ 1.30.0)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>complexity.Functions[].Metrics.Complexity</code></td>
+<td><code>complexity.functions[].metrics.complexity</code></td>
+</tr>
+<tr>
+<td><code>complexity.Functions[].Metrics.CognitiveComplexity</code></td>
+<td><code>complexity.functions[].metrics.cognitive_complexity</code></td>
+</tr>
+<tr>
+<td><code>complexity.Functions[].Metrics.SLOC</code></td>
+<td><code>complexity.functions[].metrics.sloc</code></td>
+</tr>
+<tr>
+<td><code>complexity.Functions[].Name</code> / <code>FilePath</code> / <code>StartLine</code> / <code>RiskLevel</code></td>
+<td><code>complexity.functions[].name</code> / <code>file_path</code> / <code>start_line</code> / <code>risk_level</code></td>
+</tr>
+<tr>
+<td><code>complexity.Summary.AverageComplexity</code></td>
+<td><code>complexity.summary.average_complexity</code></td>
+</tr>
+<tr>
+<td><code>cbo.Classes[].Metrics.CouplingCount</code></td>
+<td><code>cbo.classes[].metrics.coupling_count</code></td>
+</tr>
+<tr>
+<td><code>cbo.Summary.AverageCBO</code></td>
+<td><code>cbo.summary.average_cbo</code></td>
+</tr>
+<tr>
+<td><code>cbo.config.minCBO</code> / <code>lowThreshold</code> / <code>sortBy</code></td>
+<td><code>cbo.config.min_cbo</code> / <code>low_threshold</code> / <code>sort_by</code></td>
+</tr>
+<tr>
+<td><code>lcom.Classes[].Metrics.LCOM4</code></td>
+<td><code>lcom.classes[].metrics.lcom4</code></td>
+</tr>
+<tr>
+<td><code>lcom.config.minLCOM</code> / <code>maxLCOM</code></td>
+<td><code>lcom.config.min_lcom</code> / <code>max_lcom</code></td>
+</tr>
+<tr>
+<td><code>system.Summary.ProjectRoot</code></td>
+<td><code>system.summary.project_root</code></td>
+</tr>
+<tr>
+<td><code>system.DependencyAnalysis.CircularDependencies</code></td>
+<td><code>system.dependency_analysis.circular_dependencies</code></td>
+</tr>
+<tr>
+<td><code>system.ArchitectureAnalysis.ComplianceScore</code></td>
+<td><code>system.architecture_analysis.compliance_score</code></td>
+</tr>
+<tr>
+<td><code>community_analysis.config.minCommunitySize</code> / <code>includeStdLib</code></td>
+<td><code>community_analysis.config.min_community_size</code> / <code>include_std_lib</code></td>
+</tr>
+</tbody>
+</table>
+<p>The top-level keys, <code>summary</code>, the <code>dead_code</code> findings, <code>clone</code>, <code>community_analysis</code> (other than <code>config</code>), <code>module_quality</code>, and <code>suggestions</code> were already snake_case and did not change. Reports written by releases before <code>schema_version</code> was introduced have no <code>schema_version</code> key; use the top-level <code>version</code> to tell 1.29.x (PascalCase) from 1.30.0 and later (snake_case).</p>
 <h2 id="top-level-structure-pyscn-analyze">Top-level structure (<code>pyscn analyze</code>)<a class="headerlink" href="#top-level-structure-pyscn-analyze" title="Permanent link">&para;</a></h2>
 <p>JSON and YAML outputs serialize the <code>AnalyzeResponse</code> Go struct defined in <code>domain/analyze.go</code>. The top-level keys are:</p>
 <div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
@@ -4750,10 +4839,11 @@
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">"diagnostics"</span><span class="p">:</span><span class="w">   </span><span class="p">[</span><span class="w"> </span><span class="cm">/* AnalysisDiagnostic array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"failures"</span><span class="p">:</span><span class="w">      </span><span class="p">[</span><span class="w"> </span><span class="cm">/* AnalysisFailure array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="w"> </span><span class="cm">/* AnalyzeSummary, always present */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">}</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">}</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -4841,6 +4931,12 @@
 <td><code>summary</code></td>
 <td>object</td>
 <td>Always present. See <a href="#summary-object"><code>summary</code></a>.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>schema_version</code></td>
+<td>integer</td>
+<td>Key layout of this report, currently <code>1</code>. Incremented only on a breaking change (rename, removal, type change); additive fields do not bump it.</td>
 <td>stable</td>
 </tr>
 <tr>
