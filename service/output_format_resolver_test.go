@@ -1,6 +1,7 @@
 package service
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -16,26 +17,33 @@ func TestOutputFormatResolver_PreservesLegacyDefault(t *testing.T) {
 	}
 }
 
+func TestOutputFormatResolver_RejectsMultipleLegacyFormats(t *testing.T) {
+	if _, _, err := NewOutputFormatResolver().Determine(false, true, false, true); err == nil {
+		t.Fatal("expected conflicting legacy formats to fail")
+	}
+}
+
 func TestOutputFormatResolver_DeterminesAnalyzeReports(t *testing.T) {
 	resolver := NewOutputFormatResolver()
 
-	format, extension, err := resolver.DetermineAnalyzeReport(false, false, false, false, false)
-	if err != nil {
-		t.Fatalf("determine analyze default: %v", err)
-	}
-	if format != domain.OutputFormatHTML || extension != "html" {
-		t.Fatalf("expected default HTML report, got %q/%q", format, extension)
+	reports := resolver.DetermineAnalyzeReports(false, false, false, false, false)
+	if !reflect.DeepEqual(reports, []ReportFormat{{domain.OutputFormatHTML, "html"}}) {
+		t.Fatalf("expected default HTML report, got %v", reports)
 	}
 
-	format, extension, err = resolver.DetermineAnalyzeReport(false, false, false, false, true)
-	if err != nil {
-		t.Fatalf("determine analyze text report: %v", err)
-	}
-	if format != domain.OutputFormatText || extension != "txt" {
-		t.Fatalf("expected text/txt report, got %q/%q", format, extension)
+	reports = resolver.DetermineAnalyzeReports(false, false, false, false, true)
+	if !reflect.DeepEqual(reports, []ReportFormat{{domain.OutputFormatText, "txt"}}) {
+		t.Fatalf("expected text/txt report, got %v", reports)
 	}
 
-	if _, _, err := resolver.DetermineAnalyzeReport(false, true, false, false, true); err == nil {
-		t.Fatal("expected conflicting report formats to fail")
+	// Every requested format is returned, in flag order (issue #739).
+	reports = resolver.DetermineAnalyzeReports(true, true, false, false, true)
+	want := []ReportFormat{
+		{domain.OutputFormatHTML, "html"},
+		{domain.OutputFormatJSON, "json"},
+		{domain.OutputFormatText, "txt"},
+	}
+	if !reflect.DeepEqual(reports, want) {
+		t.Fatalf("expected %v, got %v", want, reports)
 	}
 }

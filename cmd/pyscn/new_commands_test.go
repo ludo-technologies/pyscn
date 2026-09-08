@@ -53,17 +53,60 @@ func TestAnalyzeCommandTextOutputFormat(t *testing.T) {
 		t.Fatalf("set --text: %v", err)
 	}
 
-	format, extension, err := analyzeCmd.determineOutputFormat()
-	if err != nil {
-		t.Fatalf("determine text output format: %v", err)
-	}
-	if format != "text" || extension != "txt" {
-		t.Fatalf("expected text/txt output, got %s/%s", format, extension)
+	reports := analyzeCmd.reportFormats()
+	if len(reports) != 1 || reports[0].Format != "text" || reports[0].Extension != "txt" {
+		t.Fatalf("expected text/txt output, got %v", reports)
 	}
 
+	// Several format flags request several reports from one run (issue #739).
 	analyzeCmd.json = true
-	if _, _, err := analyzeCmd.determineOutputFormat(); err == nil {
-		t.Fatal("expected --text and --json to conflict")
+	reports = analyzeCmd.reportFormats()
+	if len(reports) != 2 || reports[0].Format != "json" || reports[1].Format != "text" {
+		t.Fatalf("expected json and text reports, got %v", reports)
+	}
+}
+
+func TestAnalyzeCommandMultipleFormats(t *testing.T) {
+	fixture, err := filepath.Abs(filepath.Join("..", "..", "testdata", "python", "simple"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Run from an empty directory so anything that lands in .pyscn/reports/ is ours.
+	t.Chdir(t.TempDir())
+
+	run := func(args ...string) error {
+		t.Helper()
+		cmd := NewAnalyzeCmd()
+		cmd.SetOut(io.Discard)
+		cmd.SetErr(io.Discard)
+		cmd.SetArgs(append(args, "--no-open", "--select", "complexity", fixture))
+		return cmd.Execute()
+	}
+
+	// One analysis run writes every requested report, sharing a timestamp stem.
+	if err := run("--json", "--html"); err != nil {
+		t.Fatalf("analyze --json --html: %v", err)
+	}
+	reports, err := filepath.Glob(filepath.Join(".pyscn", "reports", "analyze_*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(reports) != 2 {
+		t.Fatalf("expected an HTML and a JSON report, got %v", reports)
+	}
+	stem := func(path string) string { return strings.TrimSuffix(path, filepath.Ext(path)) }
+	if stem(reports[0]) != stem(reports[1]) {
+		t.Fatalf("expected reports from one run to share a stem, got %v", reports)
+	}
+	for _, report := range reports {
+		if info, err := os.Stat(report); err != nil || info.Size() == 0 {
+			t.Fatalf("expected a non-empty report at %s: %v", report, err)
+		}
+	}
+
+	// A single --output path cannot hold two reports.
+	if err := run("--json", "--html", "--output", "-"); err == nil {
+		t.Fatal("expected --output with several formats to be rejected")
 	}
 }
 
@@ -466,31 +509,29 @@ func TestAnalyzeCommandSelectDepsCommunities(t *testing.T) {
 
 func TestAnalyzeCommandShouldWriteStandaloneCommunityJSON(t *testing.T) {
 	analyzeCmd := NewAnalyzeCommand()
-	analyzeCmd.json = true
 	analyzeCmd.selectAnalyses = []string{"communities"}
 
 	response := &domain.AnalyzeResponse{
 		Communities: &domain.CommunityAnalysisResult{TotalCommunities: 2},
 	}
-	if !analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+	if !analyzeCmd.shouldWriteStandaloneCommunityJSON(domain.OutputFormatJSON, response) {
 		t.Fatal("expected standalone community JSON for --json --select communities")
 	}
 
 	analyzeCmd.selectAnalyses = []string{"deps", "communities"}
-	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(domain.OutputFormatJSON, response) {
 		t.Fatal("expected unified analyze JSON when multiple analyses are selected")
 	}
 
 	analyzeCmd.selectAnalyses = []string{"communities"}
-	analyzeCmd.json = false
-	if analyzeCmd.shouldWriteStandaloneCommunityJSON(response) {
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(domain.OutputFormatHTML, response) {
 		t.Fatal("expected unified analyze output for non-JSON formats")
 	}
 
-	if analyzeCmd.shouldWriteStandaloneCommunityJSON(nil) {
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(domain.OutputFormatJSON, nil) {
 		t.Fatal("expected false when response is nil")
 	}
-	if analyzeCmd.shouldWriteStandaloneCommunityJSON(&domain.AnalyzeResponse{}) {
+	if analyzeCmd.shouldWriteStandaloneCommunityJSON(domain.OutputFormatJSON, &domain.AnalyzeResponse{}) {
 		t.Fatal("expected false when community analysis is nil")
 	}
 }
