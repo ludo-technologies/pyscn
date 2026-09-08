@@ -170,6 +170,12 @@ const (
 	FallbackPenalty             = coredomain.FallbackPenalty
 )
 
+// AnalyzeSchemaVersion identifies the key layout of the analyze JSON/YAML
+// report. Bump it on any breaking change to the documented keys (rename,
+// removal, type change) so consumers can detect the change; additive changes
+// do not bump it.
+const AnalyzeSchemaVersion = 1
+
 // AnalyzeResponse represents the combined results of all analyses
 type AnalyzeResponse struct {
 	// Analysis results
@@ -196,9 +202,10 @@ type AnalyzeResponse struct {
 	Summary AnalyzeSummary `json:"summary" yaml:"summary"`
 
 	// Metadata
-	GeneratedAt time.Time `json:"generated_at" yaml:"generated_at"`
-	Duration    int64     `json:"duration_ms" yaml:"duration_ms"`
-	Version     string    `json:"version" yaml:"version"`
+	SchemaVersion int       `json:"schema_version" yaml:"schema_version"`
+	GeneratedAt   time.Time `json:"generated_at" yaml:"generated_at"`
+	Duration      int64     `json:"duration_ms" yaml:"duration_ms"`
+	Version       string    `json:"version" yaml:"version"`
 }
 
 // AnalyzeSummary provides an overall summary of all analyses

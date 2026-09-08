@@ -17,9 +17,9 @@ CI : `uvx pyscn@latest check .`. Développement local : `uv tool install pyscn` 
 
 | OS | Architectures |
 | --- | --- |
-| Linux | x86_64, arm64 |
-| macOS | x86_64, arm64 |
-| Windows | x86_64, arm64 |
+| Linux | x86_64 |
+| macOS | arm64 (Apple Silicon). Aucun wheel Intel depuis la v1.5.1 : utilisez `brew install pyscn` ou `go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest`. |
+| Windows | x86_64 |
 
 Python 3.8–3.13.
 
