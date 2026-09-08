@@ -11,7 +11,6 @@ import (
 
 	"github.com/ludo-technologies/pyscn/app"
 	"github.com/ludo-technologies/pyscn/domain"
-	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/ludo-technologies/pyscn/service"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -437,9 +436,6 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	if err != nil {
 		return err
 	}
-
-	// Add version to response
-	response.Version = version.Version
 
 	// Create formatter
 	formatter := service.NewAnalyzeFormatter()

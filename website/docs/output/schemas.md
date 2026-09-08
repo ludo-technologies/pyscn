@@ -1,6 +1,6 @@
 # Output Schemas
 
-This specification defines the exact shape of JSON, YAML, and CSV output produced by pyscn. All field names, types, and semantics documented here are stable across patch releases within the same major version.
+This specification defines the exact shape of JSON, YAML, and CSV output produced by pyscn. All field names, types, and semantics documented here are stable for as long as the report's top-level `schema_version` stays the same.
 
 ## Stability contract
 
@@ -10,7 +10,7 @@ This specification defines the exact shape of JSON, YAML, and CSV output produce
 | May change         | field ordering within an object, ordering of array elements, inclusion of new fields |
 | Breaking           | removal or rename of fields, change of field type, removal of enum values         |
 
-Breaking changes are restricted to major version bumps. Consumers MUST ignore unknown fields. Every breaking change to the `pyscn analyze` report also increments its top-level `schema_version`, so consumers can check that single integer instead of parsing `version`.
+Consumers MUST ignore unknown fields. Breaking changes to the `pyscn analyze` report increment its top-level `schema_version` and are listed as **BREAKING** in the [CHANGELOG](https://github.com/ludo-technologies/pyscn/blob/main/CHANGELOG.md). They are not restricted to major version bumps — the snake_case key rename described below shipped in the 1.30.0 minor release — so pin against `schema_version` rather than the semantic version.
 
 ## Migrating from 1.29.x { #migrating-from-1-29-x }
 

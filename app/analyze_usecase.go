@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/version"
 	"github.com/ludo-technologies/pyscn/service"
 )
 
@@ -884,8 +885,11 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 
 // buildResponse builds the analyze response from task results
 func (uc *AnalyzeUseCase) buildResponse(tasks []*analysisTask, startTime time.Time, pathIndex analysisPathIndex, coverage domain.AnalysisCoverage) (*domain.AnalyzeResponse, error) {
+	// Every metadata field is stamped here so that every caller of the use case
+	// (CLI and MCP alike) gets the same set.
 	response := &domain.AnalyzeResponse{
 		SchemaVersion: domain.AnalyzeSchemaVersion,
+		Version:       version.Version,
 		GeneratedAt:   time.Now(),
 		Duration:      time.Since(startTime).Milliseconds(),
 		Diagnostics:   coverage.Diagnostics,

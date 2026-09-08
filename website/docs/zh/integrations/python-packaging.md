@@ -17,9 +17,9 @@ CI：`uvx pyscn@latest check .`。本地开发：`uv tool install pyscn` 或 `pi
 
 | 操作系统 | 架构 |
 | --- | --- |
-| Linux | x86_64, arm64 |
-| macOS | x86_64, arm64 |
-| Windows | x86_64, arm64 |
+| Linux | x86_64 |
+| macOS | arm64（Apple Silicon）。自 v1.5.1 起不再提供 Intel wheel：请使用 `brew install pyscn` 或 `go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest`。 |
+| Windows | x86_64 |
 
 Python 3.8–3.13。
 
