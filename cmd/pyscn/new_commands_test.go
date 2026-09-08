@@ -104,9 +104,19 @@ func TestAnalyzeCommandMultipleFormats(t *testing.T) {
 		}
 	}
 
-	// A single --output path cannot hold two reports.
-	if err := run("--json", "--html", "--output", "-"); err == nil {
+	// A single --output path cannot hold two reports. The conflict is decided
+	// from the flags alone, so it is reported before any analysis starts: the
+	// target below does not exist, yet the error is about --output.
+	cmd := NewAnalyzeCmd()
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	cmd.SetArgs([]string{"--json", "--html", "--output", "-", "--no-open", filepath.Join(fixture, "does-not-exist")})
+	err = cmd.Execute()
+	if err == nil {
 		t.Fatal("expected --output with several formats to be rejected")
+	}
+	if !strings.Contains(err.Error(), "--output") {
+		t.Fatalf("expected the flag conflict to be reported before analysis, got %v", err)
 	}
 }
 

@@ -190,6 +190,11 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	default:
 		return fmt.Errorf("invalid --min-severity value %q (expected: critical, warning, info)", c.minSeverity)
 	}
+
+	if reports := c.reportFormats(); len(reports) > 1 && c.output != "" {
+		return fmt.Errorf("--output takes a single report format; drop it to write all %d reports to the reports directory", len(reports))
+	}
+
 	// Create use case configuration
 	config := c.createUseCaseConfig()
 
@@ -432,12 +437,10 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	return nil
 }
 
-// generateOutput writes every requested report from the single analysis run
+// generateOutput writes every requested report from the single analysis run.
+// runAnalyze has already rejected --output combined with several formats.
 func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.AnalyzeResponse, args []string) error {
 	reports := c.reportFormats()
-	if len(reports) > 1 && c.output != "" {
-		return fmt.Errorf("--output takes a single report format; drop it to write all %d reports to the reports directory", len(reports))
-	}
 
 	// Timestamped reports from one run share a stem so they sort together.
 	var stem string
