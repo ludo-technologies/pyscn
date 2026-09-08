@@ -1,6 +1,6 @@
 # Output Schemas
 
-This specification defines the exact shape of JSON, YAML, and CSV output produced by pyscn. All field names, types, and semantics documented here are stable across patch releases within the same major version.
+This specification defines the exact shape of JSON, YAML, and CSV output produced by pyscn. All field names, types, and semantics documented here are stable for as long as the report's top-level `schema_version` stays the same.
 
 ## Stability contract
 
@@ -10,9 +10,30 @@ This specification defines the exact shape of JSON, YAML, and CSV output produce
 | May change         | field ordering within an object, ordering of array elements, inclusion of new fields |
 | Breaking           | removal or rename of fields, change of field type, removal of enum values         |
 
-Breaking changes are restricted to major version bumps. Consumers MUST ignore unknown fields.
+Consumers MUST ignore unknown fields. Breaking changes to the `pyscn analyze` report increment its top-level `schema_version` and are listed as **BREAKING** in the [CHANGELOG](https://github.com/ludo-technologies/pyscn/blob/main/CHANGELOG.md). They are not restricted to major version bumps — the snake_case key rename described below shipped in the 1.30.0 minor release — so pin against `schema_version` rather than the semantic version.
 
-<!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
+## Migrating from 1.29.x { #migrating-from-1-29-x }
+
+Every object key in `pyscn analyze` JSON/YAML is snake_case since 1.30.0. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system` (including `complexity.request` and `dead_code.request`), and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`. The rename is mechanical: convert the old key to snake_case and lowercase acronyms.
+
+| Old key (≤ 1.29.1) | New key (≥ 1.30.0) |
+| --- | --- |
+| `complexity.Functions[].Metrics.Complexity` | `complexity.functions[].metrics.complexity` |
+| `complexity.Functions[].Metrics.CognitiveComplexity` | `complexity.functions[].metrics.cognitive_complexity` |
+| `complexity.Functions[].Metrics.SLOC` | `complexity.functions[].metrics.sloc` |
+| `complexity.Functions[].Name` / `FilePath` / `StartLine` / `RiskLevel` | `complexity.functions[].name` / `file_path` / `start_line` / `risk_level` |
+| `complexity.Summary.AverageComplexity` | `complexity.summary.average_complexity` |
+| `cbo.Classes[].Metrics.CouplingCount` | `cbo.classes[].metrics.coupling_count` |
+| `cbo.Summary.AverageCBO` | `cbo.summary.average_cbo` |
+| `cbo.config.minCBO` / `lowThreshold` / `sortBy` | `cbo.config.min_cbo` / `low_threshold` / `sort_by` |
+| `lcom.Classes[].Metrics.LCOM4` | `lcom.classes[].metrics.lcom4` |
+| `lcom.config.minLCOM` / `maxLCOM` | `lcom.config.min_lcom` / `max_lcom` |
+| `system.Summary.ProjectRoot` | `system.summary.project_root` |
+| `system.DependencyAnalysis.CircularDependencies` | `system.dependency_analysis.circular_dependencies` |
+| `system.ArchitectureAnalysis.ComplianceScore` | `system.architecture_analysis.compliance_score` |
+| `community_analysis.config.minCommunitySize` / `includeStdLib` | `community_analysis.config.min_community_size` / `include_std_lib` |
+
+The top-level keys, `summary`, the `dead_code` findings, `clone`, `community_analysis` (other than `config`), `module_quality`, and `suggestions` were already snake_case and did not change. Reports written by releases before `schema_version` was introduced have no `schema_version` key; use the top-level `version` to tell 1.29.x (PascalCase) from 1.30.0 and later (snake_case).
 
 ## Top-level structure (`pyscn analyze`)
 
@@ -33,6 +54,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "diagnostics":   [ /* AnalysisDiagnostic array, omitted when empty */ ],
   "failures":      [ /* AnalysisFailure array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
+  "schema_version": 1,
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
   "version":       "0.14.0"
@@ -54,6 +76,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `diagnostics` | array \| absent   | Project files that could not be read or parsed. See [`AnalysisDiagnostic`](#analysisdiagnostic-object). | stable |
 | `failures`    | array \| absent   | Analyzer execution failures. Partial results may still be present. See [`AnalysisFailure`](#analysisfailure-object). | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
+| `schema_version` | integer        | Key layout of this report, currently `1`. Incremented only on a breaking change (rename, removal, type change); additive fields do not bump it. | stable |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
