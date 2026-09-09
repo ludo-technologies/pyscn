@@ -70,21 +70,23 @@ class GuideDog(Dog, Serializable):  # Dependencies on Dog and Serializable
 
 The implementation iterates over the `classNode.Bases` field and extracts each base class name (`internal/analyzer/cbo.go:172-188`).
 
-### 2. Type Hint Dependencies
+### 2. Type Hint Dependencies (informational)
 
-Class names appearing in type annotations are detected as dependencies.
+Class names appearing in type annotations are collected into `TypeHintDependencies` for the metrics breakdown, but they are **not** added to the dependency set that produces the CBO value. A type annotation is a declaration, not a use: nothing in the class changes when the annotated type's internals change, which matches the Chidamber & Kemerer definition of coupling as method or attribute usage. A class that only appears in annotations therefore does not affect the score or the risk level (#757).
 
 ```python
 class OrderService:
-    repository: OrderRepository        # Dependency on OrderRepository
-    logger: Logger                      # Dependency on Logger
+    repository: OrderRepository        # TypeHintDependencies only
+    logger: Logger                      # TypeHintDependencies only
 
-    def process(self, order: Order) -> Result:  # Dependencies on Order, Result
+    def process(self, order: Order) -> Result:  # TypeHintDependencies only
         pass
 
-    def find_all(self) -> list[Order]:  # Dependency on Order (generic type)
+    def find_all(self) -> list[Order]:  # TypeHintDependencies only (generic type)
         pass
 ```
+
+A name that also appears at runtime (instantiated, inherited, or accessed) is counted through that other path as usual.
 
 The following type annotation structures are recursively parsed:
 
@@ -133,15 +135,17 @@ The type of the object is inferred from the `Left` field of `NodeAttribute` node
 
 ### 5. Import Dependencies
 
-When any of the above dependencies originates from an imported name, it is counted as `ImportDependencies`.
+When any of the counted dependencies (inheritance, instantiation, attribute access) originates from an imported name, it is also recorded as `ImportDependencies`. Annotation-only references are not, since they are never part of the dependency set.
 
 ```python
 from services.auth import AuthService
 from models import User
 
 class ProfileService:
-    auth: AuthService    # AuthService is import-derived -> ImportDependencies
-    user: User           # User is import-derived -> ImportDependencies
+    user: User                          # annotation only -> TypeHintDependencies, not ImportDependencies
+
+    def __init__(self):
+        self.auth = AuthService()       # import-derived instantiation -> ImportDependencies
 ```
 
 Import name resolution (`internal/analyzer/cbo.go:404-443`):
@@ -199,7 +203,7 @@ The CBO value is computed as the size of the dependency set:
 CBO = |dependency set|
 ```
 
-Multiple dependency types referencing the same class (e.g., both inheritance and type hint) are counted only once. The implementation uses a `map[string]bool` to guarantee uniqueness (`internal/analyzer/cbo.go:148-162`).
+Multiple dependency types referencing the same class (e.g., both inheritance and instantiation) are counted only once. The implementation uses a `map[string]bool` to guarantee uniqueness. Type-hint references live in a separate map and never enter this set.
 
 ### Worked Example
 
@@ -207,15 +211,15 @@ Multiple dependency types referencing the same class (e.g., both inheritance and
 from models import User, Order
 
 class OrderService(BaseService):          # Building the dependency set:
-    repository: OrderRepository           #   {BaseService, OrderRepository,
-    cache: CacheManager                   #    CacheManager, User, Order,
-                                          #    NotificationService}
-    def create_order(self, user: User) -> Order:
+    repository: OrderRepository           #   {BaseService, NotificationService, Order}
+    cache: CacheManager                   #
+                                          # Type hints (not in the set):
+    def create_order(self, user: User) -> Order:   #   {OrderRepository, CacheManager, User, Order}
         notification = NotificationService()
-        return Order()                    # Order is already in the set, no duplicate
+        return Order()                    # Order is instantiated, so it counts
 ```
 
-CBO = 6 (BaseService, OrderRepository, CacheManager, User, Order, NotificationService)
+CBO = 3 (BaseService, NotificationService, Order), TypeHintDependencies = 4
 
 ## Risk Thresholds
 
@@ -293,7 +297,7 @@ For each class, the following information is included:
 
 - Class name, file path, line range
 - CBO value and risk level
-- Dependency breakdown by type (inheritance, type hints, instantiation, attribute access, imports)
+- Dependency breakdown by type (inheritance, instantiation, attribute access, imports, plus informational type hints)
 - List of dependent classes
 - Whether the class is abstract
 - List of base classes
