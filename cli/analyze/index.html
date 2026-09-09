@@ -3487,7 +3487,7 @@
 <p>Module hotspot rollups use the complete analyzer results before <code>--min-complexity</code>, <code>report_unchanged</code>, and <code>--min-severity</code> presentation filters. This keeps file-to-file comparisons stable when detail thresholds change.</p>
 <h2 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h2>
 <h3 id="output-format">Output format<a class="headerlink" href="#output-format" title="Permanent link">&para;</a></h3>
-<p>Only one of these may be set per invocation. If none is set, HTML is generated.</p>
+<p>Any combination may be set; the analysis runs once and every requested report is written. If none is set, HTML is generated.</p>
 <table>
 <thead>
 <tr>
@@ -3522,11 +3522,11 @@
 </tr>
 <tr>
 <td><code>-o, --output &lt;path&gt;</code></td>
-<td>Write the report to <code>&lt;path&gt;</code> instead of <code>.pyscn/reports/</code>. <code>-</code> writes it to stdout.</td>
+<td>Write the report to <code>&lt;path&gt;</code> instead of <code>.pyscn/reports/</code>. <code>-</code> writes it to stdout. Only valid with a single format.</td>
 </tr>
 </tbody>
 </table>
-<p>Output files land in <code>.pyscn/reports/</code> by default, named <code>analyze_YYYYMMDD_HHMMSS.{ext}</code>. Configure the directory with <code>[output] directory = "..."</code>, or bypass it for one run with <code>--output</code>.</p>
+<p>Output files land in <code>.pyscn/reports/</code> by default, named <code>analyze_YYYYMMDD_HHMMSS.{ext}</code>; reports from the same run share the timestamp. Configure the directory with <code>[output] directory = "..."</code>, or bypass it for one run with <code>--output</code>.</p>
 <h3 id="analysis-selection">Analysis selection<a class="headerlink" href="#analysis-selection" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3652,23 +3652,26 @@
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># JSON on stdout, nothing written to .pyscn/reports/</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--output<span class="w"> </span>-<span class="w"> </span>src/<span class="w"> </span><span class="p">|</span><span class="w"> </span>jq<span class="w"> </span><span class="s1">'.summary.health_score'</span>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Skip the slowest analyzer</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--skip-clones<span class="w"> </span>src/
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># JSON for CI and HTML for reading, from one analysis run</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--html<span class="w"> </span>--no-open<span class="w"> </span>src/
 </span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Only complexity and dead code</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Skip the slowest analyzer</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--skip-clones<span class="w"> </span>src/
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Module community detection (standalone JSON)</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w"> </span>src/
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># Only complexity and dead code</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--select<span class="w"> </span>complexity,deadcode<span class="w"> </span>src/
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Stricter thresholds</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--min-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--min-severity<span class="w"> </span>critical<span class="w"> </span>src/
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># Module community detection (standalone JSON)</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--json<span class="w"> </span>--select<span class="w"> </span>communities<span class="w"> </span>src/
 </span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="c1"># Use a specific config file</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>./configs/strict.toml<span class="w"> </span>src/
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="c1"># Stricter thresholds</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--min-complexity<span class="w"> </span><span class="m">10</span><span class="w"> </span>--min-severity<span class="w"> </span>critical<span class="w"> </span>src/
 </span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="c1"># Don't open the browser (useful in sandboxes or containers)</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--no-open<span class="w"> </span>.
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="c1"># Use a specific config file</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--config<span class="w"> </span>./configs/strict.toml<span class="w"> </span>src/
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="c1"># Don't open the browser (useful in sandboxes or containers)</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>pyscn<span class="w"> </span>analyze<span class="w"> </span>--no-open<span class="w"> </span>.
 </span></code></pre></div>
 <h2 id="when-to-use-analyze-vs-check">When to use <code>analyze</code> vs <code>check</code><a class="headerlink" href="#when-to-use-analyze-vs-check" title="Permanent link">&para;</a></h2>
 <table>
