@@ -3,7 +3,7 @@
 ## Prérequis
 
 - Python 3.8–3.13 (lanceur uniquement ; pyscn n'a aucune dépendance d'exécution Python)
-- Wheels PyPI pour Linux x86_64, macOS arm64 (Apple Silicon) et Windows x86_64. Aucun wheel macOS Intel depuis la v1.5.1 : utilisez `brew install pyscn` ou l'installation Go ci-dessous.
+- Wheels PyPI pour Linux x86_64 et arm64, macOS arm64 (Apple Silicon) et Windows x86_64. Aucun wheel macOS Intel depuis la v1.5.1 : utilisez `brew install pyscn` ou l'installation Go ci-dessous.
 
 ## Installation
 

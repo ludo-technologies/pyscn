@@ -5,10 +5,13 @@
 
 set -e
 
-# Platform configurations (GOOS, GOARCH, wheel_platform_tag)
+# Platform configurations (GOOS, GOARCH, wheel_platform_tag).
+# Keep this list in sync with the build-wheels matrix in
+# .github/workflows/python-release.yml, which is what actually ships to PyPI.
+# Note that the tree-sitter bindings need CGO, so only the entry matching the
+# host builds here; the release workflow uses one native runner per platform.
 PLATFORMS=(
-    "darwin:amd64:macosx_10_9_x86_64"
-    "darwin:arm64:macosx_11_0_arm64" 
+    "darwin:arm64:macosx_11_0_arm64"
     "linux:amd64:manylinux_2_17_x86_64"
     "linux:arm64:manylinux_2_17_aarch64"
     "windows:amd64:win_amd64"
