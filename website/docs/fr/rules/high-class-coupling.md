@@ -6,7 +6,7 @@
 
 ## Ce que fait cette règle
 
-Signale les classes qui dépendent de trop d'autres classes (la métrique Coupling Between Objects, ou CBO, de Chidamber & Kemerer). pyscn compte le nombre de classes distinctes qu'une classe référence via l'héritage, les annotations de type, l'instanciation directe, l'accès aux attributs sur des modules importés et les imports.
+Signale les classes qui dépendent de trop d'autres classes (la métrique Coupling Between Objects, ou CBO, de Chidamber & Kemerer). pyscn compte le nombre de classes distinctes qu'une classe référence via l'héritage, l'instanciation directe, l'accès aux attributs sur des modules importés et les imports. Les annotations de type sont des déclarations, pas des usages : elles apparaissent dans le détail `type_hint_dependencies` mais n'entrent pas dans le score.
 
 En clair : *trop de choses doivent être en place pour que cette classe fonctionne.*
 

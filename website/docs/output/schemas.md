@@ -569,7 +569,7 @@ Mirrors `domain.CBOResponse`.
 | ------------------------------- | ----------------------- | ---------------------------------------------------- |
 | `coupling_count`                | integer                 | CBO value: distinct classes this class depends on.   |
 | `inheritance_dependencies`      | integer                 | Dependencies from base classes.                      |
-| `type_hint_dependencies`        | integer                 | Dependencies from type annotations.                  |
+| `type_hint_dependencies`        | integer                 | Dependencies from type annotations (informational, not counted in `coupling_count`). |
 | `instantiation_dependencies`    | integer                 | Dependencies from object instantiation.              |
 | `attribute_access_dependencies` | integer                 | Dependencies from method calls and attribute access. |
 | `import_dependencies`           | integer                 | Dependencies from explicit imports.                  |

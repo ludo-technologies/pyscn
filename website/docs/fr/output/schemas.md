@@ -474,7 +474,7 @@ Reflet de `domain.CBOResponse`.
 | ------------------------------- | ----------------------- | ---------------------------------------------------------- |
 | `coupling_count`                | integer                 | Valeur CBO : classes distinctes dont dépend cette classe.  |
 | `inheritance_dependencies`      | integer                 | Dépendances par classes de base.                           |
-| `type_hint_dependencies`        | integer                 | Dépendances par annotations de type.                       |
+| `type_hint_dependencies`        | integer                 | Dépendances par annotations de type (informatif, non compté dans `coupling_count`). |
 | `instantiation_dependencies`    | integer                 | Dépendances par instanciation d'objets.                    |
 | `attribute_access_dependencies` | integer                 | Dépendances par appels de méthodes et accès aux attributs. |
 | `import_dependencies`           | integer                 | Dépendances par imports explicites.                        |
