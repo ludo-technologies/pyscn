@@ -136,8 +136,8 @@ detect_platform() {
             ;;
         linux)
             case "$arch" in
-                amd64) echo "manylinux_2_17_x86_64" ;;
-                arm64) echo "manylinux_2_17_aarch64" ;;
+                amd64) echo "manylinux_2_34_x86_64" ;;
+                arm64) echo "manylinux_2_34_aarch64" ;;
                 *) echo "unsupported"; exit 1 ;;
             esac
             ;;

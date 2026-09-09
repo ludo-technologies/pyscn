@@ -18,7 +18,7 @@ jobs:
             platform: linux-amd64
             goos: linux
             goarch: amd64
-            wheel_platform: manylinux_2_17_x86_64
+            wheel_platform: manylinux_2_34_x86_64
 
           # Linux ARM64 (Graviton, arm64 containers on Apple Silicon)
           # Needs a native runner: the tree-sitter bindings require CGO, which
@@ -27,7 +27,7 @@ jobs:
             platform: linux-arm64
             goos: linux
             goarch: arm64
-            wheel_platform: manylinux_2_17_aarch64
+            wheel_platform: manylinux_2_34_aarch64
 
           # Windows builds
           - os: windows-latest

@@ -55,7 +55,7 @@ ENTRYPOINT ["pyscn"]
 ## Wheel contents
 
 ```
-pyscn-0.2.0-py3-none-manylinux_2_17_x86_64.whl
+pyscn-0.2.0-py3-none-manylinux_2_34_x86_64.whl
 ├── pyscn/
 │   ├── __init__.py
 │   ├── __main__.py        # CLI launcher

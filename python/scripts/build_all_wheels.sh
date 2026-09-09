@@ -12,8 +12,8 @@ set -e
 # host builds here; the release workflow uses one native runner per platform.
 PLATFORMS=(
     "darwin:arm64:macosx_11_0_arm64"
-    "linux:amd64:manylinux_2_17_x86_64"
-    "linux:arm64:manylinux_2_17_aarch64"
+    "linux:amd64:manylinux_2_34_x86_64"
+    "linux:arm64:manylinux_2_34_aarch64"
     "windows:amd64:win_amd64"
 )
 
