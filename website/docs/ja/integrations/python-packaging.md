@@ -17,7 +17,7 @@ CI: `uvx pyscn@latest check .`。ローカル開発: `uv tool install pyscn` ま
 
 | OS | アーキテクチャ |
 | --- | --- |
-| Linux | x86_64 |
+| Linux | x86_64、arm64 |
 | macOS | arm64（Apple Silicon）。v1.5.1 以降 Intel 向け wheel はありません。`brew install pyscn` または `go install github.com/ludo-technologies/pyscn/cmd/pyscn@latest` を使用してください。 |
 | Windows | x86_64 |
 

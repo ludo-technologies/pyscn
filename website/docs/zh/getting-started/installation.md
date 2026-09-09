@@ -3,7 +3,7 @@
 ## 系统要求
 
 - Python 3.8-3.13（仅用于启动器；pyscn 无 Python 运行时依赖）
-- PyPI wheel 面向 Linux x86_64、macOS arm64（Apple Silicon）和 Windows x86_64。macOS Intel 自 v1.5.1 起没有 wheel：请使用 `brew install pyscn` 或下方的 Go 安装方式。
+- PyPI wheel 面向 Linux x86_64 和 arm64、macOS arm64（Apple Silicon）和 Windows x86_64。macOS Intel 自 v1.5.1 起没有 wheel：请使用 `brew install pyscn` 或下方的 Go 安装方式。
 
 ## 安装方式
 

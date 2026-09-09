@@ -3,7 +3,7 @@
 ## 動作要件
 
 - Python 3.8〜3.13（ランチャーのみ使用。pyscn 自体は Python ランタイムに依存しません）
-- PyPI wheel は Linux x86_64、macOS arm64（Apple Silicon）、Windows x86_64 向け。macOS Intel には v1.5.1 以降 wheel がありません。`brew install pyscn` または下記の Go install を使用してください。
+- PyPI wheel は Linux x86_64 / arm64、macOS arm64（Apple Silicon）、Windows x86_64 向け。macOS Intel には v1.5.1 以降 wheel がありません。`brew install pyscn` または下記の Go install を使用してください。
 
 ## インストール方法
 

@@ -19,7 +19,16 @@ jobs:
             goos: linux
             goarch: amd64
             wheel_platform: manylinux_2_17_x86_64
-          
+
+          # Linux ARM64 (Graviton, arm64 containers on Apple Silicon)
+          # Needs a native runner: the tree-sitter bindings require CGO, which
+          # rules out cross-compiling from the amd64 runner.
+          - os: ubuntu-24.04-arm
+            platform: linux-arm64
+            goos: linux
+            goarch: arm64
+            wheel_platform: manylinux_2_17_aarch64
+
           # Windows builds
           - os: windows-latest
             platform: windows-amd64
@@ -131,7 +140,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
         python-version: ['3.8', '3.13']
     
     steps:
