@@ -3410,7 +3410,7 @@
 <strong>Severity</strong>: Configurable by threshold<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
 <h2 id="what-it-does">What it does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>Flags classes that depend on too many other classes (the Coupling Between Objects, or CBO, metric from Chidamber &amp; Kemerer). pyscn counts the number of distinct other classes a class references through inheritance, type hints, direct instantiation, attribute access on imported modules, and imports.</p>
+<p>Flags classes that depend on too many other classes (the Coupling Between Objects, or CBO, metric from Chidamber &amp; Kemerer). pyscn counts the number of distinct other classes a class references through inheritance, direct instantiation, attribute access on imported modules, and imports. Type annotations are declarations, not uses, so they are reported in the <code>type_hint_dependencies</code> breakdown but do not add to the score.</p>
 <p>In plain terms: <em>too many things have to be in place for this class to work.</em></p>
 <h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
 <p>A highly coupled class is hard to live with:</p>

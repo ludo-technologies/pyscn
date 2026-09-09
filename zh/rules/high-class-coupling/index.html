@@ -3410,7 +3410,7 @@
 <strong>Severity</strong>: Configurable by threshold<br />
 <strong>Triggered by</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
 <h2 id="_1">检测内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>标记依赖了过多其他类的类（即 Chidamber &amp; Kemerer 提出的对象间耦合度 CBO 指标）。pyscn 通过继承、类型提示、直接实例化、对导入模块的属性访问和导入语句来统计一个类引用的不同类的数量。</p>
+<p>标记依赖了过多其他类的类（即 Chidamber &amp; Kemerer 提出的对象间耦合度 CBO 指标）。pyscn 通过继承、直接实例化、对导入模块的属性访问和导入语句来统计一个类引用的不同类的数量。类型提示是声明而非使用，因此会显示在 <code>type_hint_dependencies</code> 明细中，但不计入分数。</p>
 <p>简单来说：<em>这个类要正常工作需要太多前置条件。</em></p>
 <h2 id="_2">为什么这是一个问题<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>高度耦合的类难以维护：</p>

@@ -3410,7 +3410,7 @@
 <strong>重大度</strong>: しきい値により設定可能<br />
 <strong>検出コマンド</strong>: <code>pyscn analyze</code>, <code>pyscn check</code></p>
 <h2 id="_1">検出内容<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
-<p>他のクラスに過度に依存しているクラスを検出します（Chidamber &amp; Kemerer による CBO: Coupling Between Objects メトリクス）。pyscn は、継承、型ヒント、直接的なインスタンス化、インポートされたモジュールの属性アクセス、およびインポートを通じてクラスが参照する、異なるクラスの数をカウントします。</p>
+<p>他のクラスに過度に依存しているクラスを検出します（Chidamber &amp; Kemerer による CBO: Coupling Between Objects メトリクス）。pyscn は、継承、直接的なインスタンス化、インポートされたモジュールの属性アクセス、およびインポートを通じてクラスが参照する、異なるクラスの数をカウントします。型ヒントは宣言であり使用ではないため、<code>type_hint_dependencies</code> の内訳には表示されますがスコアには加算されません。</p>
 <p>簡単に言えば: <em>このクラスが動作するために、あまりにも多くのものが揃っていなければなりません。</em></p>
 <h2 id="_2">なぜ問題なのか<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <p>結合度の高いクラスは扱いにくいものです:</p>

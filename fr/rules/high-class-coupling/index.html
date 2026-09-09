@@ -3410,7 +3410,7 @@
 <strong>Sévérité</strong> : Configurable par seuil<br />
 <strong>Déclenché par</strong> : <code>pyscn analyze</code>, <code>pyscn check</code></p>
 <h2 id="ce-que-fait-cette-regle">Ce que fait cette règle<a class="headerlink" href="#ce-que-fait-cette-regle" title="Permanent link">&para;</a></h2>
-<p>Signale les classes qui dépendent de trop d'autres classes (la métrique Coupling Between Objects, ou CBO, de Chidamber &amp; Kemerer). pyscn compte le nombre de classes distinctes qu'une classe référence via l'héritage, les annotations de type, l'instanciation directe, l'accès aux attributs sur des modules importés et les imports.</p>
+<p>Signale les classes qui dépendent de trop d'autres classes (la métrique Coupling Between Objects, ou CBO, de Chidamber &amp; Kemerer). pyscn compte le nombre de classes distinctes qu'une classe référence via l'héritage, l'instanciation directe, l'accès aux attributs sur des modules importés et les imports. Les annotations de type sont des déclarations, pas des usages : elles apparaissent dans le détail <code>type_hint_dependencies</code> mais n'entrent pas dans le score.</p>
 <p>En clair : <em>trop de choses doivent être en place pour que cette classe fonctionne.</em></p>
 <h2 id="pourquoi-est-ce-un-probleme">Pourquoi est-ce un problème ?<a class="headerlink" href="#pourquoi-est-ce-un-probleme" title="Permanent link">&para;</a></h2>
 <p>Une classe fortement couplée est difficile à vivre :</p>
