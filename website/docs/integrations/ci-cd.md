@@ -78,27 +78,28 @@ With `pip` instead of uvx:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: local
+  - repo: https://github.com/ludo-technologies/pyscn-pre-commit
+    rev: v1.31.1
     hooks:
       - id: pyscn
-        name: pyscn check
-        entry: pyscn check
-        language: python
-        additional_dependencies: [pyscn]
-        pass_filenames: false
-        files: '\.py$'
+```
+
+The hook runs `pyscn check` over the whole project, and is skipped entirely on commits that touch no Python files. Add flags with `args`:
+
+```yaml
+      - id: pyscn
+        args: [--select, complexity, --max-complexity, "15"]
 ```
 
 Scope to staged files:
 
 ```yaml
       - id: pyscn
-        name: pyscn check (staged)
-        entry: bash -c 'pyscn check --quiet "$@"' --
-        language: python
-        additional_dependencies: [pyscn]
-        files: '\.py$'
+        pass_filenames: true
+        args: [--quiet]
 ```
+
+`rev` tracks pyscn releases and `pre-commit autoupdate` moves it. The hook also works with [prek](https://github.com/j178/prek).
 
 ## GitLab CI
 

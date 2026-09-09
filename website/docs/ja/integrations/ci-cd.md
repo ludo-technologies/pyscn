@@ -78,27 +78,28 @@ uvx の代わりに `pip` を使用:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: local
+  - repo: https://github.com/ludo-technologies/pyscn-pre-commit
+    rev: v1.31.1
     hooks:
       - id: pyscn
-        name: pyscn check
-        entry: pyscn check
-        language: python
-        additional_dependencies: [pyscn]
-        pass_filenames: false
-        files: '\.py$'
+```
+
+このフックはプロジェクト全体に対して `pyscn check` を実行します。Python ファイルを含まないコミットではスキップされます。フラグは `args` で渡します:
+
+```yaml
+      - id: pyscn
+        args: [--select, complexity, --max-complexity, "15"]
 ```
 
 ステージされたファイルに限定:
 
 ```yaml
       - id: pyscn
-        name: pyscn check (staged)
-        entry: bash -c 'pyscn check --quiet "$@"' --
-        language: python
-        additional_dependencies: [pyscn]
-        files: '\.py$'
+        pass_filenames: true
+        args: [--quiet]
 ```
+
+`rev` は pyscn のリリースに追随します。更新は `pre-commit autoupdate` で行えます。[prek](https://github.com/j178/prek) でも同じ設定が使えます。
 
 ## GitLab CI
 

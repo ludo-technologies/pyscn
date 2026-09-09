@@ -78,27 +78,28 @@ on:
 ```yaml
 # .pre-commit-config.yaml
 repos:
-  - repo: local
+  - repo: https://github.com/ludo-technologies/pyscn-pre-commit
+    rev: v1.31.1
     hooks:
       - id: pyscn
-        name: pyscn check
-        entry: pyscn check
-        language: python
-        additional_dependencies: [pyscn]
-        pass_filenames: false
-        files: '\.py$'
+```
+
+该钩子对整个项目运行 `pyscn check`；如果提交不涉及 Python 文件则会被跳过。可通过 `args` 传递参数：
+
+```yaml
+      - id: pyscn
+        args: [--select, complexity, --max-complexity, "15"]
 ```
 
 限定为暂存文件：
 
 ```yaml
       - id: pyscn
-        name: pyscn check (staged)
-        entry: bash -c 'pyscn check --quiet "$@"' --
-        language: python
-        additional_dependencies: [pyscn]
-        files: '\.py$'
+        pass_filenames: true
+        args: [--quiet]
 ```
+
+`rev` 跟随 pyscn 的发布，可用 `pre-commit autoupdate` 更新。该钩子同样适用于 [prek](https://github.com/j178/prek)。
 
 ## GitLab CI
 
