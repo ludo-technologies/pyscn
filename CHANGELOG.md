@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.31.1] - 2026-09-09
+
+### Added
+- `analyze` writes every requested report format from a single run instead of one per invocation (#752)
+- Top-level `schema_version` field on `analyze` JSON/YAML output, and migration docs for the v1.30.0 key rename (#750)
+
+### Fixed
+- Group `from pkg import mod` namespace members in CBO the same way as `import pkg as mod` (#751)
+
 ## [1.31.0] - 2026-09-07
 
 ### Added
