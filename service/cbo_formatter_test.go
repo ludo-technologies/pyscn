@@ -224,3 +224,32 @@ func TestCBOFormatter_WriteClassDetails(t *testing.T) {
 	assert.Contains(t, output, "MyClass")
 	assert.Contains(t, output, "SimpleClass")
 }
+
+func TestCBOFormatter_TypeHintOnlyClassKeepsBreakdown(t *testing.T) {
+	// Type hints are excluded from CouplingCount (#757) but must stay visible
+	// in the breakdown, even when the class has no other coupling.
+	response := &domain.CBOResponse{
+		Classes: []domain.ClassCoupling{
+			{
+				Name:      "Service",
+				FilePath:  "service.py",
+				StartLine: 3,
+				Metrics: domain.CBOMetrics{
+					CouplingCount:        0,
+					TypeHintDependencies: 1,
+				},
+				RiskLevel: domain.RiskLevelLow,
+			},
+		},
+		Summary: domain.CBOSummary{TotalClasses: 1, FilesAnalyzed: 1},
+	}
+	formatter := NewCBOFormatter()
+
+	text, err := formatter.Format(response, domain.OutputFormatText)
+	require.NoError(t, err)
+	assert.Contains(t, text, "Type Hints")
+
+	html, err := formatter.Format(response, domain.OutputFormatHTML)
+	require.NoError(t, err)
+	assert.Contains(t, html, "Type Hints: 1")
+}

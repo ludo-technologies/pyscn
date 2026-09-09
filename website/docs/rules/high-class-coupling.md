@@ -6,7 +6,7 @@
 
 ## What it does
 
-Flags classes that depend on too many other classes (the Coupling Between Objects, or CBO, metric from Chidamber & Kemerer). pyscn counts the number of distinct other classes a class references through inheritance, type hints, direct instantiation, attribute access on imported modules, and imports.
+Flags classes that depend on too many other classes (the Coupling Between Objects, or CBO, metric from Chidamber & Kemerer). pyscn counts the number of distinct other classes a class references through inheritance, direct instantiation, attribute access on imported modules, and imports. Type annotations are declarations, not uses, so they are reported in the `type_hint_dependencies` breakdown but do not add to the score.
 
 In plain terms: *too many things have to be in place for this class to work.*
 

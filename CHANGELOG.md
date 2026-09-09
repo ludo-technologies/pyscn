@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- CBO no longer counts type-hint dependencies in `coupling_count` or the risk level; they remain visible in `type_hint_dependencies`. The `from __future__ import annotations` special case is removed (#757)
+
 ## [1.31.1] - 2026-09-09
 
 ### Added

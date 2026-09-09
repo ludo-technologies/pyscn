@@ -175,9 +175,9 @@ class Helper:
         return "done"
 
 class Main:
-    def __init__(self, h: Helper, w: Widget) -> None:
+    def __init__(self, h: Helper) -> None:
         self.h = h
-        self.w = w
+        self.w = Widget()
 `,
 			expectedCount: 2,
 			expectedCBO:   map[string]int{"Helper": 0, "Main": 1},
@@ -318,19 +318,19 @@ class MyClass:
 `
 
 	tests := []struct {
-		name            string
-		includeBuiltins bool
-		expectedCBO     int
+		name              string
+		includeBuiltins   bool
+		expectedTypeHints int
 	}{
 		{
-			name:            "exclude builtins",
-			includeBuiltins: false,
-			expectedCBO:     0,
+			name:              "exclude builtins",
+			includeBuiltins:   false,
+			expectedTypeHints: 0,
 		},
 		{
-			name:            "include builtins",
-			includeBuiltins: true,
-			expectedCBO:     3, // list, int, dict (str and len are functions, not types)
+			name:              "include builtins",
+			includeBuiltins:   true,
+			expectedTypeHints: 3, // list, int, dict (str and len are functions, not types)
 		},
 	}
 
@@ -347,7 +347,8 @@ class MyClass:
 			require.NoError(t, err)
 
 			require.Len(t, results, 1)
-			assert.Equal(t, tt.expectedCBO, results[0].CouplingCount)
+			assert.Equal(t, 0, results[0].CouplingCount, "annotation-only builtins never count as coupling")
+			assert.Equal(t, tt.expectedTypeHints, results[0].TypeHintDependencies)
 		})
 	}
 }
@@ -374,26 +375,19 @@ class MyClass:
 `
 
 	tests := []struct {
-		name               string
-		includeBuiltins    bool
-		expectedCBO        int
-		expectedDependents []string
+		name              string
+		includeBuiltins   bool
+		expectedTypeHints int
 	}{
 		{
-			name:               "exclude Cython primitives by default",
-			includeBuiltins:    false,
-			expectedCBO:        1,
-			expectedDependents: []string{"np"},
+			name:              "exclude Cython primitives by default",
+			includeBuiltins:   false,
+			expectedTypeHints: 1, // np.ndarray
 		},
 		{
-			name:            "include Cython primitives when IncludeBuiltins",
-			includeBuiltins: true,
-			expectedCBO:     9,
-			expectedDependents: []string{
-				"cython.int", "cython.float", "cython.long", "cython.uint",
-				"cython.ulong", "cython.ulonglong", "cython.ushort", "cython.double",
-				"np",
-			},
+			name:              "include Cython primitives when IncludeBuiltins",
+			includeBuiltins:   true,
+			expectedTypeHints: 9, // eight cython primitives + np.ndarray
 		},
 	}
 
@@ -410,8 +404,9 @@ class MyClass:
 			require.NoError(t, err)
 
 			require.Len(t, results, 1)
-			assert.Equal(t, tt.expectedCBO, results[0].CouplingCount)
-			assert.ElementsMatch(t, tt.expectedDependents, results[0].DependentClasses)
+			assert.Equal(t, 0, results[0].CouplingCount, "annotation-only references never count as coupling")
+			assert.Empty(t, results[0].DependentClasses)
+			assert.Equal(t, tt.expectedTypeHints, results[0].TypeHintDependencies)
 		})
 	}
 }
@@ -438,8 +433,9 @@ class UsesModuleConstants:
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 
-	assert.Equal(t, 1, results[0].CouplingCount)
-	assert.Equal(t, []string{"Path"}, results[0].DependentClasses)
+	assert.Equal(t, 0, results[0].CouplingCount)
+	assert.Empty(t, results[0].DependentClasses)
+	assert.Equal(t, 1, results[0].TypeHintDependencies, "Path is annotation-only")
 }
 
 func TestCBOAnalyzer_KeepsUppercaseConstructorDependencies(t *testing.T) {
@@ -520,11 +516,8 @@ class Service:
 
 	contract := resultMap["Contract"]
 	require.NotNil(t, contract)
-	// This fixture has `from __future__ import annotations` at module scope
-	// (needed below for Widget's self-referential annotation to be valid
-	// Python), so under PEP 563 the `Dependency` reference in handle()'s
-	// signature is never evaluated at runtime and must not count as
-	// coupling. See #628.
+	// Dependency is a same-file top-level peer (#637), so it is dropped
+	// from every bucket including the type-hint breakdown.
 	assert.Equal(t, 0, contract.CouplingCount)
 	assert.Equal(t, 0, contract.TypeHintDependencies)
 	assert.Empty(t, contract.DependentClasses)
@@ -546,9 +539,6 @@ class Service:
 
 	service := resultMap["Service"]
 	require.NotNil(t, service)
-	// Same PEP 563 reasoning as Contract above: field/parameter/return
-	// annotations referencing Dependency are strings at runtime under the
-	// module's future annotations import and carry no coupling. See #628.
 	assert.Equal(t, 0, service.CouplingCount)
 	assert.Equal(t, 0, service.TypeHintDependencies)
 	assert.Empty(t, service.DependentClasses)
@@ -683,7 +673,8 @@ class Service(contracts.Base):
 	service := results[0]
 	assert.Equal(t, "Service", service.ClassName)
 	assert.Equal(t, []string{"contracts.Base"}, service.BaseClasses)
-	assert.Equal(t, []string{"contracts.Base", "contracts.Item", "contracts.Result"}, service.DependentClasses)
+	assert.Equal(t, []string{"contracts.Base"}, service.DependentClasses)
+	assert.Equal(t, 2, service.TypeHintDependencies, "contracts.Item and contracts.Result")
 	assert.NotContains(t, service.DependentClasses, "contracts")
 }
 
@@ -759,9 +750,8 @@ class Widget:
 
 	widget := results[0]
 	assert.Equal(t, "Widget", widget.ClassName)
-	assert.Equal(t, 1, widget.CouplingCount)
-	assert.Equal(t, 1, widget.ImportDependencies)
-	assert.Equal(t, []string{"models.Widget"}, widget.DependentClasses)
+	assert.Equal(t, 1, widget.TypeHintDependencies, "models.Widget is a different class, not a self reference")
+	assert.Equal(t, 0, widget.CouplingCount, "annotation-only")
 }
 
 func TestCBOAnalyzer_ImportedSameNameDependencyIsSelfReference(t *testing.T) {
@@ -837,9 +827,8 @@ class Service:
 
 	service := results[0]
 	assert.Equal(t, "Service", service.ClassName)
-	assert.Equal(t, 1, service.CouplingCount)
-	assert.Equal(t, 1, service.ImportDependencies)
-	assert.Equal(t, []string{"models.Protocol"}, service.DependentClasses)
+	assert.Equal(t, 1, service.TypeHintDependencies, "models.Protocol is a project class, not typing.Protocol")
+	assert.Equal(t, 0, service.CouplingCount, "annotation-only")
 }
 
 func TestCBOAnalyzer_ExcludePatterns(t *testing.T) {
@@ -1152,8 +1141,9 @@ class ClassBindingUser:
 		assert.Equal(t, 1, aliased.CouplingCount)
 
 		classBinding := byName["ClassBindingUser"]
-		assert.Equal(t, []string{"Widget", "Widget.Inner"}, classBinding.DependentClasses, "a CapWords binding is not treated as a namespace")
-		assert.Equal(t, 2, classBinding.CouplingCount)
+		assert.Equal(t, []string{"Widget"}, classBinding.DependentClasses)
+		assert.Equal(t, 1, classBinding.CouplingCount)
+		assert.Equal(t, 1, classBinding.TypeHintDependencies, "Widget.Inner keeps its own identity: a CapWords binding is not treated as a namespace")
 	})
 
 	t.Run("keep per-member edges when disabled", func(t *testing.T) {
@@ -1745,49 +1735,38 @@ class Outer:
 	assert.Equal(t, 0, outer.CouplingCount)
 }
 
-func TestCBOAnalyzer_FutureAnnotationsExcludeAnnotationOnlyDependencies(t *testing.T) {
-	// Regression test for #628: with `from __future__ import annotations`
-	// (PEP 563), annotations are stored as strings and never evaluated at
-	// runtime, so a class-level annotation referencing an imported type has
-	// zero import cost and must not inflate CBO.
+func TestCBOAnalyzer_TypeHintsDoNotCountAsCoupling(t *testing.T) {
+	// Regression test for #757: a type annotation is a declaration, not a
+	// use. Annotation-only references are reported in the type-hint
+	// breakdown but never contribute to CouplingCount or the risk level,
+	// regardless of `from __future__ import annotations`.
 	pythonCode := `
-from __future__ import annotations
-import ast
+from pathlib import Path
+from pydantic import BaseModel, Field, FilePath
 
-class TOKENS:
-    ASSERT: type[ast.Assert]
-    ATTRIBUTE: type[ast.Attribute]
-    CALL: type[ast.Call]
-    RETURN: type[ast.Return]
+class MySettings(BaseModel):
+    input_path: FilePath = Field(title="Input path")
+    output_path: Path = Field(title="Output path")
 `
 
 	ast, err := parseCode(pythonCode)
 	require.NoError(t, err)
 
-	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
-	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "test.py")
 	require.NoError(t, err)
+	require.Len(t, results, 1)
 
-	resultMap := make(map[string]*CBOResult)
-	for _, result := range results {
-		resultMap[result.ClassName] = result
-	}
-
-	tokens := resultMap["TOKENS"]
-	require.NotNil(t, tokens)
-	assert.Equal(t, 0, tokens.CouplingCount, "annotation-only references under PEP 563 must not count as coupling")
-	assert.Equal(t, 0, tokens.ImportDependencies)
-	assert.Equal(t, 0, tokens.TypeHintDependencies)
-	assert.Empty(t, tokens.DependentClasses)
+	settings := results[0]
+	assert.Equal(t, 2, settings.CouplingCount)
+	assert.ElementsMatch(t, []string{"BaseModel", "Field"}, settings.DependentClasses)
+	assert.Equal(t, 2, settings.TypeHintDependencies, "FilePath and Path stay visible in the breakdown")
+	assert.Equal(t, "low", settings.RiskLevel)
 }
 
-func TestCBOAnalyzer_FutureAnnotationsStillCountRuntimeUsage(t *testing.T) {
-	// Even with `from __future__ import annotations`, a name that is actually
-	// used at runtime (instantiated, called, or accessed) still gets
-	// evaluated eagerly and must keep counting as coupling. Only references
-	// that appear solely inside a type annotation are exempt.
+func TestCBOAnalyzer_TypeHintsStillCountRuntimeUsage(t *testing.T) {
+	// A name that is actually used at runtime (instantiated, called, or
+	// accessed) keeps counting even when it also appears in an annotation.
 	pythonCode := `
-from __future__ import annotations
 import ast
 
 class Visitor:
@@ -1800,51 +1779,14 @@ class Visitor:
 	astTree, err := parseCode(pythonCode)
 	require.NoError(t, err)
 
-	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
-	results, err := analyzer.AnalyzeClasses(astTree, "test.py")
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(astTree, "test.py")
 	require.NoError(t, err)
+	require.Len(t, results, 1)
 
-	resultMap := make(map[string]*CBOResult)
-	for _, result := range results {
-		resultMap[result.ClassName] = result
-	}
-
-	visitor := resultMap["Visitor"]
-	require.NotNil(t, visitor)
-	assert.Contains(t, visitor.DependentClasses, "ast.Call", "runtime instantiation must still count even under PEP 563")
-	assert.NotContains(t, visitor.DependentClasses, "ast.AST", "annotation-only reference must not count under PEP 563")
+	visitor := results[0]
+	assert.Equal(t, []string{"ast.Call"}, visitor.DependentClasses)
 	assert.Equal(t, 1, visitor.CouplingCount)
-}
-
-func TestCBOAnalyzer_WithoutFutureAnnotationsTypeHintsStillCount(t *testing.T) {
-	// Without `from __future__ import annotations`, annotations are evaluated
-	// eagerly, so the pre-#628 behavior (annotation references count as
-	// coupling) must be unchanged.
-	pythonCode := `
-import ast
-
-class TOKENS:
-    ASSERT: type[ast.Assert]
-    ATTRIBUTE: type[ast.Attribute]
-`
-
-	astTree, err := parseCode(pythonCode)
-	require.NoError(t, err)
-
-	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
-	results, err := analyzer.AnalyzeClasses(astTree, "test.py")
-	require.NoError(t, err)
-
-	resultMap := make(map[string]*CBOResult)
-	for _, result := range results {
-		resultMap[result.ClassName] = result
-	}
-
-	tokens := resultMap["TOKENS"]
-	require.NotNil(t, tokens)
-	assert.Equal(t, 2, tokens.CouplingCount)
-	assert.Contains(t, tokens.DependentClasses, "ast.Assert")
-	assert.Contains(t, tokens.DependentClasses, "ast.Attribute")
+	assert.Equal(t, 1, visitor.TypeHintDependencies)
 }
 
 func TestCBOAnalyzer_ImportedDependenciesKeepKindBreakdown(t *testing.T) {

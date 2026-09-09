@@ -181,8 +181,9 @@ func (f *CBOFormatterImpl) writeClassDetails(builder *strings.Builder, class dom
 		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Inherits from", strings.Join(class.BaseClasses, ", ")))
 	}
 
-	// Dependency breakdown
-	if class.Metrics.CouplingCount > 0 {
+	// Dependency breakdown. Type hints are informational only, so a class
+	// with CBO 0 can still have something to show here.
+	if class.Metrics.CouplingCount > 0 || class.Metrics.TypeHintDependencies > 0 {
 		builder.WriteString(utils.FormatLabelWithIndent(ItemPadding, "Dependencies", ""))
 		if class.Metrics.InheritanceDependencies > 0 {
 			builder.WriteString(utils.FormatLabelWithIndent(ItemPadding+2, "Inheritance", class.Metrics.InheritanceDependencies))
@@ -365,8 +366,8 @@ func (f *CBOFormatterImpl) formatHTML(response *domain.CBOResponse) (string, err
 
 			content.WriteString(dependencies)
 
-			// Add dependency breakdown
-			if class.Metrics.CouplingCount > 0 {
+			// Add dependency breakdown (type hints are informational only)
+			if class.Metrics.CouplingCount > 0 || class.Metrics.TypeHintDependencies > 0 {
 				content.WriteString(`<br><small style="color: #666;">`)
 				deps := []string{}
 				if class.Metrics.InheritanceDependencies > 0 {

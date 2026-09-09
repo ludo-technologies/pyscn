@@ -474,7 +474,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | ------------------------------- | ----------------------- | ---------------- |
 | `coupling_count`                | integer                 | CBO 值：此类依赖的不同类数。 |
 | `inheritance_dependencies`      | integer                 | 来自基类的依赖数。        |
-| `type_hint_dependencies`        | integer                 | 来自类型注解的依赖数。      |
+| `type_hint_dependencies`        | integer                 | 来自类型注解的依赖数（仅供参考，不计入 `coupling_count`）。 |
 | `instantiation_dependencies`    | integer                 | 来自对象实例化的依赖数。     |
 | `attribute_access_dependencies` | integer                 | 来自方法调用和属性访问的依赖数。 |
 | `import_dependencies`           | integer                 | 来自显式导入的依赖数。      |

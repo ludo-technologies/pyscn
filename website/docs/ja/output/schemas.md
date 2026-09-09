@@ -474,7 +474,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | ------------------------------- | ----------------------- | ------------------------- |
 | `coupling_count`                | integer                 | CBO 値: このクラスが依存する個別クラスの数。 |
 | `inheritance_dependencies`      | integer                 | 基底クラスからの依存。               |
-| `type_hint_dependencies`        | integer                 | 型アノテーションからの依存。            |
+| `type_hint_dependencies`        | integer                 | 型アノテーションからの依存（参考値。`coupling_count` には含まれない）。 |
 | `instantiation_dependencies`    | integer                 | オブジェクト生成からの依存。            |
 | `attribute_access_dependencies` | integer                 | メソッド呼び出しおよび属性アクセスからの依存。   |
 | `import_dependencies`           | integer                 | 明示的インポートからの依存。            |
