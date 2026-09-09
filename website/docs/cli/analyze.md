@@ -29,7 +29,7 @@ Module hotspot rollups use the complete analyzer results before `--min-complexit
 
 ### Output format
 
-Only one of these may be set per invocation. If none is set, HTML is generated.
+Any combination may be set; the analysis runs once and every requested report is written. If none is set, HTML is generated.
 
 | Flag        | Description |
 | ----------- | --- |
@@ -39,9 +39,9 @@ Only one of these may be set per invocation. If none is set, HTML is generated.
 | `--csv`     | Generate CSV summary, module-quality, community, and directory-complexity rollups (no per-finding detail). |
 | `--text`    | Generate a human-readable plain-text report. |
 | `--no-open` | Do not open the HTML report in a browser. |
-| `-o, --output <path>` | Write the report to `<path>` instead of `.pyscn/reports/`. `-` writes it to stdout. |
+| `-o, --output <path>` | Write the report to `<path>` instead of `.pyscn/reports/`. `-` writes it to stdout. Only valid with a single format. |
 
-Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMSS.{ext}`. Configure the directory with `[output] directory = "..."`, or bypass it for one run with `--output`.
+Output files land in `.pyscn/reports/` by default, named `analyze_YYYYMMDD_HHMMSS.{ext}`; reports from the same run share the timestamp. Configure the directory with `[output] directory = "..."`, or bypass it for one run with `--output`.
 
 ### Analysis selection
 
@@ -94,6 +94,9 @@ pyscn analyze --json src/
 
 # JSON on stdout, nothing written to .pyscn/reports/
 pyscn analyze --json --output - src/ | jq '.summary.health_score'
+
+# JSON for CI and HTML for reading, from one analysis run
+pyscn analyze --json --html --no-open src/
 
 # Skip the slowest analyzer
 pyscn analyze --skip-clones src/

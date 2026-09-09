@@ -18,7 +18,7 @@ import (
 
 // AnalyzeCommand represents the comprehensive analysis command
 type AnalyzeCommand struct {
-	// Output format flags (only one should be true)
+	// Output format flags (any combination; every selected report is written)
 	html   bool
 	json   bool
 	csv    bool
@@ -119,6 +119,9 @@ Examples:
   # Write the JSON report to stdout instead of .pyscn/reports/
   pyscn analyze --json --output - . | jq '.summary.health_score'
 
+  # Write both a JSON and an HTML report from a single analysis run
+  pyscn analyze --json --html --no-open src/
+
   # Skip clone detection, focus on complexity, dead code, and dependencies
   pyscn analyze --skip-clones src/
 
@@ -187,6 +190,11 @@ func (c *AnalyzeCommand) runAnalyze(cmd *cobra.Command, args []string) error {
 	default:
 		return fmt.Errorf("invalid --min-severity value %q (expected: critical, warning, info)", c.minSeverity)
 	}
+
+	if reports := c.reportFormats(); len(reports) > 1 && c.output != "" {
+		return fmt.Errorf("--output takes a single report format; drop it to write all %d reports to the reports directory", len(reports))
+	}
+
 	// Create use case configuration
 	config := c.createUseCaseConfig()
 
@@ -429,46 +437,54 @@ func buildIndividualUseCases(builder *app.AnalyzeUseCaseBuilder) error {
 	return nil
 }
 
-// generateOutput generates the output report
+// generateOutput writes every requested report from the single analysis run.
+// runAnalyze has already rejected --output combined with several formats.
 func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.AnalyzeResponse, args []string) error {
-	// Determine output format
-	format, extension, err := c.determineOutputFormat()
-	if err != nil {
-		return err
+	reports := c.reportFormats()
+
+	// Timestamped reports from one run share a stem so they sort together.
+	var stem string
+	for _, report := range reports {
+		filename := c.output
+		if filename == "" {
+			if stem == "" {
+				path, err := generateOutputFilePath("analyze", report.Extension, getTargetPathFromArgs(args))
+				if err != nil {
+					return fmt.Errorf("failed to generate output path: %w", err)
+				}
+				stem = strings.TrimSuffix(path, "."+report.Extension)
+			}
+			filename = stem + "." + report.Extension
+		}
+		if err := c.writeReport(cmd, response, report.Format, filename); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	// Create formatter
-	formatter := service.NewAnalyzeFormatter()
-
+// writeReport renders one report to filename ("-" for stdout) and announces it
+func (c *AnalyzeCommand) writeReport(cmd *cobra.Command, response *domain.AnalyzeResponse, format domain.OutputFormat, filename string) error {
 	// Resolve the destination: stdout, an explicit path, or a timestamped
 	// file under the reports directory. Only the last one touches .pyscn/reports/.
 	var out io.Writer
-	filename := c.output
 	if filename == "-" {
 		out = cmd.OutOrStdout()
 	} else {
-		if filename == "" {
-			filename, err = generateOutputFilePath("analyze", extension, getTargetPathFromArgs(args))
-			if err != nil {
-				return fmt.Errorf("failed to generate output path: %w", err)
-			}
-		}
-		file, createErr := os.Create(filename)
-		if createErr != nil {
-			return fmt.Errorf("failed to create output file %s: %w", filename, createErr)
+		file, err := os.Create(filename)
+		if err != nil {
+			return fmt.Errorf("failed to create output file %s: %w", filename, err)
 		}
 		defer file.Close()
 		out = file
 	}
 
 	// Write standalone community JSON when only communities were selected.
-	formatType := domain.OutputFormat(format)
-	if c.shouldWriteStandaloneCommunityJSON(response) {
-		communityFormatter := service.NewCommunityFormatter()
-		if err := communityFormatter.Write(response.Communities, formatType, out); err != nil {
+	if c.shouldWriteStandaloneCommunityJSON(format, response) {
+		if err := service.NewCommunityFormatter().Write(response.Communities, format, out); err != nil {
 			return fmt.Errorf("failed to write community analysis report: %w", err)
 		}
-	} else if err := formatter.Write(response, formatType, out); err != nil {
+	} else if err := service.NewAnalyzeFormatter().Write(response, format, out); err != nil {
 		return fmt.Errorf("failed to write unified report: %w", err)
 	}
 
@@ -484,7 +500,7 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	}
 
 	// Handle browser opening for HTML
-	if format == "html" {
+	if format == domain.OutputFormatHTML {
 		// Auto-open only when explicitly allowed, environment is interactive, and not over SSH
 		if !c.noOpen && service.IsInteractiveEnvironment() && !service.IsSSH() {
 			fileURL := "file://" + absPath
@@ -498,7 +514,7 @@ func (c *AnalyzeCommand) generateOutput(cmd *cobra.Command, response *domain.Ana
 	}
 
 	// Display success message
-	formatName := strings.ToUpper(format)
+	formatName := strings.ToUpper(string(format))
 	fmt.Fprintf(cmd.ErrOrStderr(), "📊 Unified %s report generated: %s\n", formatName, absPath)
 
 	return nil
@@ -642,16 +658,15 @@ func gradeBadgeColor(grade string) string {
 
 // Helper methods
 
-// determineOutputFormat determines the output format based on flags
-func (c *AnalyzeCommand) determineOutputFormat() (string, string, error) {
-	format, extension, err := service.NewOutputFormatResolver().DetermineAnalyzeReport(
+// reportFormats returns every report requested by the format flags (HTML when none)
+func (c *AnalyzeCommand) reportFormats() []service.ReportFormat {
+	return service.NewOutputFormatResolver().DetermineAnalyzeReports(
 		c.html,
 		c.json,
 		c.csv,
 		c.yaml,
 		c.text,
 	)
-	return string(format), extension, err
 }
 
 // shouldUseProgressBars returns true when the session appears to be interactive
@@ -668,9 +683,9 @@ func (c *AnalyzeCommand) shouldUseProgressBars(cmd *cobra.Command) bool {
 }
 
 // shouldWriteStandaloneCommunityJSON returns true when community analysis is the
-// only selected analyzer and JSON output is requested.
-func (c *AnalyzeCommand) shouldWriteStandaloneCommunityJSON(response *domain.AnalyzeResponse) bool {
-	return c.json &&
+// only selected analyzer and the report being written is JSON.
+func (c *AnalyzeCommand) shouldWriteStandaloneCommunityJSON(format domain.OutputFormat, response *domain.AnalyzeResponse) bool {
+	return format == domain.OutputFormatJSON &&
 		len(c.selectAnalyses) == 1 &&
 		c.containsAnalysis("communities") &&
 		response != nil &&

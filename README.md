@@ -144,6 +144,7 @@ Run comprehensive analysis with HTML report
 pyscn analyze .                              # All analyses with HTML report
 pyscn analyze --json .                       # Generate JSON report
 pyscn analyze --json --output - . | jq       # JSON report on stdout
+pyscn analyze --json --html --no-open .      # JSON and HTML reports from one run
 pyscn analyze --select complexity .          # Only complexity analysis
 pyscn analyze --select deps .                # Only dependency analysis
 pyscn analyze --select complexity,deps,deadcode . # Multiple analyses
