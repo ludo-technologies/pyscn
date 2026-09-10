@@ -21,7 +21,7 @@ type LCOMResult struct {
 
 	// Method statistics
 	TotalMethods    int // All methods found in class
-	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod and constructors excluded
+	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod, constructors, implicit classmethods and empty-bodied methods excluded
 
 	// Instance variable count
 	InstanceVariables int // Distinct self.xxx variables
@@ -71,9 +71,16 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 	// Collect all class definitions
 	classes := a.collectClasses(ast)
 	ctypesFields := a.collectCtypesFields(ast, classes)
+	imports := collectImportBindings(ast)
 
 	var results []*LCOMResult
 	for _, classNode := range classes {
+		// Protocols and enums carry no instance state to be cohesive about:
+		// a Protocol only declares signatures and an Enum only declares
+		// members, so every method would land in its own component.
+		if imports.isStructuralClass(classNode) {
+			continue
+		}
 		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode])
 		if err != nil {
 			continue
@@ -199,6 +206,13 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		// in the graph unions all the responsibility clusters they set up and
 		// collapses LCOM4 to 1 for almost any class. Keep their variables for
 		// the InstanceVariables count, but keep the method out of the graph.
+		// Dunder hooks that Python treats as classmethods without a decorator,
+		// and bodies with no statements to access state through.
+		if isImplicitClassMethod(node.Name) || isEmptyBody(node.Body) {
+			excluded++
+			continue
+		}
+
 		if isConstructor(node.Name) {
 			excluded++
 			ctorVars := make(map[string]bool)
@@ -250,6 +264,174 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		excludedVars: excludedVars,
 		excluded:     excluded,
 	}
+}
+
+// isImplicitClassMethod reports whether a dunder method is implicitly a
+// classmethod. These receive `cls`, so they can never touch instance state.
+func isImplicitClassMethod(name string) bool {
+	return name == "__init_subclass__" || name == "__class_getitem__"
+}
+
+// isEmptyBody reports whether a method body only declares the method without
+// implementing it: a docstring, `...`, `pass`, or `raise NotImplementedError`
+// in any combination. Such stubs (Protocol members, ABC-style interfaces,
+// subclass hooks) cannot access instance state, so counting them would only
+// inflate LCOM4.
+func isEmptyBody(body []*parser.Node) bool {
+	for _, stmt := range body {
+		if stmt == nil {
+			continue
+		}
+		switch stmt.Type {
+		case parser.NodePass, parser.NodeConstant, parser.NodeEllipsis:
+			continue
+		case parser.NodeRaise:
+			if raisesNotImplemented(stmt) {
+				continue
+			}
+			return false
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// raisesNotImplemented reports whether a raise statement is a bare
+// `raise NotImplementedError` or `raise NotImplementedError(...)` that never
+// touches self. Arguments or a `from` cause that read instance state (or call
+// sibling methods) make the method a real participant in the cohesion graph.
+func raisesNotImplemented(raiseNode *parser.Node) bool {
+	exc := nodeValue(raiseNode)
+	if exc == nil {
+		return false
+	}
+	if exc.Type == parser.NodeCall {
+		exc = nodeValue(exc)
+	}
+	if exc == nil || exc.Type != parser.NodeName || exc.Name != "NotImplementedError" {
+		return false
+	}
+	return !mentionsSelf(raiseNode)
+}
+
+func mentionsSelf(node *parser.Node) bool {
+	found := false
+	node.WalkDeep(func(n *parser.Node) bool {
+		if n.Type == parser.NodeName && n.Name == "self" {
+			found = true
+		}
+		return !found
+	})
+	return found
+}
+
+// structuralBases are the fully qualified base classes whose subclasses hold
+// no instance state for methods to share, making LCOM4 meaningless for them.
+var structuralBases = map[string]bool{
+	"typing.Protocol":            true,
+	"typing_extensions.Protocol": true,
+	"enum.Enum":                  true,
+	"enum.IntEnum":               true,
+	"enum.StrEnum":               true,
+	"enum.Flag":                  true,
+	"enum.IntFlag":               true,
+	"enum.ReprEnum":              true,
+}
+
+// importBindings maps the names an import statement binds in the module to
+// the fully qualified name they refer to, so that a base class can be
+// resolved to its origin rather than matched on its bare name (a Twisted
+// `protocol.Protocol` must not be mistaken for `typing.Protocol`).
+type importBindings struct {
+	names     map[string]string // bound name -> qualified name ("Protocol" -> "typing.Protocol", "t" -> "typing")
+	wildcards []string          // modules imported via `from m import *`
+}
+
+func collectImportBindings(ast *parser.Node) importBindings {
+	imports := importBindings{names: make(map[string]string)}
+	ast.WalkDeep(func(node *parser.Node) bool {
+		switch node.Type {
+		case parser.NodeImport, parser.NodeImportFrom:
+		default:
+			return true
+		}
+		prefix := ""
+		if node.Type == parser.NodeImportFrom {
+			if node.Level > 0 {
+				return true
+			}
+			prefix = node.Module + "."
+		}
+		aliased := make(map[string]bool)
+		for _, child := range node.Children {
+			if child == nil || child.Type != parser.NodeAlias {
+				continue
+			}
+			if alias, ok := child.Value.(string); ok && alias != "" {
+				aliased[child.Name] = true
+				imports.names[alias] = prefix + child.Name
+			}
+		}
+		for _, name := range node.Names {
+			if aliased[name] {
+				continue
+			}
+			if name == "*" {
+				imports.wildcards = append(imports.wildcards, node.Module)
+				continue
+			}
+			// `import a.b` binds `a` to package `a`; `from m import x` binds `x`.
+			bound := importBindingName(name)
+			imports.names[bound] = prefix + bound
+		}
+		return true
+	})
+	return imports
+}
+
+// isStructuralClass reports whether a class derives from typing.Protocol or
+// an enum.Enum variant, resolving aliases, `typing.Protocol`, `Protocol[T]`
+// and `typing.Protocol[T]` forms alike.
+func (imports importBindings) isStructuralClass(classNode *parser.Node) bool {
+	for _, base := range classNode.Bases {
+		if structuralBases[imports.resolveBase(base)] {
+			return true
+		}
+	}
+	return false
+}
+
+// resolveBase returns the fully qualified name a base class expression refers
+// to, or "" when it cannot be traced back to an import.
+func (imports importBindings) resolveBase(base *parser.Node) string {
+	if base == nil {
+		return ""
+	}
+	if base.Type == parser.NodeSubscript {
+		base = nodeValue(base)
+		if base == nil {
+			return ""
+		}
+	}
+	switch base.Type {
+	case parser.NodeName:
+		if qualified, ok := imports.names[base.Name]; ok {
+			return qualified
+		}
+		for _, module := range imports.wildcards {
+			if structuralBases[module+"."+base.Name] {
+				return module + "." + base.Name
+			}
+		}
+	case parser.NodeAttribute:
+		if module := nodeValue(base); module != nil && module.Type == parser.NodeName {
+			if qualified, ok := imports.names[module.Name]; ok {
+				return qualified + "." + base.Name
+			}
+		}
+	}
+	return ""
 }
 
 // isConstructor reports whether a method builds the instance rather than using

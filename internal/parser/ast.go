@@ -62,6 +62,7 @@ const (
 	NodeFormattedValue NodeType = "FormattedValue"
 	NodeJoinedStr      NodeType = "JoinedStr"
 	NodeConstant       NodeType = "Constant"
+	NodeEllipsis       NodeType = "ellipsis" // tree-sitter's type for a bare `...` statement
 	NodeAttribute      NodeType = "Attribute"
 	NodeSubscript      NodeType = "Subscript"
 	NodeStarred        NodeType = "Starred"
