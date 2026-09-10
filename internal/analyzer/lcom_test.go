@@ -207,6 +207,61 @@ class Impl:
 			expectedRisk:  map[string]string{"Impl": "low"},
 		},
 		{
+			name: "aliased and wildcard Protocol imports are skipped",
+			pythonCode: `
+from typing import Protocol as P
+import typing_extensions as te
+from enum import *
+
+class A(P):
+    def a(self): return 1
+    def b(self): return 2
+    def c(self): return 3
+
+class B(te.Protocol):
+    def a(self): return 1
+    def b(self): return 2
+    def c(self): return 3
+
+class C(IntEnum):
+    X = 1
+    def a(self): return 1
+    def b(self): return 2
+    def c(self): return 3
+`,
+			expectedCount: 0,
+		},
+		{
+			name: "same-named classes from other modules are still analyzed",
+			pythonCode: `
+from twisted.internet import protocol
+from mylib import Enum
+
+class Handler(protocol.Protocol):
+    def dataReceived(self, data):
+        self.buffer += data
+
+    def connectionMade(self):
+        self.transport.write(self.banner)
+
+    def timeout(self):
+        return self.deadline
+
+class Custom(Enum):
+    def a(self): return self.x
+    def b(self): return self.y
+    def c(self): return self.z
+
+class Local(Protocol):
+    def a(self): return self.x
+    def b(self): return self.y
+    def c(self): return self.z
+`,
+			expectedCount: 3,
+			expectedLCOM:  map[string]int{"Handler": 3, "Custom": 3, "Local": 3},
+			expectedRisk:  map[string]string{"Handler": "medium", "Custom": "medium", "Local": "medium"},
+		},
+		{
 			name: "enum classes are skipped",
 			pythonCode: `
 from enum import Enum, IntEnum
@@ -263,6 +318,27 @@ class Hooks:
 			expectedLCOM:     map[string]int{"Hooks": 1},
 			expectedRisk:     map[string]string{"Hooks": "low"},
 			expectedExcluded: map[string]int{"Hooks": 5},
+		},
+		{
+			name: "NotImplementedError that reads self is not an empty body",
+			pythonCode: `
+class Partial:
+    def unsupported(self):
+        raise NotImplementedError(self.description)
+
+    def chained(self):
+        raise NotImplementedError from self.cause
+
+    def run(self):
+        return self.state
+
+    def reset(self):
+        self.state = None
+`,
+			expectedCount:    1,
+			expectedLCOM:     map[string]int{"Partial": 3},
+			expectedRisk:     map[string]string{"Partial": "medium"},
+			expectedExcluded: map[string]int{"Partial": 0},
 		},
 		{
 			name: "raising other exceptions is not an empty body",
