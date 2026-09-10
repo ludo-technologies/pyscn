@@ -90,7 +90,16 @@ func configuredProjectRoot(paths []string) string {
 	if err != nil {
 		return ""
 	}
-	return cfg.ProjectRoot
+	if cfg.ProjectRoot != "" {
+		return cfg.ProjectRoot
+	}
+	// A discovered config file without an explicit project_root marks its own
+	// directory as the project root.
+	configDir, err := filepath.Abs(filepath.Dir(configPath))
+	if err != nil {
+		return ""
+	}
+	return configDir
 }
 
 func commonAnalysisParent(paths []string) string {

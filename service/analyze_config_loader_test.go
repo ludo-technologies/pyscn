@@ -113,8 +113,10 @@ lsh_auto_threshold = 123
 		if cfg.ConfigPath != configPath {
 			t.Errorf("expected config path %q, got %q", configPath, cfg.ConfigPath)
 		}
-		if cfg.ProjectRoot != projectDir {
-			t.Errorf("expected project root %q, got %q", projectDir, cfg.ProjectRoot)
+		// No explicit project_root: the use case discovers the root from the
+		// analyzed paths, which lands on the config directory.
+		if cfg.ProjectRoot != "" {
+			t.Errorf("expected project root left for discovery, got %q", cfg.ProjectRoot)
 		}
 		if cfg.Recursive {
 			t.Error("expected recursive false")
@@ -248,4 +250,21 @@ enabled = false
 			t.Error("expected architecture analysis to remain enabled")
 		}
 	})
+}
+
+func TestAnalyzeConfigurationLoader_ExplicitConfigOutsideTargetLeavesProjectRootForDiscovery(t *testing.T) {
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[output]\nmin_complexity = 15\n"), 0644); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+	targetDir := t.TempDir()
+
+	cfg, err := NewAnalyzeConfigurationLoader().LoadAnalyzeExecutionConfig(configPath, targetDir)
+	if err != nil {
+		t.Fatalf("LoadAnalyzeExecutionConfig returned error: %v", err)
+	}
+	if cfg.ProjectRoot != "" {
+		t.Fatalf("config directory %q must not become the project root of %q", configDir, targetDir)
+	}
 }
