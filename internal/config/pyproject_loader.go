@@ -67,7 +67,7 @@ func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	applyConfigProjectRoot(config, filePath)
+	resolveConfigProjectRoot(config, filePath)
 	return config, nil
 }
 

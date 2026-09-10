@@ -659,3 +659,35 @@ style = "hexagonal"
 		t.Errorf("Expected architecture style 'hexagonal', got %q", cfg.ArchitectureStyle)
 	}
 }
+
+func TestTomlConfigLoaderExplicitFileWithoutProjectRootLeavesItEmpty(t *testing.T) {
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, ".pyscn.toml")
+	if err := os.WriteFile(configPath, []byte("[output]\nmin_complexity = 15\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := NewTomlConfigLoader().LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if cfg.ProjectRoot != "" {
+		t.Fatalf("expected empty project root for an explicit config file, got %q", cfg.ProjectRoot)
+	}
+}
+
+func TestTomlConfigLoaderExplicitPyprojectWithoutProjectRootLeavesItEmpty(t *testing.T) {
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, "pyproject.toml")
+	if err := os.WriteFile(configPath, []byte("[tool.pyscn.output]\nmin_complexity = 15\n"), 0o644); err != nil {
+		t.Fatalf("failed to write config: %v", err)
+	}
+
+	cfg, err := NewTomlConfigLoader().LoadConfig(configPath)
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+	if cfg.ProjectRoot != "" {
+		t.Fatalf("expected empty project root for an explicit pyproject.toml, got %q", cfg.ProjectRoot)
+	}
+}

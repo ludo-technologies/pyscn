@@ -68,3 +68,16 @@ func TestFindProjectRoot_UsesConfiguredProjectRoot(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
 }
+
+func TestFindProjectRoot_DiscoveredConfigWithoutProjectRootUsesConfigDirectory(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".pyscn.toml"), []byte("[output]\nmin_complexity = 15\n"), 0o644))
+	file := filepath.Join(root, "package", "module.py")
+	require.NoError(t, os.MkdirAll(filepath.Dir(file), 0o755))
+	require.NoError(t, os.WriteFile(file, []byte("pass\n"), 0o644))
+
+	got := FindProjectRoot([]string{file})
+	want, err := filepath.Abs(root)
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+}

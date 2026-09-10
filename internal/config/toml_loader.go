@@ -343,7 +343,7 @@ func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
 
 	defaults := DefaultPyscnConfig()
 	l.mergePyscnTomlConfigs(defaults, &parsed)
-	applyConfigProjectRoot(defaults, filePath)
+	resolveConfigProjectRoot(defaults, filePath)
 	return defaults, nil
 }
 
@@ -525,23 +525,33 @@ func normalizeSearchDir(path string) (string, error) {
 }
 
 // applyConfigProjectRoot resolves the configured project root against the
-// directory containing the config file. A config file without an explicit
-// project_root uses its own directory as the project root.
+// directory containing the config file. A discovered config file without an
+// explicit project_root uses its own directory as the project root.
 func applyConfigProjectRoot(cfg *PyscnConfig, configPath string) {
-	if cfg == nil || configPath == "" {
+	resolveConfigProjectRoot(cfg, configPath)
+	if cfg == nil || cfg.ProjectRoot != "" {
 		return
 	}
-
-	configDir, err := filepath.Abs(filepath.Dir(configPath))
-	if err != nil {
-		return
-	}
-	if cfg.ProjectRoot == "" {
+	if configDir, err := filepath.Abs(filepath.Dir(configPath)); err == nil {
 		cfg.ProjectRoot = configDir
+	}
+}
+
+// resolveConfigProjectRoot resolves an explicit relative project_root against
+// the directory containing the config file and leaves an unset project_root
+// empty. An explicitly passed config file may live outside the analyzed tree
+// (a shared config under /etc, say), so its directory says nothing about the
+// project root; callers fall back to discovery from the analyzed paths.
+func resolveConfigProjectRoot(cfg *PyscnConfig, configPath string) {
+	if cfg == nil || configPath == "" || cfg.ProjectRoot == "" {
 		return
 	}
 	if filepath.IsAbs(cfg.ProjectRoot) {
 		cfg.ProjectRoot = filepath.Clean(cfg.ProjectRoot)
+		return
+	}
+	configDir, err := filepath.Abs(filepath.Dir(configPath))
+	if err != nil {
 		return
 	}
 	cfg.ProjectRoot = filepath.Join(configDir, cfg.ProjectRoot)
