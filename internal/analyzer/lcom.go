@@ -21,7 +21,7 @@ type LCOMResult struct {
 
 	// Method statistics
 	TotalMethods    int // All methods found in class
-	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod and constructors excluded
+	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod, constructors, implicit classmethods and empty-bodied methods excluded
 
 	// Instance variable count
 	InstanceVariables int // Distinct self.xxx variables
@@ -74,6 +74,12 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 
 	var results []*LCOMResult
 	for _, classNode := range classes {
+		// Protocols and enums carry no instance state to be cohesive about:
+		// a Protocol only declares signatures and an Enum only declares
+		// members, so every method would land in its own component.
+		if isStructuralClass(classNode) {
+			continue
+		}
 		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode])
 		if err != nil {
 			continue
@@ -199,6 +205,13 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		// in the graph unions all the responsibility clusters they set up and
 		// collapses LCOM4 to 1 for almost any class. Keep their variables for
 		// the InstanceVariables count, but keep the method out of the graph.
+		// Dunder hooks that Python treats as classmethods without a decorator,
+		// and bodies with no statements to access state through.
+		if isImplicitClassMethod(node.Name) || isEmptyBody(node.Body) {
+			excluded++
+			continue
+		}
+
 		if isConstructor(node.Name) {
 			excluded++
 			ctorVars := make(map[string]bool)
@@ -250,6 +263,90 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		excludedVars: excludedVars,
 		excluded:     excluded,
 	}
+}
+
+// isImplicitClassMethod reports whether a dunder method is implicitly a
+// classmethod. These receive `cls`, so they can never touch instance state.
+func isImplicitClassMethod(name string) bool {
+	return name == "__init_subclass__" || name == "__class_getitem__"
+}
+
+// isEmptyBody reports whether a method body only declares the method without
+// implementing it: a docstring, `...`, `pass`, or `raise NotImplementedError`
+// in any combination. Such stubs (Protocol members, ABC-style interfaces,
+// subclass hooks) cannot access instance state, so counting them would only
+// inflate LCOM4.
+func isEmptyBody(body []*parser.Node) bool {
+	for _, stmt := range body {
+		if stmt == nil {
+			continue
+		}
+		switch stmt.Type {
+		case parser.NodePass, parser.NodeConstant, parser.NodeEllipsis:
+			continue
+		case parser.NodeRaise:
+			if raisesNotImplemented(stmt) {
+				continue
+			}
+			return false
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func raisesNotImplemented(raiseNode *parser.Node) bool {
+	exc := nodeValue(raiseNode)
+	if exc == nil {
+		return false
+	}
+	if exc.Type == parser.NodeCall {
+		exc = nodeValue(exc)
+	}
+	return exc != nil && exc.Type == parser.NodeName && exc.Name == "NotImplementedError"
+}
+
+// structuralBases are base classes whose subclasses hold no instance state
+// for methods to share, making LCOM4 meaningless for them.
+var structuralBases = map[string]bool{
+	"Protocol": true,
+	"Enum":     true,
+	"IntEnum":  true,
+	"StrEnum":  true,
+	"Flag":     true,
+	"IntFlag":  true,
+	"ReprEnum": true,
+}
+
+// isStructuralClass reports whether a class derives from typing.Protocol or
+// an enum.Enum variant, resolving `typing.Protocol`, `Protocol[T]` and
+// `typing.Protocol[T]` forms alike.
+func isStructuralClass(classNode *parser.Node) bool {
+	for _, base := range classNode.Bases {
+		if structuralBases[baseClassName(base)] {
+			return true
+		}
+	}
+	return false
+}
+
+// baseClassName returns the unqualified name of a base class expression.
+func baseClassName(base *parser.Node) string {
+	if base == nil {
+		return ""
+	}
+	if base.Type == parser.NodeSubscript {
+		base = nodeValue(base)
+		if base == nil {
+			return ""
+		}
+	}
+	switch base.Type {
+	case parser.NodeName, parser.NodeAttribute:
+		return base.Name
+	}
+	return ""
 }
 
 // isConstructor reports whether a method builds the instance rather than using
