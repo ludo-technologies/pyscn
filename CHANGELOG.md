@@ -2,8 +2,19 @@
 
 ## [Unreleased]
 
+## [1.31.2] - 2026-09-10
+
+### Added
+- Publish Linux arm64 wheels (#758)
+
+### Fixed
+- Skip Protocol and Enum classes and exclude stub methods from LCOM4 (#766)
+- Stop treating an explicit `--config` file's directory as the project root (#765)
+- Tag Linux wheels as `manylinux_2_34` so pip refuses them on unsupported glibc (#762)
+
 ### Changed
-- CBO no longer counts type-hint dependencies in `coupling_count` or the risk level; they remain visible in `type_hint_dependencies`. The `from __future__ import annotations` special case is removed (#757)
+- CBO no longer counts type-hint dependencies in `coupling_count` or the risk level; they remain visible in `type_hint_dependencies`. The `from __future__ import annotations` special case is removed (#761)
+- Document the `pyscn-pre-commit` mirror instead of a `repo: local` hook (#759)
 
 ## [1.31.1] - 2026-09-09
 
