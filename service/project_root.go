@@ -80,26 +80,13 @@ func configuredProjectRoot(paths []string) string {
 		searchPath = "."
 	}
 
-	loader := config.NewTomlConfigLoader()
-	configPath := loader.FindConfigFileFromPath(searchPath)
-	if configPath == "" {
-		return ""
-	}
-
-	cfg, err := loader.LoadConfig(configPath)
+	// Loading by directory takes the discovery path, so a config file without
+	// an explicit project_root resolves to its own directory.
+	cfg, err := config.NewTomlConfigLoader().LoadConfig(searchPath)
 	if err != nil {
 		return ""
 	}
-	if cfg.ProjectRoot != "" {
-		return cfg.ProjectRoot
-	}
-	// A discovered config file without an explicit project_root marks its own
-	// directory as the project root.
-	configDir, err := filepath.Abs(filepath.Dir(configPath))
-	if err != nil {
-		return ""
-	}
-	return configDir
+	return cfg.ProjectRoot
 }
 
 func commonAnalysisParent(paths []string) string {
