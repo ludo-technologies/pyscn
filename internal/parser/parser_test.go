@@ -300,11 +300,6 @@ func TestCheckSyntax(t *testing.T) {
 			source:    "if True",
 			hasErrors: true,
 		},
-		{
-			name:      "garbage inside an unparenthesized exception list",
-			source:    "try:\n    pass\nexcept OSError, ), ValueError:\n    pass\n",
-			hasErrors: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -340,6 +335,10 @@ func TestParseRejectsSyntaxInvalidInEveryPython3(t *testing.T) {
 			name:   "exception list bound with as",
 			source: "try:\n    pass\nexcept OSError, TypeError as e:\n    pass\n",
 		},
+		{"doubled comma in exception list", "try:\n    pass\nexcept A,, B:\n    pass\n"},
+		{"missing comma in exception list", "try:\n    pass\nexcept A B:\n    pass\n"},
+		{"missing comma in three-type exception list", "try:\n    pass\nexcept A, B C:\n    pass\n"},
+		{"stray token in exception list", "try:\n    pass\nexcept OSError, ), ValueError:\n    pass\n"},
 		{
 			name:   "three-type exception list bound with as",
 			source: "try:\n    pass\nexcept OSError, TypeError, ValueError as e:\n    pass\n",
@@ -396,6 +395,9 @@ func TestParseAcceptsValidPython3(t *testing.T) {
 			source: "def f(x):\n    try:\n        return x\n    except OSError, TypeError:\n        return None\n",
 		},
 		{"three unparenthesized exception types", "try:\n    pass\nexcept OSError, TypeError, ValueError:\n    pass\n"},
+		{"unparenthesized exception list with trailing comma", "try:\n    pass\nexcept OSError, TypeError,:\n    pass\n"},
+		{"single exception type with trailing comma", "try:\n    pass\nexcept OSError,:\n    pass\n"},
+		{"three unparenthesized exception types with trailing comma", "try:\n    pass\nexcept OSError, TypeError, ValueError,:\n    pass\n"},
 		{"four unparenthesized dotted exception types", "try:\n    pass\nexcept a.E, b.F, c.G, d.H:\n    pass\n"},
 		{"parenthesized exception list", "try:\n    pass\nexcept (OSError, TypeError):\n    pass\n"},
 		{"parenthesized exception list with as", "try:\n    pass\nexcept (OSError, TypeError) as e:\n    pass\n"},
