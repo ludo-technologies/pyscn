@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.31.3] - 2026-09-11
+
+### Fixed
+- Accept unparenthesized `except` lists with three or more types (PEP 758) (#769)
+
 ## [1.31.2] - 2026-09-10
 
 ### Added
