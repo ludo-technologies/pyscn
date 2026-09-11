@@ -39,6 +39,7 @@ func invalidInPython3(tsNode *sitter.Node, source []byte) string {
 		if firstChildOfType(tsNode, ",") != nil && firstChildOfType(tsNode, "as_pattern") != nil {
 			return "an unparenthesized exception list bound with `as` (multiple exception types must be parenthesized when using `as`)"
 		}
+		return invalidExceptHeader(tsNode)
 	case "raise_statement":
 		// `raise E, v` / `raise E, v, tb`. A valid Python 3 raise carries a
 		// single expression, optionally followed by `from`.
@@ -93,6 +94,75 @@ func isLegacyOctal(text string) bool {
 		}
 	}
 	return false
+}
+
+// isBracketlessExceptListError reports whether the ERROR node is part of a
+// well-formed unparenthesized exception list with three or more types, such as
+// `except A, B, C:`. The tree-sitter grammar only knows the two-item Python 2
+// form, so it wraps the extra types (and any trailing comma) in ERROR nodes.
+// PEP 758 made the list valid, so the node is accepted when the whole except
+// header still reads as expressions separated by commas.
+func isBracketlessExceptListError(errNode *sitter.Node) bool {
+	parent := errNode.Parent()
+	return parent != nil && parent.Type() == "except_clause" && invalidExceptHeader(parent) == ""
+}
+
+// invalidExceptHeader reports why the header of the except_clause is not a
+// valid Python 3 exception list, or an empty string when it is. Only clauses
+// the grammar could not parse cleanly are checked; a clean clause is trusted.
+// The tokens between `except` and `:` (with ERROR nodes flattened) must form
+// `expr (',' expr)* [',']` with no `as`, mirroring PEP 758's grammar.
+func invalidExceptHeader(clause *sitter.Node) string {
+	if firstChildOfType(clause, "ERROR") == nil {
+		return ""
+	}
+	if firstChildOfType(clause, "as_pattern") != nil {
+		return "an unparenthesized exception list bound with `as` (multiple exception types must be parenthesized when using `as`)"
+	}
+	const malformed = "a malformed exception list"
+	wantExpr := true
+	count := 0
+	for _, tok := range exceptHeaderTokens(clause) {
+		isComma := tok.Type() == ","
+		if isComma == wantExpr {
+			return malformed
+		}
+		if !isComma {
+			if !tok.IsNamed() || tok.IsError() || tok.IsMissing() {
+				return malformed
+			}
+			count++
+		}
+		wantExpr = isComma
+	}
+	if count == 0 {
+		return malformed
+	}
+	return ""
+}
+
+// exceptHeaderTokens returns the nodes between `except` and `:` of the clause,
+// with the children of ERROR nodes spliced in place of the node itself.
+func exceptHeaderTokens(clause *sitter.Node) []*sitter.Node {
+	var tokens []*sitter.Node
+	childCount := int(clause.ChildCount())
+	for i := 0; i < childCount; i++ {
+		child := clause.Child(i)
+		switch child.Type() {
+		case "except", "except*":
+			continue
+		case ":":
+			return tokens
+		case "ERROR":
+			errChildCount := int(child.ChildCount())
+			for j := 0; j < errChildCount; j++ {
+				tokens = append(tokens, child.Child(j))
+			}
+		default:
+			tokens = append(tokens, child)
+		}
+	}
+	return tokens
 }
 
 // isParameterPosition reports whether tsNode is a function or lambda parameter
