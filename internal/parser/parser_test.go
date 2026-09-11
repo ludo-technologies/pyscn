@@ -300,6 +300,11 @@ func TestCheckSyntax(t *testing.T) {
 			source:    "if True",
 			hasErrors: true,
 		},
+		{
+			name:      "garbage inside an unparenthesized exception list",
+			source:    "try:\n    pass\nexcept OSError, ), ValueError:\n    pass\n",
+			hasErrors: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -334,6 +339,10 @@ func TestParseRejectsSyntaxInvalidInEveryPython3(t *testing.T) {
 		{
 			name:   "exception list bound with as",
 			source: "try:\n    pass\nexcept OSError, TypeError as e:\n    pass\n",
+		},
+		{
+			name:   "three-type exception list bound with as",
+			source: "try:\n    pass\nexcept OSError, TypeError, ValueError as e:\n    pass\n",
 		},
 		{"raise with argument list", "raise ValueError, 'msg'\n"},
 		{"raise with traceback", "raise ValueError, 'msg', tb\n"},
@@ -386,6 +395,8 @@ func TestParseAcceptsValidPython3(t *testing.T) {
 			name:   "unparenthesized exception list is valid since PEP 758",
 			source: "def f(x):\n    try:\n        return x\n    except OSError, TypeError:\n        return None\n",
 		},
+		{"three unparenthesized exception types", "try:\n    pass\nexcept OSError, TypeError, ValueError:\n    pass\n"},
+		{"four unparenthesized dotted exception types", "try:\n    pass\nexcept a.E, b.F, c.G, d.H:\n    pass\n"},
 		{"parenthesized exception list", "try:\n    pass\nexcept (OSError, TypeError):\n    pass\n"},
 		{"parenthesized exception list with as", "try:\n    pass\nexcept (OSError, TypeError) as e:\n    pass\n"},
 		{"except with as", "try:\n    pass\nexcept OSError as e:\n    pass\n"},
@@ -478,4 +489,51 @@ def func2():
 			return nil
 		})
 	}
+}
+
+// The types of an unparenthesized exception list must all reach the AST, not
+// just the last one, whether the grammar accepts the list or wraps part of it
+// in an ERROR node (three or more types).
+func TestParseBracketlessExceptListTypes(t *testing.T) {
+	parser := New()
+	ctx := context.Background()
+
+	tests := []struct {
+		name   string
+		source string
+		want   []string
+	}{
+		{"two types", "try:\n    pass\nexcept OSError, TypeError:\n    pass\n", []string{"OSError", "TypeError"}},
+		{"three types", "try:\n    pass\nexcept OSError, TypeError, ValueError:\n    pass\n", []string{"OSError", "TypeError", "ValueError"}},
+		{"four dotted types", "try:\n    pass\nexcept a.E, b.F, c.G, d.H:\n    pass\n", []string{"a.E", "b.F", "c.G", "d.H"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parser.Parse(ctx, []byte(tt.source))
+			if err != nil {
+				t.Fatalf("Parse() error = %v", err)
+			}
+			handler := result.AST.Body[0].Handlers[0]
+			tuple, ok := handler.Value.(*Node)
+			if !ok || tuple.Type != NodeTuple {
+				t.Fatalf("handler.Value = %v, want a Tuple", handler.Value)
+			}
+			var got []string
+			for _, c := range tuple.Children {
+				got = append(got, exprText(c))
+			}
+			if strings.Join(got, ",") != strings.Join(tt.want, ",") {
+				t.Errorf("exception types = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// exprText renders a Name or dotted Attribute node back to source form.
+func exprText(n *Node) string {
+	if n.Type == NodeAttribute {
+		return exprText(n.Value.(*Node)) + "." + n.Name
+	}
+	return n.Name
 }

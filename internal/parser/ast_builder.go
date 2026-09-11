@@ -1930,31 +1930,53 @@ func (b *ASTBuilder) buildExceptHandler(tsNode *sitter.Node) *Node {
 	node := NewNode(NodeExceptHandler)
 	node.Location = b.getLocation(tsNode)
 
+	// An unparenthesized list (`except A, B, C:`, PEP 758) spreads its types
+	// over several children, with the middle ones wrapped in an ERROR node.
+	var types []*Node
 	childCount := int(tsNode.ChildCount())
 	for i := 0; i < childCount; i++ {
 		child := tsNode.Child(i)
-		if child != nil {
-			switch child.Type() {
-			case "as_pattern":
-				// Exception type and optional name
-				if exType := b.getChildByFieldName(child, "type"); exType != nil {
-					node.Value = b.buildNode(exType)
-				}
-				if alias := b.getChildByFieldName(child, "alias"); alias != nil {
-					node.Name = b.getNodeText(alias)
-				}
-			case "block":
-				// Handler body
-				if body := b.buildNode(child); body != nil {
-					node.Body = b.extractBlockBody(body, node)
-				}
-			default:
-				if child.Type() != "except" && child.Type() != ":" {
-					// Exception type without alias
-					node.Value = b.buildNode(child)
+		if child == nil {
+			continue
+		}
+		switch child.Type() {
+		case "as_pattern":
+			// Exception type and optional name
+			if exType := b.getChildByFieldName(child, "type"); exType != nil {
+				types = append(types, b.buildNode(exType))
+			}
+			if alias := b.getChildByFieldName(child, "alias"); alias != nil {
+				node.Name = b.getNodeText(alias)
+			}
+		case "block":
+			// Handler body
+			if body := b.buildNode(child); body != nil {
+				node.Body = b.extractBlockBody(body, node)
+			}
+		case "except", ":", ",":
+		case "ERROR":
+			errChildCount := int(child.ChildCount())
+			for j := 0; j < errChildCount; j++ {
+				if part := child.Child(j); part != nil && part.IsNamed() {
+					types = append(types, b.buildNode(part))
 				}
 			}
+		default:
+			types = append(types, b.buildNode(child))
 		}
+	}
+
+	switch len(types) {
+	case 0:
+	case 1:
+		node.Value = types[0]
+	default:
+		tuple := NewNode(NodeTuple)
+		tuple.Location = types[0].Location
+		for _, t := range types {
+			tuple.AddChild(t)
+		}
+		node.Value = tuple
 	}
 
 	return node

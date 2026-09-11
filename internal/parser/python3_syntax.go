@@ -95,6 +95,34 @@ func isLegacyOctal(text string) bool {
 	return false
 }
 
+// isBracketlessExceptListError reports whether the ERROR node is the middle of
+// an unparenthesized exception list with three or more types, such as
+// `except A, B, C:`. The tree-sitter grammar only knows the two-item Python 2
+// form, so it wraps every type between the first and the last in an ERROR node
+// holding nothing but expressions and commas. PEP 758 made the list valid, so
+// that shape is accepted; combined with `as` it stays a syntax error, which the
+// enclosing except_clause reports before this node is reached.
+func isBracketlessExceptListError(errNode *sitter.Node) bool {
+	parent := errNode.Parent()
+	if parent == nil || parent.Type() != "except_clause" || firstChildOfType(parent, "as_pattern") != nil {
+		return false
+	}
+	childCount := int(errNode.ChildCount())
+	if childCount == 0 {
+		return false
+	}
+	for i := 0; i < childCount; i++ {
+		child := errNode.Child(i)
+		if child.Type() == "," {
+			continue
+		}
+		if !child.IsNamed() || child.IsError() || child.IsMissing() {
+			return false
+		}
+	}
+	return true
+}
+
 // isParameterPosition reports whether tsNode is a function or lambda parameter
 // list. A defaulted parameter (`def f((a, b)=(1, 2))`) nests the pattern one
 // level deeper, and default_parameter only ever occurs inside such a list.

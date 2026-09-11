@@ -110,7 +110,7 @@ func (p *Parser) FindNodes(node *sitter.Node, nodeType string) []*sitter.Node {
 // still accepts but no Python 3 release compiles (see python3_syntax.go).
 func (p *Parser) CheckSyntax(node *sitter.Node, source []byte) error {
 	return p.WalkTree(node, func(n *sitter.Node) error {
-		if n.IsError() || n.IsMissing() {
+		if n.IsMissing() || (n.IsError() && !isBracketlessExceptListError(n)) {
 			return fmt.Errorf("syntax errors found in source code")
 		}
 		if reason := invalidInPython3(n, source); reason != "" {
