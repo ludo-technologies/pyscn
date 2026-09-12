@@ -227,6 +227,21 @@ func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason 
 		return findings
 	}
 
+	// Skip the unreachable bare `yield` that only exists to make the enclosing
+	// function a generator:
+	//
+	//	async def run(self) -> AsyncGenerator[Event, None]:
+	//	    raise NotImplementedError()
+	//	    yield
+	//
+	// Python decides generator-ness syntactically, so removing that `yield`
+	// turns the function into a plain coroutine and breaks its contract. There
+	// is nothing for the user to act on. Only the sole `yield` of a scope earns
+	// the exemption — dead code in a function that already yields is real.
+	if isGeneratorMarkerBlock(block) && countScopeYields(cfgSourceNode(dcd.cfg)) == 1 {
+		return findings
+	}
+
 	reason, severity := dcd.determineDeadCodeReason(block)
 	switch coreReason {
 	case "after_return":
@@ -634,6 +649,45 @@ func isOnlyNoOpStatements(block *BasicBlock) bool {
 		}
 	}
 	return true
+}
+
+// isGeneratorMarkerBlock reports whether the block is nothing but a bare
+// `yield`, the statement Python requires to make a function a generator. A
+// `yield` carrying a value is excluded: it produces something no caller can
+// ever receive, so it is genuine dead code.
+func isGeneratorMarkerBlock(block *BasicBlock) bool {
+	if block == nil || len(block.Statements) != 1 {
+		return false
+	}
+	node, ok := pythonNode(block.Statements[0])
+	if !ok || node.Type != parser.NodeYield {
+		return false
+	}
+	value, ok := node.Value.(*parser.Node)
+	return !ok || value == nil
+}
+
+// countScopeYields counts the yield expressions owned by one execution scope.
+// Nested function and class suites are their own scopes, so their yields do not
+// make the enclosing function a generator and are not counted.
+func countScopeYields(root *parser.Node) int {
+	if root == nil {
+		return 0
+	}
+	count := 0
+	root.Walk(func(node *parser.Node) bool {
+		if node != root {
+			switch node.Type {
+			case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef, parser.NodeLambda:
+				return false
+			}
+		}
+		if node.Type == parser.NodeYield || node.Type == parser.NodeYieldFrom {
+			count++
+		}
+		return true
+	})
+	return count
 }
 
 func toCoreSeverity(severity SeverityLevel) corecfg.DeadCodeSeverity {

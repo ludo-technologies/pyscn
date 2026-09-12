@@ -825,6 +825,112 @@ func TestMergeContiguousFindings(t *testing.T) {
 	})
 }
 
+// TestDeadCodeSkipsGeneratorMarkerYield ensures the dead-code detector does not
+// report the unreachable bare `yield` that exists only to keep a function a
+// generator. Regression test for
+// https://github.com/ludo-technologies/pyscn/issues/772.
+func TestDeadCodeSkipsGeneratorMarkerYield(t *testing.T) {
+	code := `
+async def run_async(self):
+    raise NotImplementedError()
+    yield
+
+
+async def process(self):
+    return
+    yield
+
+
+async def other(self):
+    yield 1
+    return
+    yield 2
+
+
+def plain(self):
+    return
+    print("dead")
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	for _, fnName := range []string{"run_async", "process"} {
+		cfg, ok := findCFG(cfgs, fnName)
+		require.True(t, ok, "expected CFG for %s", fnName)
+
+		result := DetectInFunction(cfg)
+		require.NotNil(t, result)
+		assert.Empty(t, result.Findings,
+			"function %s: the sole bare yield keeps the function a generator and must not be reported", fnName)
+		assert.Zero(t, result.DeadBlocks, "function %s: suppressed block must not count as dead", fnName)
+	}
+
+	// A function with another yield still gets its trailing dead code reported.
+	cfg, ok := findCFG(cfgs, "other")
+	require.True(t, ok, "expected CFG for other")
+	result := DetectInFunction(cfg)
+	require.Len(t, result.Findings, 1, "yield after return is real dead code when the function already yields")
+	assert.Equal(t, ReasonUnreachableAfterReturn, result.Findings[0].Reason)
+
+	// Non-generator dead code is unaffected.
+	cfg, ok = findCFG(cfgs, "plain")
+	require.True(t, ok, "expected CFG for plain")
+	result = DetectInFunction(cfg)
+	require.Len(t, result.Findings, 1)
+	assert.Equal(t, ReasonUnreachableAfterReturn, result.Findings[0].Reason)
+}
+
+func TestIsGeneratorMarkerBlock(t *testing.T) {
+	bareYield := &parser.Node{Type: parser.NodeYield}
+	valueYield := &parser.Node{Type: parser.NodeYield, Value: &parser.Node{Type: parser.NodeName}}
+	pass := &parser.Node{Type: parser.NodePass}
+
+	assert.False(t, isGeneratorMarkerBlock(nil), "nil block")
+	assert.False(t, isGeneratorMarkerBlock(&BasicBlock{}), "empty block")
+	assert.True(t, isGeneratorMarkerBlock(&BasicBlock{Statements: []any{bareYield}}),
+		"block with only a bare yield")
+	assert.False(t, isGeneratorMarkerBlock(&BasicBlock{Statements: []any{valueYield}}),
+		"a yield with a value produces a value the caller never sees")
+	assert.False(t, isGeneratorMarkerBlock(&BasicBlock{Statements: []any{bareYield, pass}}),
+		"block with more than one statement")
+}
+
+func TestCountScopeYields(t *testing.T) {
+	code := `
+def outer():
+    yield 1
+    x = yield
+    def inner():
+        yield 2
+        yield 3
+
+    class C:
+        pass
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	outer, ok := findCFG(cfgs, "outer")
+	require.True(t, ok)
+	assert.Equal(t, 2, countScopeYields(cfgSourceNode(outer)), "nested function yields belong to the nested scope")
+
+	inner, ok := findCFG(cfgs, "outer.inner")
+	require.True(t, ok)
+	assert.Equal(t, 2, countScopeYields(cfgSourceNode(inner)))
+
+	assert.Zero(t, countScopeYields(nil))
+}
+
 func TestIsOnlyNoOpStatements(t *testing.T) {
 	assert.False(t, isOnlyNoOpStatements(nil), "nil block")
 	assert.False(t, isOnlyNoOpStatements(&BasicBlock{}), "empty block")
