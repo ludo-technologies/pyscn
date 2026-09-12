@@ -93,7 +93,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 
 	// Primary method: count decision points + 1
 	// This is more reliable for CFGs with entry/exit nodes
-	sourceNode := complexitySourceNode(cfg)
+	sourceNode := cfgSourceNode(cfg)
 	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(sourceNode)
 	reportedMetrics := resolveCoreComplexityMetrics(coreResult, conditionalDecisions, astMetrics, hasASTMetrics)
 	decisionPoints := countCoreDecisionPoints(conditionalDecisions, reportedMetrics, hasASTMetrics)
@@ -105,7 +105,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	}
 
 	// Calculate nesting depth and location from the original AST node if available.
-	// The same node feeds CalculateCognitiveComplexity above via complexitySourceNode.
+	// The same node feeds CalculateCognitiveComplexity above via cfgSourceNode.
 	nestingDepth := 0
 	startLine := 0
 	startCol := 0
@@ -217,13 +217,6 @@ type astComplexityMetrics struct {
 	ExceptionHandlers   int
 	MatchStatements     int
 	SwitchCases         int
-}
-
-func complexitySourceNode(cfg *CFG) *parser.Node {
-	if cfg == nil || cfg.FunctionNode == nil {
-		return nil
-	}
-	return mustPythonNode(cfg.FunctionNode)
 }
 
 func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {

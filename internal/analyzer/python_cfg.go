@@ -27,6 +27,14 @@ func mustPythonNode(value any) *parser.Node {
 	return node
 }
 
+// cfgSourceNode returns the AST node the CFG was built from.
+func cfgSourceNode(cfg *CFG) *parser.Node {
+	if cfg == nil || cfg.FunctionNode == nil {
+		return nil
+	}
+	return mustPythonNode(cfg.FunctionNode)
+}
+
 func (pythonCFGClassifier) IsReturn(value any) bool {
 	node, ok := pythonNode(value)
 	return ok && node.Type == parser.NodeReturn
