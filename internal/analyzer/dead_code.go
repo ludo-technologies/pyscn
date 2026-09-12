@@ -667,27 +667,85 @@ func isGeneratorMarkerBlock(block *BasicBlock) bool {
 	return !ok || value == nil
 }
 
-// countScopeYields counts the yield expressions owned by one execution scope.
-// Nested function and class suites are their own scopes, so their yields do not
-// make the enclosing function a generator and are not counted.
+// countScopeYields counts the yield expressions owned by one execution scope,
+// i.e. the yields that decide whether that scope is a generator.
+//
+// A nested def/lambda/class suite is its own scope and is not counted, but the
+// header Python evaluates at definition time — decorators, parameter defaults
+// and annotations, class bases — runs in the enclosing scope, so `def inner(x=(yield 1))`
+// makes the *enclosing* function a generator. By the same rule the root's own
+// header belongs to whatever scope defines the root, not to the root itself.
 func countScopeYields(root *parser.Node) int {
 	if root == nil {
 		return 0
 	}
+
 	count := 0
-	root.Walk(func(node *parser.Node) bool {
-		if node != root {
-			switch node.Type {
-			case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef, parser.NodeLambda:
-				return false
-			}
+	var visit, visitChild func(node *parser.Node)
+
+	visit = func(node *parser.Node) {
+		if node == nil {
+			return
 		}
 		if node.Type == parser.NodeYield || node.Type == parser.NodeYieldFrom {
 			count++
 		}
-		return true
-	})
+		for _, child := range parser.OrderedChildren(node, nil) {
+			visitChild(child)
+		}
+	}
+
+	visitChild = func(node *parser.Node) {
+		if definesOwnScope(node) {
+			// The suite runs elsewhere; only its header runs in this scope.
+			for _, header := range definitionTimeExpressions(node) {
+				visit(header)
+			}
+			return
+		}
+		visit(node)
+	}
+
+	if definesOwnScope(root) {
+		// Skip root's own header: the defining scope evaluated it.
+		for _, stmt := range root.Body {
+			visitChild(stmt)
+		}
+		return count
+	}
+	visit(root)
 	return count
+}
+
+// definesOwnScope reports whether the node's suite runs in a scope of its own.
+func definesOwnScope(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+	switch node.Type {
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef, parser.NodeLambda:
+		return true
+	default:
+		return false
+	}
+}
+
+// definitionTimeExpressions returns the parts of a def/lambda/class header that
+// Python evaluates in the enclosing scope when the definition is executed.
+func definitionTimeExpressions(node *parser.Node) []*parser.Node {
+	expressions := make([]*parser.Node, 0, len(node.Decorator)+len(node.Bases)+2*len(node.Args)+1)
+	expressions = append(expressions, node.Decorator...)
+	expressions = append(expressions, node.Bases...)
+	for _, arg := range node.Args {
+		if arg == nil {
+			continue
+		}
+		if defaultValue, ok := arg.Value.(*parser.Node); ok {
+			expressions = append(expressions, defaultValue)
+		}
+		expressions = append(expressions, arg.Right) // parameter annotation
+	}
+	return append(expressions, node.Right) // return annotation
 }
 
 func toCoreSeverity(severity SeverityLevel) corecfg.DeadCodeSeverity {

@@ -901,7 +901,15 @@ func TestIsGeneratorMarkerBlock(t *testing.T) {
 }
 
 func TestCountScopeYields(t *testing.T) {
-	code := `
+	tests := []struct {
+		name     string
+		code     string
+		scope    string
+		expected int
+	}{
+		{
+			name: "nested suite yields belong to the nested scope",
+			code: `
 def outer():
     yield 1
     x = yield
@@ -911,24 +919,125 @@ def outer():
 
     class C:
         pass
+`,
+			scope:    "outer",
+			expected: 2,
+		},
+		{
+			name: "nested scope counts only its own body",
+			code: `
+def outer():
+    def inner():
+        yield 2
+        yield 3
+`,
+			scope:    "outer.inner",
+			expected: 2,
+		},
+		{
+			// A nested def's header runs when the `def` executes, so its yields
+			// belong to the enclosing scope.
+			name: "nested parameter default",
+			code: `
+def outer():
+    def inner(x=(yield 1)):
+        pass
+`,
+			scope:    "outer",
+			expected: 1,
+		},
+		{
+			name: "nested decorator, annotation and class base",
+			code: `
+def outer():
+    @(yield 1)
+    def inner(x: (yield 2) = (yield 3)) -> (yield 4):
+        pass
+
+    class C((yield 5)):
+        pass
+`,
+			scope:    "outer",
+			expected: 5,
+		},
+		{
+			// The mirror case: the scope's own header was evaluated by whoever
+			// defined it, so it does not make this scope a generator.
+			name: "own header excluded",
+			code: `
+def outer():
+    def inner(x=(yield 1)):
+        yield 2
+`,
+			scope:    "outer.inner",
+			expected: 1,
+		},
+		{
+			name: "lambda body is its own scope",
+			code: `
+def outer():
+    f = lambda x=(yield 1): x
+`,
+			scope:    "outer",
+			expected: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parseResult, err := parser.New().Parse(context.Background(), []byte(tt.code))
+			require.NoError(t, err)
+
+			cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+			require.NoError(t, err)
+
+			cfg, ok := findCFG(cfgs, tt.scope)
+			require.True(t, ok, "expected CFG for %s", tt.scope)
+			assert.Equal(t, tt.expected, countScopeYields(cfgSourceNode(cfg)))
+		})
+	}
+
+	assert.Zero(t, countScopeYields(nil))
+}
+
+// TestDeadCodeGeneratorMarkerYieldRespectsDefinitionTimeYields covers the two
+// directions in which a nested definition's header changes which scope is a
+// generator.
+func TestDeadCodeGeneratorMarkerYieldRespectsDefinitionTimeYields(t *testing.T) {
+	code := `
+def enclosing():
+    def inner(x=(yield 1)):
+        pass
+    return
+    yield
+
+
+def outer():
+    def marker(x=(yield 1)):
+        return
+        yield
 `
 
-	p := parser.New()
-	parseResult, err := p.Parse(context.Background(), []byte(code))
+	parseResult, err := parser.New().Parse(context.Background(), []byte(code))
 	require.NoError(t, err)
 
 	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
 	require.NoError(t, err)
 
-	outer, ok := findCFG(cfgs, "outer")
+	// `enclosing` is already a generator through inner's default, so its
+	// trailing yield is removable and must still be reported.
+	cfg, ok := findCFG(cfgs, "enclosing")
 	require.True(t, ok)
-	assert.Equal(t, 2, countScopeYields(cfgSourceNode(outer)), "nested function yields belong to the nested scope")
+	result := DetectInFunction(cfg)
+	require.Len(t, result.Findings, 1, "trailing yield is real dead code when the scope already yields")
+	assert.Equal(t, ReasonUnreachableAfterReturn, result.Findings[0].Reason)
 
-	inner, ok := findCFG(cfgs, "outer.inner")
+	// `marker`'s own default was evaluated by `outer`, so the trailing yield is
+	// the only thing making `marker` a generator.
+	cfg, ok = findCFG(cfgs, "outer.marker")
 	require.True(t, ok)
-	assert.Equal(t, 2, countScopeYields(cfgSourceNode(inner)))
-
-	assert.Zero(t, countScopeYields(nil))
+	assert.Empty(t, DetectInFunction(cfg).Findings,
+		"the sole yield of the scope keeps it a generator and must not be reported")
 }
 
 func TestIsOnlyNoOpStatements(t *testing.T) {
