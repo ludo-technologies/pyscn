@@ -78,12 +78,16 @@ func generateOutputFilePath(command, extension, targetPath string) (string, erro
 	// Ensure the directory exists before returning the path. At this point,
 	// outputDir is always non-empty because resolveOutputDirectory provides
 	// a default (e.g., .pyscn/reports under CWD) when config is unset.
+	_, statErr := os.Stat(outputDir)
+    created := os.IsNotExist(statErr)
 	if mkErr := os.MkdirAll(outputDir, 0o755); mkErr != nil {
 		return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, mkErr)
 	}
 
-	if err := ensureOutputGitignore(outputDir); err != nil {
-		fmt.Fprintf(os.Stderr, "warning: failed to create output .gitignore in %s: %v\n", outputDir, err)
+	if created {
+		if err := ensureOutputGitignore(outputDir); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to create output .gitignore in %s: %v\n", outputDir, err)
+		}
 	}
 
 	return filepath.Join(outputDir, filename), nil
