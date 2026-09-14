@@ -16,6 +16,30 @@ func generateTimestampedFileName(command, extension string) string {
 	return fmt.Sprintf("%s_%s.%s", command, timestamp, extension)
 }
 
+// ensureOutputGitignore creates a .gitignore file with "*" in the given directory.
+// If the file already exists, it is left unchanged.
+func ensureOutputGitignore(dir string) error {
+	gitignorePath := filepath.Join(dir, ".gitignore")
+	gitignore, err := os.OpenFile(gitignorePath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to create .gitignore at %s: %w", gitignorePath, err)
+	}
+
+	if _, err := gitignore.WriteString("*\n"); err != nil {
+		_ = gitignore.Close()
+		return fmt.Errorf("failed to write .gitignore at %s: %w", gitignorePath, err)
+	}
+
+	if err := gitignore.Close(); err != nil {
+		return fmt.Errorf("failed to close .gitignore at %s: %w", gitignorePath, err)
+	}
+
+	return nil
+}
+
 // resolveOutputDirectory determines the output directory from configuration
 // Single responsibility: directory resolution only
 // Returns directory path and any error encountered during config loading
@@ -57,6 +81,11 @@ func generateOutputFilePath(command, extension, targetPath string) (string, erro
 	if mkErr := os.MkdirAll(outputDir, 0o755); mkErr != nil {
 		return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, mkErr)
 	}
+
+	if err := ensureOutputGitignore(outputDir); err != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to create output .gitignore in %s: %v\n", outputDir, err)
+	}
+
 	return filepath.Join(outputDir, filename), nil
 }
 
