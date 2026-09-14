@@ -1132,6 +1132,55 @@ func TestCloneDetector_EdgeCases(t *testing.T) {
 	assert.Empty(t, groups, "Should handle fragments without tree nodes gracefully")
 }
 
+// TestExtractFragments_SkipDocstringsExcludesDocstringFromSize is a regression
+// test for issue #774: docstrings must not count toward MinLines/MinNodes when
+// skip_docstrings is enabled, otherwise one-statement functions with long
+// docstrings are compared as clones.
+func TestExtractFragments_SkipDocstringsExcludesDocstringFromSize(t *testing.T) {
+	src := `def get_pset(element, pset_name):
+    """Get a property set of an IFC element.
+
+    Args:
+        element: IFC Element to get the property set for.
+        pset_name: Name of the property set.
+
+    Returns:
+        Property set.
+    """
+    return next(
+        p
+        for p in iterate_property_sets(element, include_type_psets=True)
+        if p.Name == pset_name
+    )
+`
+	pyParser := parser.New()
+	parseResult, err := pyParser.Parse(t.Context(), []byte(src))
+	require.NoError(t, err)
+
+	extract := func(skipDocstrings bool) *CodeFragment {
+		cfg := DefaultCloneDetectorConfig()
+		cfg.MinLines = 1
+		cfg.MinNodes = 1
+		cfg.SkipDocstrings = skipDocstrings
+		fragments := NewCloneDetector(cfg).ExtractFragmentsWithSource([]*parser.Node{parseResult.AST}, "/test/a.py", []byte(src))
+		require.Len(t, fragments, 1)
+		return fragments[0]
+	}
+
+	withDocstring := extract(false)
+	assert.Equal(t, 15, withDocstring.LineCount)
+
+	withoutDocstring := extract(true)
+	assert.Equal(t, 6, withoutDocstring.LineCount, "9 docstring lines must be excluded")
+	assert.Equal(t, withDocstring.Size-1, withoutDocstring.Size, "docstring node must be excluded")
+
+	cfg := DefaultCloneDetectorConfig()
+	cfg.MinLines = 10
+	cfg.MinNodes = 1
+	assert.Empty(t, NewCloneDetector(cfg).ExtractFragmentsWithSource([]*parser.Node{parseResult.AST}, "/test/a.py", []byte(src)),
+		"function should fall below min_lines once its docstring is excluded")
+}
+
 // TestCloneDetector_PairsPromotedToGroups is a regression test for issue #525.
 // Every detected clone pair whose similarity is at or above the configured
 // grouping threshold must have both of its fragments present in at least one
