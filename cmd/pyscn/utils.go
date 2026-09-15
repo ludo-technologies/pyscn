@@ -79,7 +79,7 @@ func generateOutputFilePath(command, extension, targetPath string) (string, erro
 	// outputDir is always non-empty because resolveOutputDirectory provides
 	// a default (e.g., .pyscn/reports under CWD) when config is unset.
 	_, statErr := os.Stat(outputDir)
-    created := os.IsNotExist(statErr)
+	created := os.IsNotExist(statErr)
 	if mkErr := os.MkdirAll(outputDir, 0o755); mkErr != nil {
 		return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, mkErr)
 	}
