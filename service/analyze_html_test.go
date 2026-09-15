@@ -329,3 +329,35 @@ func TestWriteAnalyzeHTML_ShowsReportedVersusParsedFunctions(t *testing.T) {
 	assert.Contains(t, html, "1 / 3")
 	assert.Contains(t, html, "reported / parsed")
 }
+
+func TestWriteAnalyzeHTML_ArchitectureViolationsWithoutLayerViolations(t *testing.T) {
+	arch := &domain.ArchitectureAnalysisResult{
+		TotalViolations: 1,
+		LayerAnalysis:   &domain.LayerAnalysis{LayersAnalyzed: 2},
+		Violations: []domain.ArchitectureViolation{{
+			Type:        domain.ViolationTypeCohesion,
+			Severity:    domain.ViolationSeverityWarning,
+			Module:      "pkg",
+			Rule:        "package-cohesion",
+			Description: "Package 'pkg' has low cohesion (0.10)",
+			Suggestion:  "Split pkg",
+		}},
+	}
+	response := &domain.AnalyzeResponse{
+		Summary: domain.AnalyzeSummary{ArchEnabled: true},
+		System:  &domain.SystemAnalysisResponse{ArchitectureAnalysis: arch},
+	}
+
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	html := buf.String()
+	assert.Contains(t, html, "package-cohesion")
+	assert.Contains(t, html, "Split pkg")
+	assert.NotContains(t, html, "No architecture violations")
+
+	arch.TotalViolations = 0
+	arch.Violations = nil
+	buf.Reset()
+	require.NoError(t, writeAnalyzeHTML(response, &buf))
+	assert.Contains(t, buf.String(), "No architecture violations")
+}

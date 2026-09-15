@@ -53,8 +53,9 @@ func analyzeTemplateFuncs() template.FuncMap {
 			}
 			return strings.Join(lines[:maxLines], "\n") + "\n..."
 		},
-		"scoreBand":     scoreBand,
-		"longFunctions": collectLongFunctions,
+		"scoreBand":          scoreBand,
+		"longFunctions":      collectLongFunctions,
+		"nonLayerViolations": nonLayerViolations,
 		"communitySummaryHTML": func(result *domain.CommunityAnalysisResult) template.HTML {
 			if result == nil {
 				return ""
@@ -1113,4 +1114,17 @@ func buildReportStructure(response *domain.AnalyzeResponse) *reportStructure {
 		)
 	}
 	return structure
+}
+
+// nonLayerViolations returns the architecture violations that are not layer
+// rule violations (cohesion, responsibility, ...). Layer violations are
+// rendered from LayerAnalysis.LayerViolations, which carries layer names.
+func nonLayerViolations(vs []domain.ArchitectureViolation) []domain.ArchitectureViolation {
+	out := make([]domain.ArchitectureViolation, 0, len(vs))
+	for _, v := range vs {
+		if v.Type != domain.ViolationTypeLayer {
+			out = append(out, v)
+		}
+	}
+	return out
 }

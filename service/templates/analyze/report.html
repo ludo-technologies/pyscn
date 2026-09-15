@@ -682,15 +682,18 @@
 
   {{with .System.ArchitectureAnalysis}}
   <div class="card">
-    <div class="card-h"><h2>Layer rules</h2></div>
+    <div class="card-h"><h2>Architecture rules</h2></div>
     <div class="strip">
       <div class="s"><div class="v num">{{if .LayerAnalysis}}{{.LayerAnalysis.LayersAnalyzed}}{{else}}0{{end}}</div><div class="l">layers analyzed</div></div>
       <div class="s"><div class="v num">{{.TotalRules}}</div><div class="l">rules checked</div></div>
       <div class="s"><div class="v num{{if .TotalViolations}} warn{{end}}">{{.TotalViolations}}</div><div class="l">violations</div></div>
       <div class="s"><div class="v num">{{printf "%.1f%%" (mul100 .ComplianceScore)}}</div><div class="l">compliance</div></div>
     </div>
+    {{if eq .TotalViolations 0}}
+    <p class="ok-msg">No architecture violations</p>
+    {{end}}
     {{if and .LayerAnalysis (gt (len .LayerAnalysis.LayerViolations) 0)}}
-    <h3>Rule violations</h3>
+    <h3>Layer rule violations</h3>
     <div class="tbl-wrap">
       <table class="tbl">
         <thead><tr><th>Severity</th><th>Rule</th><th>From</th><th>To</th></tr></thead>
@@ -707,8 +710,26 @@
       </table>
     </div>
     {{if gt (len .LayerAnalysis.LayerViolations) 20}}<p class="muted small note">Showing top 20 of {{len .LayerAnalysis.LayerViolations}} violations</p>{{end}}
-    {{else}}
-    <p class="ok-msg">No architecture violations</p>
+    {{end}}
+    {{with nonLayerViolations .Violations}}
+    <h3>Cohesion &amp; responsibility violations</h3>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Severity</th><th>Type</th><th>Rule</th><th>Module</th><th>Description</th></tr></thead>
+        <tbody>
+          {{range $i, $v := .}}{{if lt $i 20}}
+          <tr>
+            <td><span class="pill sev-{{$v.Severity}}">{{$v.Severity}}</span></td>
+            <td>{{$v.Type}}</td>
+            <td class="mono">{{$v.Rule}}</td>
+            <td class="mono small wrap">{{$v.Module}}</td>
+            <td class="small wrap">{{$v.Description}}{{if $v.Suggestion}}<br><span class="muted">{{$v.Suggestion}}</span>{{end}}</td>
+          </tr>
+          {{end}}{{end}}
+        </tbody>
+      </table>
+    </div>
+    {{if gt (len .) 20}}<p class="muted small note">Showing top 20 of {{len .}} violations</p>{{end}}
     {{end}}
   </div>
   {{end}}
