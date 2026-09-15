@@ -153,6 +153,17 @@ func NewCodeFragment(location *CodeLocation, astNode *parser.Node, content strin
 	}
 }
 
+// newFragment creates a fragment whose size and line count honor SkipDocstrings,
+// so docstrings neither pad MinLines/MinNodes nor appear in the compared tree.
+func (cd *CloneDetector) newFragment(location *CodeLocation, astNode *parser.Node, content string) *CodeFragment {
+	fragment := NewCodeFragment(location, astNode, content)
+	if cd.cloneDetectorConfig.SkipDocstrings {
+		fragment.Size = cd.converter.CountNodes(astNode)
+		fragment.LineCount -= cd.converter.DocstringLines(astNode)
+	}
+	return fragment
+}
+
 // calculateASTSize calculates the number of nodes in an AST
 func calculateASTSize(node *parser.Node) int {
 	if node == nil {
@@ -569,7 +580,7 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 			content = cd.extractSourceContent(lines, &node.Location)
 		}
 
-		fragment := NewCodeFragment(location, node, content)
+		fragment := cd.newFragment(location, node, content)
 
 		// Filter fragments based on configuration
 		if cd.shouldIncludeFragment(fragment) {
@@ -641,7 +652,7 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 			EndCol:    node.Location.EndCol,
 		}
 
-		fragment := NewCodeFragment(location, node, "")
+		fragment := cd.newFragment(location, node, "")
 
 		// Filter fragments based on configuration
 		if cd.shouldIncludeFragment(fragment) {

@@ -99,6 +99,36 @@ func (tc *TreeConverter) shouldSkipBodyNode(parent *parser.Node, bodyNode *parse
 	return tc.canNodeHaveDocstring(parent.Type) && tc.isDocstring(bodyNode, bodyIndex)
 }
 
+// CountNodes counts the AST nodes under node, excluding docstrings when skipping is enabled.
+func (tc *TreeConverter) CountNodes(node *parser.Node) int {
+	if node == nil {
+		return 0
+	}
+	size := 1
+	for _, child := range parser.OrderedChildren(node, tc.shouldSkipBodyNode) {
+		size += tc.CountNodes(child)
+	}
+	return size
+}
+
+// DocstringLines returns the number of source lines occupied by docstrings
+// under node that the converter would skip.
+func (tc *TreeConverter) DocstringLines(node *parser.Node) int {
+	if node == nil || !tc.skipDocstrings {
+		return 0
+	}
+	lines := 0
+	for i, bodyNode := range node.Body {
+		if tc.shouldSkipBodyNode(node, bodyNode, i) {
+			lines += bodyNode.Location.EndLine - bodyNode.Location.StartLine + 1
+		}
+	}
+	for _, child := range parser.OrderedChildren(node, tc.shouldSkipBodyNode) {
+		lines += tc.DocstringLines(child)
+	}
+	return lines
+}
+
 // canNodeHaveDocstring checks if a node type can have a docstring
 func (tc *TreeConverter) canNodeHaveDocstring(nodeType parser.NodeType) bool {
 	switch nodeType {

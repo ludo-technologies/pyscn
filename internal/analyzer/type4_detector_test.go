@@ -15,6 +15,7 @@ import (
 func TestType4CloneDetection(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	config.EnableDFAAnalysis = true
+	config.MinLines = 4 // fixture functions are 4 lines once their docstring is excluded
 	config.Type4Threshold = 0.70
 
 	detector := NewCloneDetector(config)
