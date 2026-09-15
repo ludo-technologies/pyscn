@@ -20,9 +20,9 @@ Building with Cursor, Claude, or ChatGPT? pyscn keeps AI-generated code maintain
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-**Don't want to run the CLI yourself?** [Install the Polyscan GitHub App](https://codescan.dev/pyscn-bot) — it files a weekly health score as a GitHub Issue. Free for every repository.
-
-*Working with other languages? pyscn is part of [polyscan](https://github.com/ludo-technologies/polyscan) — code quality analyzers for JavaScript/TypeScript and more*
+**Track your codebase's health every week with Polyscan.**<br>
+Automatically monitor complexity, duplication, and dead code, with changes delivered as a GitHub Issue.<br>
+[Set up weekly monitoring →](https://codescan.dev/pyscn-bot) · Free for public repositories
 
 </div>
 
@@ -53,6 +53,8 @@ pyscn looks at your code from five angles:
 - 🧩 **Class design** - classes that do too much or depend on too much (CBO coupling, LCOM4 cohesion)
 
 **100,000+ lines/sec** • Built with Go + tree-sitter
+
+*Working with other languages? pyscn is part of [polyscan](https://github.com/ludo-technologies/polyscan), code quality analyzers for JavaScript/TypeScript and more.*
 
 ## AI Agent Integration
 

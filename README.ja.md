@@ -20,9 +20,9 @@ Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析に
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-**CLI を毎週実行するのは手間ですか？** [GitHub に Polyscan をインストール](https://codescan.dev/pyscn-bot) — 毎週、コードベースのヘルススコアを GitHub Issue でお知らせします。すべてのリポジトリで無料です。
-
-*他の言語も扱っていますか？pyscn は [polyscan](https://github.com/ludo-technologies/polyscan) の一部です — JavaScript/TypeScript ほかの言語向けのアナライザーもあります*
+**コード品質の変化を、Polyscan で毎週チェック。**<br>
+複雑度・重複コード・デッドコードを自動解析し、前回からの変化を GitHub Issue でお知らせします。<br>
+[毎週の自動チェックを始める →](https://codescan.dev/pyscn-bot) · 公開リポジトリは無料
 
 </div>
 
@@ -52,6 +52,8 @@ pyscn はコードを 5 つの視点で分析します:
 - 🧩 **クラス設計** - 責務や依存を抱え込みすぎたクラスを検出（結合度 CBO、凝集度 LCOM4）
 
 **100,000 行/秒以上** • Go + tree-sitter で構築
+
+*他の言語も扱っていますか？pyscn は [polyscan](https://github.com/ludo-technologies/polyscan) の一部です。JavaScript/TypeScript ほかの言語向けのアナライザーもあります。*
 
 ## AI エージェント連携
 
