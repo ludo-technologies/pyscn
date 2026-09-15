@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,6 +46,15 @@ func TestGenerateOutputFilePath_CreatesDefaultDirectory(t *testing.T) {
 	// Verify the directory was actually created
 	if _, err := os.Stat(expectedDir); os.IsNotExist(err) {
 		t.Errorf("expected directory %q to be created, but it does not exist", expectedDir)
+	}
+
+	gitignorePath := filepath.Join(expectedDir, ".gitignore")
+	gitignoreContent, err := os.ReadFile(gitignorePath)
+	if err != nil {
+		t.Fatalf("expected .gitignore to be created at %q: %v", gitignorePath, err)
+	}
+	if string(gitignoreContent) != "*\n" {
+		t.Errorf("expected .gitignore content %q, got %q", "*\\n", string(gitignoreContent))
 	}
 
 	// Verify the filename has the expected format
@@ -92,6 +102,89 @@ func TestResolveOutputDirectory_DefaultToCWD(t *testing.T) {
 	expectedDir := filepath.Join(tempDir, ".pyscn", "reports")
 	if outputDir != expectedDir {
 		t.Errorf("expected directory %q, got %q", expectedDir, outputDir)
+	}
+}
+
+func TestEnsureOutputGitignore_CreatesFileWhenMissing(t *testing.T) {
+	outputDir := filepath.Join(t.TempDir(), "reports")
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		t.Fatalf("failed to create outputDir: %v", err)
+	}
+
+	if err := ensureOutputGitignore(outputDir); err != nil {
+		t.Fatalf("ensureOutputGitignore returned error: %v", err)
+	}
+
+	gitignorePath := filepath.Join(outputDir, ".gitignore")
+	content, err := os.ReadFile(gitignorePath)
+	if err != nil {
+		t.Fatalf("expected .gitignore at %q: %v", gitignorePath, err)
+	}
+	if string(content) != "*\n" {
+		t.Errorf("expected .gitignore content %q, got %q", "*\\n", string(content))
+	}
+}
+
+func TestEnsureOutputGitignore_DoesNotOverwriteExistingFile(t *testing.T) {
+	outputDir := filepath.Join(t.TempDir(), "reports")
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		t.Fatalf("failed to create outputDir: %v", err)
+	}
+
+	gitignorePath := filepath.Join(outputDir, ".gitignore")
+	originalContent := []byte("keep-this\n")
+	if err := os.WriteFile(gitignorePath, originalContent, 0o644); err != nil {
+		t.Fatalf("failed to seed .gitignore: %v", err)
+	}
+
+	if err := ensureOutputGitignore(outputDir); err != nil {
+		t.Fatalf("ensureOutputGitignore returned error: %v", err)
+	}
+
+	content, err := os.ReadFile(gitignorePath)
+	if err != nil {
+		t.Fatalf("failed to read .gitignore: %v", err)
+	}
+	if !bytes.Equal(content, originalContent) {
+		t.Errorf("expected existing .gitignore to be unchanged, got %q", string(content))
+	}
+}
+
+func TestGenerateOutputFilePath_ContinuesWhenGitignoreCreationFails(t *testing.T) {
+	// macOS: t.TempDir() returns /var/folders/... but os.Getwd() after Chdir
+	// returns /private/var/folders/... — normalise with EvalSymlinks
+	tempDir := t.TempDir()
+	tempDir, err := filepath.EvalSymlinks(tempDir)
+	if err != nil {
+		t.Fatalf("failed to eval symlinks on tempDir: %v", err)
+	}
+
+	oldCwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get current directory: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(oldCwd); err != nil {
+			t.Errorf("failed to restore working directory: %v", err)
+		}
+	})
+
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("failed to change directory: %v", err)
+	}
+
+	outputDir := filepath.Join(tempDir, ".pyscn", "reports")
+	if err := os.MkdirAll(filepath.Join(outputDir, ".gitignore"), 0o755); err != nil {
+		t.Fatalf("failed to create directory at .gitignore path: %v", err)
+	}
+
+	path, err := generateOutputFilePath("analyze", "html", ".")
+	if err != nil {
+		t.Fatalf("generateOutputFilePath returned error: %v", err)
+	}
+
+	if filepath.Dir(path) != outputDir {
+		t.Errorf("expected directory %q, got %q", outputDir, filepath.Dir(path))
 	}
 }
 
