@@ -20,7 +20,9 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-*使用其他语言？pyscn 是 [polyscan](https://github.com/ludo-technologies/polyscan) 的一部分 — 提供 JavaScript/TypeScript 等语言的代码质量分析器*
+**用 Polyscan 每周跟踪代码库的健康状况。**<br>
+自动分析复杂度、重复代码和死代码，并通过 GitHub Issue 报告与上次相比的变化。<br>
+[开始每周自动检查 →](https://codescan.dev/pyscn-bot) · 公开仓库免费
 
 </div>
 
@@ -35,7 +37,7 @@ pipx run pyscn analyze .
 
 ## 演示
 
-https://github.com/user-attachments/assets/71d7a126-9c5e-4254-99f4-f2cdedd526ad
+<img alt="pyscn analysis report" src="https://raw.githubusercontent.com/ludo-technologies/pyscn/main/assets/demo-report.png" width="720">
 
 ## 功能
 
@@ -50,6 +52,8 @@ pyscn 从五个角度分析你的代码：
 - 🧩 **类设计** - 发现职责过多、依赖过多的类（耦合度 CBO、内聚度 LCOM4）
 
 **100,000+ 行/秒** • 基于 Go + tree-sitter 构建
+
+*使用其他语言？pyscn 是 [polyscan](https://github.com/ludo-technologies/polyscan) 的一部分，提供 JavaScript/TypeScript 等语言的代码质量分析器。*
 
 ## AI 智能体集成
 
@@ -182,10 +186,6 @@ directory = "reports"
 ```
 
 > ⚙️ 运行 `pyscn init` 可生成包含所有可用选项的完整配置文件
-
-## 也可使用 GitHub App
-
-[在 GitHub 上安装 Polyscan](https://codescan.dev/pyscn-bot) — 每周通过 GitHub Issue 报告代码库健康评分。所有仓库均可免费使用。
 
 ---
 
