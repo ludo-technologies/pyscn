@@ -20,6 +20,8 @@ Building with Cursor, Claude, or ChatGPT? pyscn keeps AI-generated code maintain
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
+**Don't want to run the CLI yourself?** [Install the Polyscan GitHub App](https://codescan.dev/pyscn-bot) — it files a weekly health score as a GitHub Issue. Free for every repository.
+
 *Working with other languages? pyscn is part of [polyscan](https://github.com/ludo-technologies/polyscan) — code quality analyzers for JavaScript/TypeScript and more*
 
 </div>
@@ -187,10 +189,6 @@ directory = "reports"
 ```
 
 > ⚙️ Run `pyscn init` to generate a full configuration file with all available options
-
-## Don't want to run the CLI every week?
-
-[Install Polyscan on GitHub](https://codescan.dev/pyscn-bot) — it files a weekly health score as a GitHub Issue. Free for every repository.
 
 ---
 

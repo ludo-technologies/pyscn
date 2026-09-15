@@ -20,6 +20,8 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
+**不想每周手动运行 CLI？** [在 GitHub 上安装 Polyscan](https://codescan.dev/pyscn-bot) — 每周通过 GitHub Issue 报告代码库健康评分。所有仓库均可免费使用。
+
 *使用其他语言？pyscn 是 [polyscan](https://github.com/ludo-technologies/polyscan) 的一部分 — 提供 JavaScript/TypeScript 等语言的代码质量分析器*
 
 </div>
@@ -182,10 +184,6 @@ directory = "reports"
 ```
 
 > ⚙️ 运行 `pyscn init` 可生成包含所有可用选项的完整配置文件
-
-## 也可使用 GitHub App
-
-[在 GitHub 上安装 Polyscan](https://codescan.dev/pyscn-bot) — 每周通过 GitHub Issue 报告代码库健康评分。所有仓库均可免费使用。
 
 ---
 

@@ -20,6 +20,8 @@ Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析に
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
+**CLI を毎週実行するのは手間ですか？** [GitHub に Polyscan をインストール](https://codescan.dev/pyscn-bot) — 毎週、コードベースのヘルススコアを GitHub Issue でお知らせします。すべてのリポジトリで無料です。
+
 *他の言語も扱っていますか？pyscn は [polyscan](https://github.com/ludo-technologies/polyscan) の一部です — JavaScript/TypeScript ほかの言語向けのアナライザーもあります*
 
 </div>
@@ -182,10 +184,6 @@ directory = "reports"
 ```
 
 > ⚙️ `pyscn init` を実行すると、利用可能なすべてのオプションを含む完全な設定ファイルが生成されます
-
-## GitHub App もあります
-
-[GitHub に Polyscan をインストール](https://codescan.dev/pyscn-bot) — 毎週、コードベースのヘルススコアを GitHub Issue でお知らせします。すべてのリポジトリで無料です。
 
 ---
 

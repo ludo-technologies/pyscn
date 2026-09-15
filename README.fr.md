@@ -20,6 +20,8 @@ Vous développez avec Cursor, Claude ou ChatGPT ? pyscn garde le code généré 
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
+**Vous ne voulez pas lancer la CLI vous-même ?** [Installez Polyscan sur GitHub](https://codescan.dev/pyscn-bot) — recevez chaque semaine le score de santé de votre code dans une issue GitHub. Gratuit pour tous les dépôts.
+
 *Vous travaillez avec d'autres langages ? pyscn fait partie de [polyscan](https://github.com/ludo-technologies/polyscan) — des analyseurs de qualité de code pour JavaScript/TypeScript et plus encore*
 
 </div>
@@ -182,10 +184,6 @@ directory = "reports"
 ```
 
 > ⚙️ Exécutez `pyscn init` pour générer un fichier de configuration complet avec toutes les options disponibles
-
-## Une GitHub App est également disponible
-
-[Installez Polyscan sur GitHub](https://codescan.dev/pyscn-bot) — recevez chaque semaine le score de santé de votre code dans une issue GitHub. Gratuit pour tous les dépôts.
 
 ---
 
