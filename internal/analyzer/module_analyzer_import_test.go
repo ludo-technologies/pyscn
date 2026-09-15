@@ -809,3 +809,39 @@ func collectImportsForTest(t *testing.T, analyzer *ModuleAnalyzer, path string) 
 	}
 	return analyzer.collectModuleFacts(result.AST).imports
 }
+
+func TestModuleAnalyzerCountsImportResolvableUnderWrongRootAsUnresolved(t *testing.T) {
+	outer := t.TempDir()
+	pkg := filepath.Join(outer, "vendor", "lp", "lp")
+	for _, sub := range []string{"models", "cs"} {
+		if err := os.MkdirAll(filepath.Join(pkg, sub), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files := map[string]string{
+		filepath.Join(pkg, "__init__.py"):           "",
+		filepath.Join(pkg, "models", "__init__.py"): "",
+		filepath.Join(pkg, "models", "base.py"):     "class Base: pass\n",
+		filepath.Join(pkg, "cs", "__init__.py"):     "",
+		filepath.Join(pkg, "cs", "a.py"):            "from lp.models.base import Base\n",
+	}
+	paths := make([]string, 0, len(files))
+	for path, content := range files {
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		paths = append(paths, path)
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: outer, IncludeThirdParty: domain.BoolPtr(false)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	graph, err := analyzer.AnalyzeFiles(paths)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if graph.UnresolvedImports != 1 {
+		t.Fatalf("expected the import to be reported as unresolved, got resolved=%d unresolved=%d", graph.ResolvedImports, graph.UnresolvedImports)
+	}
+}

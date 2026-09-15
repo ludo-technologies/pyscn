@@ -452,11 +452,13 @@ func (ma *ModuleAnalyzer) isLikelyInternalImport(graph *DependencyGraph, imp *Im
 	return false
 }
 
+// hasProjectImport reports whether moduleName exists as a file under any
+// directory between the importing file and the project root, or under a module
+// root. Ancestors above the importer's parent matter when the inferred root is
+// wrong: the import then resolves on disk but to a differently named module,
+// and must be reported as unresolved rather than dropped.
 func (ma *ModuleAnalyzer) hasProjectImport(moduleName, fromFile string) bool {
-	searchPaths := append([]string{
-		filepath.Dir(fromFile),
-		filepath.Dir(filepath.Dir(fromFile)),
-	}, ma.moduleRoots...)
+	searchPaths := append(ancestorDirsWithin(fromFile, ma.projectRoot), ma.moduleRoots...)
 	for _, searchPath := range searchPaths {
 		modulePath := filepath.Join(searchPath, strings.ReplaceAll(moduleName, ".", string(filepath.Separator)))
 		if ma.resolveModuleFile(modulePath) != "" || ma.resolvePackageInit(modulePath) != "" {
@@ -464,6 +466,18 @@ func (ma *ModuleAnalyzer) hasProjectImport(moduleName, fromFile string) bool {
 		}
 	}
 	return false
+}
+
+// ancestorDirsWithin lists the directories from the file's own directory up to
+// root inclusive, or up to the filesystem root when the file lies outside root.
+func ancestorDirsWithin(file, root string) []string {
+	var dirs []string
+	for dir := filepath.Dir(file); ; dir = filepath.Dir(dir) {
+		dirs = append(dirs, dir)
+		if dir == root || filepath.Dir(dir) == dir {
+			return dirs
+		}
+	}
 }
 
 func (ma *ModuleAnalyzer) dependencyEdgeType(imp *ImportInfo) DependencyEdgeType {
