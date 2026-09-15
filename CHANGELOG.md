@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-09-15
+
+### Added
+- Write a `.gitignore` into the output directory (#778)
+
+### Fixed
+- List cohesion and responsibility violations in the HTML architecture card (#779)
+- Exclude docstrings from `min_lines`/`min_nodes` when `skip_docstrings` is set (#777)
+- Stop reporting the bare `yield` that keeps a function a generator as dead code (#773)
+
 ## [1.31.3] - 2026-09-11
 
 ### Fixed
