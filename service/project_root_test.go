@@ -131,3 +131,15 @@ func TestFindProjectRoot_PackageTargetWithoutMarkersUsesPackageParent(t *testing
 
 	assert.Equal(t, parent, FindProjectRoot([]string{filepath.Join(pkg, "sub")}))
 }
+
+func TestFindProjectRoot_MarkerInsidePackageDoesNotMoveRootIntoPackage(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".pyscn.toml"), []byte("[complexity]\nenabled = true\n"), 0o644))
+	pkg := filepath.Join(root, "pkg")
+	require.NoError(t, os.MkdirAll(pkg, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "__init__.py"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "requirements.txt"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "a.py"), []byte("pass\n"), 0o644))
+
+	assert.Equal(t, root, FindProjectRoot([]string{filepath.Join(pkg, "a.py")}))
+}

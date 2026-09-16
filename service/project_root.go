@@ -38,7 +38,10 @@ func FindProjectRoot(paths []string) string {
 	}
 
 	for dir := target; ; dir = filepath.Dir(dir) {
-		if hasProjectMarker(dir) {
+		// A marker inside a package (a requirements.txt shipped with the
+		// package, say) does not make that package the root: module names
+		// would lose the package prefix.
+		if hasProjectMarker(dir) && !isPythonPackage(dir) {
 			return dir
 		}
 		if dir == configDir || filepath.Dir(dir) == dir {
