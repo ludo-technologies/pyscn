@@ -8,85 +8,98 @@ import (
 	"github.com/ludo-technologies/pyscn/internal/config"
 )
 
-// FindProjectRoot locates the project root from the given paths by finding their
-// discovered config file first, then falling back to the common parent and
-// standard Python project markers.
+// projectRootMarkers name files whose presence marks a Python project root.
+var projectRootMarkers = []string{"setup.py", "pyproject.toml", "setup.cfg", ".git", "requirements.txt"}
+
+// FindProjectRoot locates the project root for the analyzed paths.
+//
+// An explicit project_root in the discovered config always wins. Otherwise the
+// nearest ancestor of the analyzed paths holding a project marker is the root.
+// The walk stops at the discovered config file's directory: an ancestor config
+// found above a marker (a vendored package, a monorepo subpackage) must not
+// relocate the root, or absolute imports stop resolving (issue #753). Without
+// any marker the root is the directory holding the analyzed top-level package
+// when there is one, and the config directory otherwise.
 func FindProjectRoot(paths []string) string {
-	if len(paths) == 0 {
+	target := commonAnalysisParent(paths)
+	if target == "" {
 		cwd, _ := os.Getwd()
 		return cwd
 	}
 
-	if configuredRoot := configuredProjectRoot(paths); configuredRoot != "" {
-		return configuredRoot
-	}
-
-	absPaths := make([]string, 0, len(paths))
-	for _, p := range paths {
-		absPath, err := filepath.Abs(p)
-		if err != nil {
-			continue
+	configDir := ""
+	if configPath := discoverConfigFile(target); configPath != "" {
+		if cfg, err := config.NewTomlConfigLoader().LoadConfig(configPath); err == nil && cfg.ProjectRoot != "" {
+			return cfg.ProjectRoot
 		}
-
-		info, err := os.Stat(absPath)
-		if err == nil && !info.IsDir() {
-			absPath = filepath.Dir(absPath)
-		}
-
-		absPaths = append(absPaths, absPath)
-	}
-
-	if len(absPaths) == 0 {
-		cwd, _ := os.Getwd()
-		return cwd
-	}
-
-	commonParent := absPaths[0]
-	for _, path := range absPaths[1:] {
-		for !pathWithinDirectory(path, commonParent) {
-			commonParent = filepath.Dir(commonParent)
-			if commonParent == "/" || commonParent == "." {
-				break
-			}
+		if absConfigPath, err := filepath.Abs(configPath); err == nil {
+			configDir = filepath.Dir(absConfigPath)
 		}
 	}
 
-	for {
-		markers := []string{"setup.py", "pyproject.toml", "setup.cfg", ".git", "requirements.txt"}
-		for _, marker := range markers {
-			if _, err := os.Stat(filepath.Join(commonParent, marker)); err == nil {
-				return commonParent
-			}
+	for dir := target; ; dir = filepath.Dir(dir) {
+		// A marker inside a package (a requirements.txt shipped with the
+		// package, say) does not make that package the root: module names
+		// would lose the package prefix.
+		if hasProjectMarker(dir) && !isPythonPackage(dir) {
+			return dir
 		}
-
-		parent := filepath.Dir(commonParent)
-		if parent == commonParent || parent == "/" || parent == "." {
+		if dir == configDir || filepath.Dir(dir) == dir {
 			break
 		}
-
-		if !pathWithinDirectory(absPaths[0], parent) {
-			break
-		}
-
-		commonParent = parent
 	}
 
-	return commonParent
+	importRoot := packageContainer(target, configDir)
+	if configDir == "" || holdsTopLevelPackage(importRoot) {
+		return importRoot
+	}
+	return configDir
 }
 
-func configuredProjectRoot(paths []string) string {
-	searchPath := commonAnalysisParent(paths)
-	if searchPath == "" {
-		searchPath = "."
+// packageContainer climbs out of the package tree holding dir: a project root
+// inside a package would strip the package prefix from every module name.
+// The climb stops at bound when set.
+func packageContainer(dir, bound string) string {
+	for dir != bound && isPythonPackage(dir) {
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
 	}
+	return dir
+}
 
-	// Loading by directory takes the discovery path, so a config file without
-	// an explicit project_root resolves to its own directory.
-	cfg, err := config.NewTomlConfigLoader().LoadConfig(searchPath)
-	if err != nil {
-		return ""
+func hasProjectMarker(dir string) bool {
+	for _, marker := range projectRootMarkers {
+		if _, err := os.Stat(filepath.Join(dir, marker)); err == nil {
+			return true
+		}
 	}
-	return cfg.ProjectRoot
+	return false
+}
+
+// holdsTopLevelPackage reports whether dir is not a package itself but directly
+// contains one, the shape of a checkout whose import root is the checkout.
+func holdsTopLevelPackage(dir string) bool {
+	if isPythonPackage(dir) {
+		return false
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && isPythonPackage(filepath.Join(dir, entry.Name())) {
+			return true
+		}
+	}
+	return false
+}
+
+func isPythonPackage(dir string) bool {
+	_, err := os.Stat(filepath.Join(dir, "__init__.py"))
+	return err == nil
 }
 
 func commonAnalysisParent(paths []string) string {

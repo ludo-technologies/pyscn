@@ -81,3 +81,65 @@ func TestFindProjectRoot_DiscoveredConfigWithoutProjectRootUsesConfigDirectory(t
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
 }
+
+func TestFindProjectRoot_MarkerBelowAncestorConfigWins(t *testing.T) {
+	outer := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(outer, ".pyscn.toml"), []byte("[complexity]\nenabled = true\n"), 0o644))
+	target := filepath.Join(outer, "vendor", "lp")
+	require.NoError(t, os.MkdirAll(filepath.Join(target, "lp"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "setup.py"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "lp", "__init__.py"), []byte(""), 0o644))
+
+	assert.Equal(t, target, FindProjectRoot([]string{target}))
+}
+
+func TestFindProjectRoot_TargetHoldingTopLevelPackageWinsOverAncestorConfig(t *testing.T) {
+	outer := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(outer, ".pyscn.toml"), []byte("[complexity]\nenabled = true\n"), 0o644))
+	target := filepath.Join(outer, "vendor", "lp")
+	require.NoError(t, os.MkdirAll(filepath.Join(target, "lp"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "lp", "__init__.py"), []byte(""), 0o644))
+
+	assert.Equal(t, target, FindProjectRoot([]string{target}))
+}
+
+func TestFindProjectRoot_PackageInsideAncestorConfigProjectUsesConfigDirectory(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".pyscn.toml"), []byte("[complexity]\nenabled = true\n"), 0o644))
+	pkg := filepath.Join(root, "pkg")
+	require.NoError(t, os.MkdirAll(filepath.Join(pkg, "sub"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "__init__.py"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "sub", "__init__.py"), []byte(""), 0o644))
+
+	assert.Equal(t, root, FindProjectRoot([]string{pkg}))
+}
+
+func TestFindProjectRoot_NoMarkersFallsBackToAnalyzedDirectory(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "a", "b")
+	require.NoError(t, os.MkdirAll(target, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(target, "m.py"), []byte("pass\n"), 0o644))
+
+	assert.Equal(t, target, FindProjectRoot([]string{filepath.Join(target, "m.py")}))
+}
+
+func TestFindProjectRoot_PackageTargetWithoutMarkersUsesPackageParent(t *testing.T) {
+	parent := t.TempDir()
+	pkg := filepath.Join(parent, "pkg")
+	require.NoError(t, os.MkdirAll(filepath.Join(pkg, "sub"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "__init__.py"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "sub", "__init__.py"), []byte(""), 0o644))
+
+	assert.Equal(t, parent, FindProjectRoot([]string{filepath.Join(pkg, "sub")}))
+}
+
+func TestFindProjectRoot_MarkerInsidePackageDoesNotMoveRootIntoPackage(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, ".pyscn.toml"), []byte("[complexity]\nenabled = true\n"), 0o644))
+	pkg := filepath.Join(root, "pkg")
+	require.NoError(t, os.MkdirAll(pkg, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "__init__.py"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "requirements.txt"), []byte(""), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(pkg, "a.py"), []byte("pass\n"), 0o644))
+
+	assert.Equal(t, root, FindProjectRoot([]string{filepath.Join(pkg, "a.py")}))
+}
