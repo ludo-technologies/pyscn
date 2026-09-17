@@ -1,6 +1,6 @@
 site_name: pyscn
 site_description: An intelligent Python code quality analyzer with CFG-based static analysis
-site_url: https://docs.codescan.dev/
+site_url: https://docs.codescan.dev/pyscn/
 site_author: ludo-technologies
 repo_url: https://github.com/ludo-technologies/pyscn
 repo_name: ludo-technologies/pyscn
@@ -301,3 +301,4 @@ nav:
       - CI/CD: integrations/ci-cd.md
       - Python Packaging: integrations/python-packaging.md
   - FAQ: faq.md
+  - Polyscan: https://docs.codescan.dev/polyscan/

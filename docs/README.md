@@ -8,7 +8,7 @@ conventions.
 **If you're looking for end-user docs** (installation, CLI usage, rule
 reference, configuration), see:
 
-- <https://docs.codescan.dev/>
+- <https://docs.codescan.dev/pyscn/>
 - Source: [`website/`](../website/) in this repository
 
 ## Contents
@@ -28,4 +28,4 @@ reference, configuration), see:
 | [`algorithms/architecture-presets.md`](algorithms/architecture-presets.md) | Architecture style presets (layered/hexagonal/clean/mvc) and `allow`/`deny`/`warn` rule semantics. |
 
 For the user-facing **rule catalog** (problem-based rule names and fixes), see
-<https://docs.codescan.dev/rules/>.
+<https://docs.codescan.dev/pyscn/rules/>.
