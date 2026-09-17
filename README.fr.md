@@ -191,7 +191,7 @@ directory = "reports"
 
 ## Documentation
 
-📖 **[Site de documentation pyscn](https://docs.codescan.dev/fr/)** — installation, catalogue de règles, référence CLI, configuration, spécification des sorties
+📖 **[Site de documentation pyscn](https://docs.codescan.dev/pyscn/fr/)** — installation, catalogue de règles, référence CLI, configuration, spécification des sorties
 
 Pour les contributeurs : **[Guide de développement](docs/DEVELOPMENT.md)** • **[Architecture](docs/ARCHITECTURE.md)** • **[Tests](docs/TESTING.md)**
 
