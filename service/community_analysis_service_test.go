@@ -132,9 +132,10 @@ func TestCommunityAnalysisService_Analyze_PackageMismatch_BridgeFixture(t *testi
 	})
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	require.NotNil(t, result.PackageAlignmentScore)
-	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
-	assert.Equal(t, []string{"mod"}, result.SplitPackages)
+	// The fixture declares a single package, so alignment has nothing to compare
+	// against and is not reported (#784).
+	assert.Nil(t, result.PackageAlignmentScore)
+	assert.Empty(t, result.SplitPackages)
 	assert.Empty(t, result.MixedCommunities)
 
 	for _, community := range result.Communities {
@@ -185,7 +186,7 @@ func TestCommunityAnalysisService_Analyze_PackageMismatch_MixedFixture(t *testin
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	require.NotNil(t, result.PackageAlignmentScore)
-	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	assert.InDelta(t, 0.5, *result.PackageAlignmentScore, 1e-9)
 	assert.Equal(t, []string{"pkg_alpha", "pkg_beta"}, result.SplitPackages)
 	assert.Equal(t, []string{"community_1", "community_2"}, result.MixedCommunities)
 
@@ -371,7 +372,7 @@ func TestCommunityAnalysisService_Analyze_LayerMismatch_MixedFixture(t *testing.
 	require.NotNil(t, result)
 	require.Equal(t, 2, result.TotalCommunities)
 	require.NotNil(t, result.LayerAlignmentScore)
-	assert.InDelta(t, 0.0, *result.LayerAlignmentScore, 1e-9)
+	assert.InDelta(t, 0.5, *result.LayerAlignmentScore, 1e-9)
 	assert.Equal(t, []string{"community_1", "community_2"}, result.CrossLayerCommunities)
 
 	for _, community := range result.Communities {

@@ -32,6 +32,7 @@ func TestComputeLayerMismatchMetrics_AlignedLayers(t *testing.T) {
 	require.NotNil(t, mismatch)
 	assert.Empty(t, mismatch.CrossLayerCommunities)
 	assert.Empty(t, mismatch.LayerBridgeModules)
+	assert.Equal(t, 2, mismatch.DistinctLayers)
 	assert.InDelta(t, 1.0, mismatch.LayerAlignmentScore, 1e-9)
 }
 
@@ -62,6 +63,7 @@ func TestComputeLayerMismatchMetrics_BridgeFixture(t *testing.T) {
 	mismatch := ComputeLayerMismatchMetrics(metrics.Communities, metrics.BridgeModules)
 
 	require.NotNil(t, mismatch)
+	assert.Equal(t, 2, mismatch.DistinctLayers)
 	assert.InDelta(t, 1.0, mismatch.LayerAlignmentScore, 1e-9)
 	assert.Empty(t, mismatch.CrossLayerCommunities)
 	assert.Equal(t, []string{"bridge", "infra.c"}, mismatch.LayerBridgeModules)
@@ -101,7 +103,10 @@ func TestComputeLayerMismatchMetrics_CrossLayerCommunity(t *testing.T) {
 	require.Len(t, metrics.Communities, 1)
 	assert.Equal(t, 2, metrics.Communities[0].LayerCount)
 	assert.Equal(t, []string{"community_1"}, mismatch.CrossLayerCommunities)
-	assert.InDelta(t, 1.0, mismatch.LayerAlignmentScore, 1e-9)
+	assert.Equal(t, 2, mismatch.DistinctLayers)
+	// One community holding two layers of two modules each: only the dominant
+	// layer's modules are aligned.
+	assert.InDelta(t, 0.5, mismatch.LayerAlignmentScore, 1e-9)
 }
 
 func TestComputeLayerMismatchMetrics_NoLayerMapping(t *testing.T) {
@@ -121,6 +126,7 @@ func TestComputeLayerMismatchMetrics_NoLayerMapping(t *testing.T) {
 
 	require.NotNil(t, mismatch)
 	assert.Equal(t, 0.0, mismatch.LayerAlignmentScore)
+	assert.Equal(t, 0, mismatch.DistinctLayers)
 	assert.Empty(t, mismatch.CrossLayerCommunities)
 	assert.Empty(t, mismatch.LayerBridgeModules)
 	assert.Equal(t, 0, metrics.Communities[0].LayerCount)

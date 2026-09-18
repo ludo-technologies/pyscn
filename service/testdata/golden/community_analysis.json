@@ -64,11 +64,7 @@
       ]
     }
   ],
-  "package_alignment_score": 0,
-  "split_packages": [
-    "mod"
-  ],
-  "community_risk_score": 65,
+  "community_risk_score": 59,
   "community_context_map": {
     "version": 1,
     "bundles": [

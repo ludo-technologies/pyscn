@@ -1048,13 +1048,15 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		// Use the analysis bridge count, not the emitted list, so the health
 		// penalty is independent of whether bridge modules are reported.
 		summary.CommunityBridgeModules = c.BridgeModuleCount
-		internalEdges, crossEdges := 0, 0
+		internalEdges, crossEdges, moduleCount := 0, 0, 0
 		for i := range c.Communities {
 			internalEdges += c.Communities[i].InternalEdges
 			crossEdges += c.Communities[i].OutgoingCrossCommunityEdges
+			moduleCount += c.Communities[i].Size
 		}
 		summary.CommunityInternalEdges = internalEdges
 		summary.CommunityCrossEdges = crossEdges
+		summary.CommunityTotalModules = moduleCount
 		summary.CommunityPackageAlignment = c.PackageAlignmentScore
 		summary.CommunityLayerAlignment = c.LayerAlignmentScore
 	}

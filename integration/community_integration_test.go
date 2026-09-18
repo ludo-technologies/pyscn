@@ -102,12 +102,14 @@ func TestCommunity_BridgeModules(t *testing.T) {
 	assert.Contains(t, modC.TargetCommunities, "community_1")
 }
 
+// The bridge fixture declares a single package, so there is no second package
+// for the communities to disagree with and alignment is not reported (#784: the
+// old rollup scored every single-package project exactly 0).
 func TestCommunity_PackageMismatchSplitPackage(t *testing.T) {
 	result := analyzeCommunityFixture(t, communityBridgeDir)
 
-	require.NotNil(t, result.PackageAlignmentScore)
-	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
-	assert.Equal(t, []string{"mod"}, result.SplitPackages)
+	assert.Nil(t, result.PackageAlignmentScore)
+	assert.Empty(t, result.SplitPackages)
 	assert.Empty(t, result.MixedCommunities)
 }
 
@@ -143,7 +145,9 @@ func TestCommunity_LayerMismatchCrossLayerCommunity(t *testing.T) {
 
 	require.Equal(t, 2, result.TotalCommunities)
 	require.NotNil(t, result.LayerAlignmentScore)
-	assert.InDelta(t, 0.0, *result.LayerAlignmentScore, 1e-9)
+	// Each community holds an even split of two layers, so only the dominant
+	// layer's modules count as aligned.
+	assert.InDelta(t, 0.5, *result.LayerAlignmentScore, 1e-9)
 	assert.Equal(t, []string{"community_1", "community_2"}, result.CrossLayerCommunities)
 	for _, community := range result.Communities {
 		assert.Equal(t, 2, community.LayerCount)
@@ -163,7 +167,9 @@ func TestCommunity_PackageMismatchMixedCommunities(t *testing.T) {
 
 	require.Equal(t, 2, result.TotalCommunities)
 	require.NotNil(t, result.PackageAlignmentScore)
-	assert.InDelta(t, 0.0, *result.PackageAlignmentScore, 1e-9)
+	// Each community holds an even split of two packages, so only the dominant
+	// package's modules count as aligned.
+	assert.InDelta(t, 0.5, *result.PackageAlignmentScore, 1e-9)
 	assert.Equal(t, []string{"pkg_alpha", "pkg_beta"}, result.SplitPackages)
 	assert.Equal(t, []string{"community_1", "community_2"}, result.MixedCommunities)
 

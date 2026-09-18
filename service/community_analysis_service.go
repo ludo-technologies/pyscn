@@ -90,13 +90,16 @@ func (s *CommunityAnalysisServiceImpl) analyzeGraph(ctx context.Context, graph *
 		Version:          version.Version,
 		Config:           s.buildConfigForResponse(req),
 	}
-	if packageMismatch != nil && s.hasPackageMismatchData(metrics.Communities) {
+	// Alignment needs at least two packages/layers to compare: a project that
+	// declares a single one cannot be misaligned with it, so the score would be a
+	// constant rather than a measurement.
+	if packageMismatch != nil && packageMismatch.DistinctPackages >= 2 {
 		score := packageMismatch.PackageAlignmentScore
 		result.PackageAlignmentScore = &score
 		result.SplitPackages = append([]string(nil), packageMismatch.SplitPackages...)
 		result.MixedCommunities = append([]string(nil), packageMismatch.MixedCommunities...)
 	}
-	if moduleToLayer != nil && layerMismatch != nil && s.hasLayerMismatchData(metrics.Communities) {
+	if moduleToLayer != nil && layerMismatch != nil && layerMismatch.DistinctLayers >= 2 {
 		score := layerMismatch.LayerAlignmentScore
 		result.LayerAlignmentScore = &score
 		result.CrossLayerCommunities = append([]string(nil), layerMismatch.CrossLayerCommunities...)
@@ -259,24 +262,6 @@ func (s *CommunityAnalysisServiceImpl) convertBridgeModules(bridges []analyzer.B
 		})
 	}
 	return out
-}
-
-func (s *CommunityAnalysisServiceImpl) hasPackageMismatchData(partitions []analyzer.CommunityPartition) bool {
-	for _, partition := range partitions {
-		if partition.PackageCount > 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *CommunityAnalysisServiceImpl) hasLayerMismatchData(partitions []analyzer.CommunityPartition) bool {
-	for _, partition := range partitions {
-		if partition.LayerCount > 0 {
-			return true
-		}
-	}
-	return false
 }
 
 func (s *CommunityAnalysisServiceImpl) resolveModuleLayerMap(graph *analyzer.DependencyGraph, req domain.CommunityAnalysisRequest) map[string]string {

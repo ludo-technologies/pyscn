@@ -122,20 +122,38 @@ const (
 	MaxArchPenalty     = coredomain.MaxArchPenalty
 	MaxMSDPenalty      = coredomain.MaxMSDPenalty
 
-	// Community detection scoring only applies when communities ran
-	// with at least two detected communities). The risk score is a weighted
-	// blend of the factors below; the health-score penalty is bounded at
-	// MaxCommunityPenalty so disabling communities cannot move existing grades.
-	MaxCommunityPenalty          = 10   // bounded contribution to the overall health score
-	CommunityModularityTarget    = 0.30 // Q at or above which modularity risk is zero
-	CommunityCrossEdgeSaturation = 0.50 // cross-community edge ratio at which that risk maxes out
-	// Risk-factor weights (core factors sum to 1.0; optional factors are added
+	// Community detection scoring only applies when communities ran, at least two
+	// communities were detected, and the module graph carries enough dependency
+	// edges for a partition to mean anything (see CommunityMinEdgesPerModule).
+	// The risk score is a weighted blend of the factors below; the health-score
+	// penalty is bounded at MaxCommunityPenalty so disabling communities cannot
+	// move existing grades.
+	MaxCommunityPenalty = 10 // bounded contribution to the overall health score
+	// CommunityMinEdgesPerModule is the intra-project dependency density below
+	// which community structure is not scored at all. Leiden on a near-edgeless
+	// graph returns mostly singleton communities, and every derived factor then
+	// measures the absence of dependencies rather than the quality of structure.
+	CommunityMinEdgesPerModule = 0.5
+	CommunityModularityTarget  = 0.50 // Q at or above which modularity risk is zero
+	// CommunityBridgeSaturation is the fraction of modules acting as bridges at
+	// which bridge risk maxes out. It is a share of modules, not of communities:
+	// the bridge count scales with the module count, so dividing by the community
+	// count pinned the factor at its maximum for most real projects.
+	CommunityBridgeSaturation = 0.60
+	// CommunityAlignmentSaturation is the package/layer misalignment (1 - purity)
+	// at which those risks max out. Community purity sits close to 1 for most
+	// projects, so the raw complement alone would barely register.
+	CommunityAlignmentSaturation = 0.25
+	// Risk-factor weights (core factors sum to 0.70; optional factors are added
 	// and the blend is renormalised over whatever factors are available).
-	CommunityModularityWeight = 0.40
-	CommunityCrossEdgeWeight  = 0.30
-	CommunityBridgeWeight     = 0.30
-	CommunityPackageWeight    = 0.25
-	CommunityLayerWeight      = 0.25
+	// The cross-community edge ratio is deliberately absent: modularity Q is
+	// exactly that ratio measured against a degree-preserving null model
+	// (Q = expectedCrossRatio - crossRatio), so scoring both counted cross edges
+	// twice, the second time with no correction for dependency density.
+	CommunityModularityWeight = 0.50
+	CommunityBridgeWeight     = 0.20
+	CommunityPackageWeight    = 0.30
+	CommunityLayerWeight      = 0.30
 	// Per-community risk_level thresholds, expressed as risk ratios (0..1).
 	CommunityRiskHighRatio   = 0.60 // >= high
 	CommunityRiskMediumRatio = 0.30 // >= medium, otherwise low
@@ -234,6 +252,7 @@ type AnalyzeSummary struct {
 
 	// Community detection metrics used for scoring (populated when CommunitiesEnabled).
 	CommunityCount            int      `json:"community_count" yaml:"community_count"`
+	CommunityTotalModules     int      `json:"community_total_modules" yaml:"community_total_modules"`
 	CommunityModularity       float64  `json:"community_modularity" yaml:"community_modularity"`
 	CommunityBridgeModules    int      `json:"community_bridge_modules" yaml:"community_bridge_modules"`
 	CommunityInternalEdges    int      `json:"community_internal_edges" yaml:"community_internal_edges"`
@@ -299,6 +318,11 @@ type AnalyzeSummary struct {
 	DependencyScore   int `json:"dependency_score" yaml:"dependency_score"`
 	ArchitectureScore int `json:"architecture_score" yaml:"architecture_score"`
 	CommunityScore    int `json:"community_score" yaml:"community_score"`
+	// CommunityScored reports whether the community category was actually scored.
+	// It is false when communities were skipped, fewer than two were detected, or
+	// the module graph was too sparse for the partition to carry signal; the
+	// score then carries 100 with a zero penalty and should not be displayed.
+	CommunityScored bool `json:"community_scored" yaml:"community_scored"`
 
 	// CommunityRiskScore is a system-level 0-100 risk signal (higher = worse).
 	// It is the inverse of CommunityScore and only meaningful when communities ran.
@@ -512,6 +536,7 @@ func clamp01(v float64) float64 {
 // identical numbers.
 type communityRiskInputs struct {
 	communityCount   int
+	moduleCount      int
 	modularity       float64
 	bridgeModules    int
 	internalEdges    int
@@ -520,44 +545,52 @@ type communityRiskInputs struct {
 	layerAlignment   *float64 // nil when architecture layers are not configured
 }
 
+// communityScoringApplies reports whether the partition carries enough signal to
+// score. Fewer than two communities means there is no modular structure to
+// judge, and a module graph with almost no intra-project dependencies produces a
+// partition of singletons whose factors measure dependency density rather than
+// structure quality.
+func communityScoringApplies(in communityRiskInputs) bool {
+	if in.communityCount < 2 || in.moduleCount <= 0 {
+		return false
+	}
+	edges := in.internalEdges + in.crossEdges
+	return float64(edges) >= CommunityMinEdgesPerModule*float64(in.moduleCount)
+}
+
 // computeCommunityRiskRatio blends the community risk factors into a single
 // 0..1 ratio (0 = healthy, 1 = worst). Optional factors (package/layer
 // alignment) are only included when available, and the weighted average is
-// renormalised over whichever factors contributed. See docs/ANALYZE_SCORING.md.
+// renormalised over whichever factors contributed. Callers must check
+// communityScoringApplies first. See docs/ANALYZE_SCORING.md.
 func computeCommunityRiskRatio(in communityRiskInputs) float64 {
 	var weightedSum, totalWeight float64
 
 	// Low modularity Q: risk rises as Q falls below the "good separation" target.
+	// Q is the one factor already normalised against a degree-preserving null
+	// model, so it rates separation quality rather than dependency count.
 	modularityRisk := clamp01((CommunityModularityTarget - in.modularity) / CommunityModularityTarget)
 	weightedSum += CommunityModularityWeight * modularityRisk
 	totalWeight += CommunityModularityWeight
 
-	// Cross-community edge ratio: how tangled the partitions are. This also
-	// captures the aggregate external_dependency_ratio at the system level.
-	if denom := in.internalEdges + in.crossEdges; denom > 0 {
-		crossRatio := float64(in.crossEdges) / float64(denom)
-		crossRisk := clamp01(crossRatio / CommunityCrossEdgeSaturation)
-		weightedSum += CommunityCrossEdgeWeight * crossRisk
-		totalWeight += CommunityCrossEdgeWeight
-	}
-
-	// Bridge modules: count relative to the number of communities, saturating at
-	// roughly one bridge module per community.
-	if in.communityCount > 0 {
-		bridgeRisk := clamp01(float64(in.bridgeModules) / float64(in.communityCount))
+	// Bridge modules: the share of modules that reach into another community,
+	// saturating at CommunityBridgeSaturation.
+	if in.moduleCount > 0 {
+		bridgeFraction := float64(in.bridgeModules) / float64(in.moduleCount)
+		bridgeRisk := clamp01(bridgeFraction / CommunityBridgeSaturation)
 		weightedSum += CommunityBridgeWeight * bridgeRisk
 		totalWeight += CommunityBridgeWeight
 	}
 
-	// Low package alignment (when available).
+	// Low package alignment (when at least two packages contribute modules).
 	if in.packageAlignment != nil {
-		weightedSum += CommunityPackageWeight * clamp01(1-*in.packageAlignment)
+		weightedSum += CommunityPackageWeight * clamp01((1-*in.packageAlignment)/CommunityAlignmentSaturation)
 		totalWeight += CommunityPackageWeight
 	}
 
-	// Low layer alignment (when available).
+	// Low layer alignment (when at least two layers contribute modules).
 	if in.layerAlignment != nil {
-		weightedSum += CommunityLayerWeight * clamp01(1-*in.layerAlignment)
+		weightedSum += CommunityLayerWeight * clamp01((1-*in.layerAlignment)/CommunityAlignmentSaturation)
 		totalWeight += CommunityLayerWeight
 	}
 
@@ -569,21 +602,25 @@ func computeCommunityRiskRatio(in communityRiskInputs) float64 {
 
 // communityRiskRatio returns the system community risk ratio (0..1) for the
 // summary and whether community scoring applies. Scoring is skipped unless
-// communities ran and at least two communities were detected (a single
-// community has no meaningful modular structure to score).
+// communities ran and communityScoringApplies accepts the partition.
 func (s *AnalyzeSummary) communityRiskRatio() (float64, bool) {
-	if !s.CommunitiesEnabled || s.CommunityCount < 2 {
+	if !s.CommunitiesEnabled {
 		return 0, false
 	}
-	return computeCommunityRiskRatio(communityRiskInputs{
+	in := communityRiskInputs{
 		communityCount:   s.CommunityCount,
+		moduleCount:      s.CommunityTotalModules,
 		modularity:       s.CommunityModularity,
 		bridgeModules:    s.CommunityBridgeModules,
 		internalEdges:    s.CommunityInternalEdges,
 		crossEdges:       s.CommunityCrossEdges,
 		packageAlignment: s.CommunityPackageAlignment,
 		layerAlignment:   s.CommunityLayerAlignment,
-	}), true
+	}
+	if !communityScoringApplies(in) {
+		return 0, false
+	}
+	return computeCommunityRiskRatio(in), true
 }
 
 // normalizeToScoreBase normalizes a penalty value to the MaxScoreBase scale (0-20)
@@ -613,6 +650,7 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 		s.ArchitectureScore = 0
 		s.CommunityScore = 0
 		s.CommunityRiskScore = 0
+		s.CommunityScored = false
 		return fmt.Errorf("invalid summary data: %w", err)
 	}
 
@@ -649,15 +687,18 @@ func (s *AnalyzeSummary) CalculateHealthScore() error {
 	// Use compliance directly as score (98% compliance = 98 points)
 	s.ArchitectureScore = int(math.Round(s.ArchCompliance * 100))
 
-	// Community detection: only penalises when communities ran with >= 2
-	// communities. Disabled or trivial cases score 100 / risk 0 so existing
-	// grades are unaffected (backward compatible).
+	// Community detection: only penalises when communities ran and the partition
+	// is scorable. Disabled or unscorable cases score 100 / risk 0 so existing
+	// grades are unaffected (backward compatible) and set CommunityScored=false
+	// so reporters can omit the category instead of showing a meaningless 100.
 	communityPenalty := 0
 	if communityRatio, scored := s.communityRiskRatio(); scored {
+		s.CommunityScored = true
 		s.CommunityRiskScore = int(math.Round(communityRatio * 100))
 		s.CommunityScore = 100 - s.CommunityRiskScore
 		communityPenalty = int(math.Round(communityRatio * float64(MaxCommunityPenalty)))
 	} else {
+		s.CommunityScored = false
 		s.CommunityScore = 100
 		s.CommunityRiskScore = 0
 	}
