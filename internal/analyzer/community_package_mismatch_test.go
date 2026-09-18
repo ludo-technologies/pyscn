@@ -28,7 +28,11 @@ func TestComputePackageMismatchMetrics_SplitPackage(t *testing.T) {
 	require.NotNil(t, mismatch)
 	assert.Equal(t, []string{"mod"}, mismatch.SplitPackages)
 	assert.Empty(t, mismatch.MixedCommunities)
-	assert.InDelta(t, 0.0, mismatch.PackageAlignmentScore, 1e-9)
+	// A single package spanning several communities is not a misalignment: with
+	// only one package there is nothing for the partition to disagree with, so
+	// every module sits in a community whose dominant package is its own.
+	assert.Equal(t, 1, mismatch.DistinctPackages)
+	assert.InDelta(t, 1.0, mismatch.PackageAlignmentScore, 1e-9)
 
 	byID := communityPartitionsByID(metrics.Communities)
 	for _, id := range []string{"community_1", "community_2"} {
@@ -58,6 +62,7 @@ func TestComputePackageMismatchMetrics_AlignedPackages(t *testing.T) {
 	require.NotNil(t, mismatch)
 	assert.Empty(t, mismatch.SplitPackages)
 	assert.Empty(t, mismatch.MixedCommunities)
+	assert.Equal(t, 2, mismatch.DistinctPackages)
 	assert.InDelta(t, 1.0, mismatch.PackageAlignmentScore, 1e-9)
 }
 
@@ -94,7 +99,10 @@ func TestComputePackageMismatchMetrics_MixedCommunity(t *testing.T) {
 	assert.Equal(t, 2, metrics.Communities[0].PackageCount)
 	assert.Equal(t, []string{"community_1"}, mismatch.MixedCommunities)
 	assert.Empty(t, mismatch.SplitPackages)
-	assert.InDelta(t, 1.0, mismatch.PackageAlignmentScore, 1e-9)
+	assert.Equal(t, 2, mismatch.DistinctPackages)
+	// Two packages of two modules each share one community, so only the dominant
+	// package's modules count as aligned.
+	assert.InDelta(t, 0.5, mismatch.PackageAlignmentScore, 1e-9)
 }
 
 func TestComputePackageMismatchMetrics_NoPackageMetadata(t *testing.T) {
@@ -114,6 +122,7 @@ func TestComputePackageMismatchMetrics_NoPackageMetadata(t *testing.T) {
 
 	require.NotNil(t, mismatch)
 	assert.Equal(t, 0.0, mismatch.PackageAlignmentScore)
+	assert.Equal(t, 0, mismatch.DistinctPackages)
 	assert.Empty(t, mismatch.SplitPackages)
 	assert.Empty(t, mismatch.MixedCommunities)
 	assert.Equal(t, 0, metrics.Communities[0].PackageCount)

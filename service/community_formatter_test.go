@@ -374,7 +374,8 @@ func TestCommunityFormatter_Format_AllFormats_BridgeFixture(t *testing.T) {
 	assert.Contains(t, htmlOutput, "<th>Dominant Package</th>")
 	assert.Contains(t, htmlOutput, "<th>Package Alignment</th>")
 	assert.Contains(t, htmlOutput, ">mod<")
-	assert.Contains(t, htmlOutput, "Split packages:")
+	// The fixture has a single package, so there is no alignment to report (#784).
+	assert.NotContains(t, htmlOutput, "Split packages:")
 	assert.NotContains(t, htmlOutput, "<nil>")
 
 	dotOutput, err := formatter.Format(result, domain.OutputFormatDOT)

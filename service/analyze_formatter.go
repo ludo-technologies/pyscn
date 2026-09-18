@@ -249,9 +249,13 @@ func (f *AnalyzeFormatter) writeCSV(response *domain.AnalyzeResponse, writer io.
 			[]string{"Total Communities", fmt.Sprint(communities.TotalCommunities)},
 			[]string{"Community Modularity", fmt.Sprintf("%.4f", communities.Modularity)},
 			[]string{"Bridge Modules", fmt.Sprint(len(communities.BridgeModules))},
-			[]string{"Community Score", fmt.Sprint(response.Summary.CommunityScore)},
-			[]string{"Community Risk Score", fmt.Sprint(response.Summary.CommunityRiskScore)},
 		)
+		if response.Summary.CommunityScored {
+			rows = append(rows,
+				[]string{"Community Score", fmt.Sprint(response.Summary.CommunityScore)},
+				[]string{"Community Risk Score", fmt.Sprint(response.Summary.CommunityRiskScore)},
+			)
+		}
 	}
 
 	if response.Complexity != nil {

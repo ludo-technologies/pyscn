@@ -355,28 +355,31 @@ func ScoreCommunityResult(result *CommunityAnalysisResult) {
 	// Build the agent-facing context map once risk levels are populated.
 	result.ContextMap = BuildCommunityContextMap(result)
 
-	// The system risk score needs at least two communities to be meaningful.
-	if result.TotalCommunities < 2 {
-		result.RiskScore = nil
-		return
-	}
-
-	internalEdges, crossEdges := 0, 0
+	internalEdges, crossEdges, moduleCount := 0, 0, 0
 	for i := range result.Communities {
 		internalEdges += result.Communities[i].InternalEdges
 		crossEdges += result.Communities[i].OutgoingCrossCommunityEdges
+		moduleCount += result.Communities[i].Size
 	}
 
-	ratio := computeCommunityRiskRatio(communityRiskInputs{
+	in := communityRiskInputs{
 		communityCount:   result.TotalCommunities,
+		moduleCount:      moduleCount,
 		modularity:       result.Modularity,
 		bridgeModules:    result.BridgeModuleCount,
 		internalEdges:    internalEdges,
 		crossEdges:       crossEdges,
 		packageAlignment: result.PackageAlignmentScore,
 		layerAlignment:   result.LayerAlignmentScore,
-	})
-	score := int(math.Round(ratio * 100))
+	}
+	// Leave the risk score unset when the partition carries no signal, rather
+	// than reporting a number derived from the absence of dependencies.
+	if !communityScoringApplies(in) {
+		result.RiskScore = nil
+		return
+	}
+
+	score := int(math.Round(computeCommunityRiskRatio(in) * 100))
 	result.RiskScore = &score
 }
 

@@ -462,7 +462,7 @@ func buildReportDimensions(response *domain.AnalyzeResponse) []reportDimension {
 			fmt.Sprintf("%.0f%% compliant", s.ArchCompliance*100),
 			pluralize(violations, "violation", "violations"), "architecture")
 	}
-	if s.CommunitiesEnabled && response.Communities != nil {
+	if s.CommunityScored && response.Communities != nil {
 		add("Communities", s.CommunityScore,
 			fmt.Sprintf("%d communities, Q %.2f", response.Communities.TotalCommunities, response.Communities.Modularity),
 			pluralize(len(response.Communities.BridgeModules), "bridge", "bridges"), "architecture")

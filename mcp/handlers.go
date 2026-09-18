@@ -188,7 +188,7 @@ func (h *HandlerSet) HandleAnalyzeCode(ctx context.Context, request mcp.CallTool
 	}
 
 	// Surface community scores in summary mode only when communities ran.
-	if m, ok := responseData.(map[string]interface{}); ok && result.Summary.CommunitiesEnabled {
+	if m, ok := responseData.(map[string]interface{}); ok && result.Summary.CommunityScored {
 		if sum, ok := m["summary"].(map[string]interface{}); ok {
 			sum["community_score"] = result.Summary.CommunityScore
 			sum["community_risk_score"] = result.Summary.CommunityRiskScore
@@ -840,7 +840,7 @@ func newHealthScorePayload(result *domain.AnalyzeResponse, executionErr error) (
 			HighLCOMClasses:               result.Summary.HighLCOMClasses,
 		},
 	}
-	if result.Summary.CommunitiesEnabled {
+	if result.Summary.CommunityScored {
 		payload.CategoryScores.Community = &result.Summary.CommunityScore
 		payload.Summary.CommunityRiskScore = &result.Summary.CommunityRiskScore
 	}

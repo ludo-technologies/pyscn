@@ -503,6 +503,7 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 	tests := []struct {
 		name               string
 		summary            domain.AnalyzeSummary
+		expectScored       bool
 		expectedScore      int // CommunityScore (category quality)
 		expectedRiskScore  int // CommunityRiskScore (system risk)
 		expectHealthChange bool
@@ -515,6 +516,7 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 				CommunityCount:      5,
 				CommunityModularity: 0.0,
 			},
+			expectScored:       false,
 			expectedScore:      100,
 			expectedRiskScore:  0,
 			expectHealthChange: false,
@@ -522,11 +524,33 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 		{
 			name: "single community - not scored",
 			summary: domain.AnalyzeSummary{
-				AverageComplexity:   2.0,
-				CommunitiesEnabled:  true,
-				CommunityCount:      1,
-				CommunityModularity: 0.0,
+				AverageComplexity:     2.0,
+				CommunitiesEnabled:    true,
+				CommunityCount:        1,
+				CommunityTotalModules: 20,
+				CommunityModularity:   0.0,
 			},
+			expectScored:       false,
+			expectedScore:      100,
+			expectedRiskScore:  0,
+			expectHealthChange: false,
+		},
+		{
+			// Regression for #784: a project whose modules barely import each
+			// other has no community structure to judge. Scoring it produced a
+			// high grade for what is really a pile of standalone scripts.
+			name: "sparse module graph - not scored",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:      2.0,
+				CommunitiesEnabled:     true,
+				CommunityCount:         20,
+				CommunityTotalModules:  40,
+				CommunityModularity:    0.9,
+				CommunityBridgeModules: 0,
+				CommunityInternalEdges: 4,
+				CommunityCrossEdges:    2, // 6 edges for 40 modules, below 0.5/module
+			},
+			expectScored:       false,
 			expectedScore:      100,
 			expectedRiskScore:  0,
 			expectHealthChange: false,
@@ -537,27 +561,53 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 				AverageComplexity:      2.0,
 				CommunitiesEnabled:     true,
 				CommunityCount:         4,
-				CommunityModularity:    0.45, // >= target 0.30 -> 0 modularity risk
+				CommunityTotalModules:  20,
+				CommunityModularity:    0.60, // >= target 0.50 -> 0 modularity risk
 				CommunityBridgeModules: 0,
 				CommunityInternalEdges: 40,
 				CommunityCrossEdges:    0,
 			},
+			expectScored:       true,
 			expectedScore:      100,
 			expectedRiskScore:  0,
 			expectHealthChange: false,
 		},
 		{
-			name: "tangled - low Q, many bridges, high cross ratio",
+			// Regression for #784: dependency density must not drive the score.
+			// This project imports far more heavily than the sparse case above
+			// and still scores near-perfectly, because its communities are cleanly
+			// separated and its packages line up with them.
+			name: "dense but cleanly separated - scores near-perfectly",
+			summary: domain.AnalyzeSummary{
+				AverageComplexity:         2.0,
+				CommunitiesEnabled:        true,
+				CommunityCount:            6,
+				CommunityTotalModules:     50,
+				CommunityModularity:       0.65,
+				CommunityBridgeModules:    5, // 0.10 of modules, well under saturation
+				CommunityInternalEdges:    120,
+				CommunityCrossEdges:       10,
+				CommunityPackageAlignment: floatPtr(1.0),
+			},
+			expectScored:       true,
+			expectedScore:      97,
+			expectedRiskScore:  3,
+			expectHealthChange: false,
+		},
+		{
+			name: "tangled - low Q, every module bridging",
 			summary: domain.AnalyzeSummary{
 				AverageComplexity:      2.0,
 				CommunitiesEnabled:     true,
 				CommunityCount:         4,
+				CommunityTotalModules:  20,
 				CommunityModularity:    0.0, // modularity risk = 1.0
-				CommunityBridgeModules: 4,   // bridge risk = 1.0
+				CommunityBridgeModules: 20,  // every module bridges -> risk 1.0
 				CommunityInternalEdges: 10,
-				CommunityCrossEdges:    10, // crossRatio 0.5 -> /0.5 = 1.0 risk
+				CommunityCrossEdges:    10,
 			},
-			// All three core factors at 1.0 -> ratio 1.0 -> risk 100, score 0, penalty 10.
+			// Both core factors at 1.0 -> ratio 1.0 -> risk 100, score 0, penalty 10.
+			expectScored:       true,
 			expectedScore:      0,
 			expectedRiskScore:  100,
 			expectHealthChange: true,
@@ -568,7 +618,8 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 				AverageComplexity:         2.0,
 				CommunitiesEnabled:        true,
 				CommunityCount:            3,
-				CommunityModularity:       0.30, // 0 modularity risk
+				CommunityTotalModules:     20,
+				CommunityModularity:       0.50, // 0 modularity risk
 				CommunityBridgeModules:    0,
 				CommunityInternalEdges:    30,
 				CommunityCrossEdges:       0,
@@ -576,10 +627,11 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 				CommunityLayerAlignment:   floatPtr(0.0), // risk 1.0
 			},
 			// All factors count toward the weight denominator even at zero risk:
-			// modularity .4 (0), cross .3 (0), bridge .3 (0), package .25 (1), layer .25 (1)
-			// ratio = (0.25+0.25)/(0.4+0.3+0.3+0.25+0.25) = 0.5/1.5 = 0.3333 -> 33
-			expectedScore:      67,
-			expectedRiskScore:  33,
+			// modularity .5 (0), bridge .2 (0), package .3 (1), layer .3 (1)
+			// ratio = (0.3+0.3)/(0.5+0.2+0.3+0.3) = 0.6/1.3 = 0.4615 -> 46
+			expectScored:       true,
+			expectedScore:      54,
+			expectedRiskScore:  46,
 			expectHealthChange: true,
 		},
 	}
@@ -597,6 +649,9 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 				t.Fatalf("CalculateHealthScore() error: %v", err)
 			}
 
+			if s.CommunityScored != tt.expectScored {
+				t.Errorf("CommunityScored = %v, want %v", s.CommunityScored, tt.expectScored)
+			}
 			if s.CommunityScore != tt.expectedScore {
 				t.Errorf("CommunityScore = %d, want %d", s.CommunityScore, tt.expectedScore)
 			}
@@ -614,6 +669,45 @@ func TestAnalyzeSummary_CommunityScoring(t *testing.T) {
 					healthChanged, s.HealthScore, baseline.HealthScore, tt.expectHealthChange)
 			}
 		})
+	}
+}
+
+// TestAnalyzeSummary_CommunityScoreIgnoresDependencyDensity is the direct
+// regression for #784: the old blend scored a codebase higher the fewer
+// internal dependencies it had. Two projects with identical separation quality
+// must now score the same regardless of how much they import.
+func TestAnalyzeSummary_CommunityScoreIgnoresDependencyDensity(t *testing.T) {
+	base := domain.AnalyzeSummary{
+		AverageComplexity:      2.0,
+		CommunitiesEnabled:     true,
+		CommunityCount:         8,
+		CommunityTotalModules:  60,
+		CommunityModularity:    0.62,
+		CommunityBridgeModules: 12,
+	}
+
+	sparse := base
+	sparse.CommunityInternalEdges = 50
+	sparse.CommunityCrossEdges = 10
+
+	dense := base
+	dense.CommunityInternalEdges = 500
+	dense.CommunityCrossEdges = 100
+
+	if err := sparse.CalculateHealthScore(); err != nil {
+		t.Fatalf("sparse CalculateHealthScore() error: %v", err)
+	}
+	if err := dense.CalculateHealthScore(); err != nil {
+		t.Fatalf("dense CalculateHealthScore() error: %v", err)
+	}
+
+	if !sparse.CommunityScored || !dense.CommunityScored {
+		t.Fatalf("both projects should be scored, got sparse=%v dense=%v",
+			sparse.CommunityScored, dense.CommunityScored)
+	}
+	if sparse.CommunityScore != dense.CommunityScore {
+		t.Errorf("community score changed with dependency density: sparse=%d dense=%d",
+			sparse.CommunityScore, dense.CommunityScore)
 	}
 }
 

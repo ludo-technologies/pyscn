@@ -22,13 +22,19 @@ Penalties are additive. Each category subtracts up to the maximum listed points 
 | Coupling (CBO)      | Weighted ratio of high-risk (`CBO > 7`) and medium-risk (`3 < CBO ≤ 7`) classes using weight 1.0 and 0.5 respectively, divided by total measured classes | Continuous linear: `min(20, ratio / 0.12 * 20)`<br/>Starts at 0%, reaches max at 12%                                  | 20          |
 | Dependencies        | Module dependency graph: proportion of modules in cycles, dependency depth above `log₂(N)+1`, Main Sequence Deviation                                    | Cycles: up to 10 pts (`max` of proportional and `log₂(modulesInCycles + 1)` floor)<br/>Depth: up to 3 pts (excess over expected)<br/>MSD: up to 3 pts (proportional) | 16          |
 | Architecture        | Architecture rules compliance ratio (0–1)                                                                                                                | `round((1 - compliance) * 12)`                                                                                         | 12          |
-| Communities         | Module community structure: low modularity Q, cross-community edge ratio, bridge-module count, and (when available) package/layer alignment              | `round(riskRatio * 10)` where `riskRatio` is the weighted risk blend below                                            | 10          |
+| Communities         | Module community structure: low modularity Q, share of modules bridging communities, and (when available) package/layer alignment                        | `round(riskRatio * 10)` where `riskRatio` is the weighted risk blend below                                            | 10          |
 
 When a category is disabled (e.g., `--skip-clones`), its penalty is zero and the prior score (100) carries forward so the missing analysis does not hurt the overall grade.
 
 ## Community Risk Score
 
-Community detection runs in default analyze unless disabled. The community penalty only applies when communities ran **and** at least two communities were detected; otherwise the category scores 100 with a zero penalty, so disabling communities or analyzing trivial graphs never changes existing grades (backward compatible).
+Community detection runs in default analyze unless disabled. The category is only scored when **all** of the following hold; otherwise it scores 100 with a zero penalty, `community_scored` is `false`, and reporters omit it:
+
+- communities ran,
+- at least two communities were detected,
+- the module graph carries at least `0.5` intra-project dependency edges per module.
+
+The density floor matters because Leiden on a near-edgeless graph returns mostly singleton communities. Every factor derived from that partition then measures how few dependencies a project has rather than how well it is structured, which is how a collection of standalone scripts used to out-score an ordinary cohesive library (#784).
 
 The system-level **community risk score** (`community_risk_score`, 0–100, higher = worse) is a weighted blend of normalised risk factors. The category quality score is its inverse: `CommunityScore = 100 - community_risk_score`. The health-score penalty is `round(riskRatio * 10)`.
 
@@ -36,13 +42,20 @@ Each factor is normalised to `0..1` (1 = worst). The blend is a weighted average
 
 | Factor                      | Weight | Formula                                                                 | Availability                       |
 |-----------------------------|--------|------------------------------------------------------------------------|------------------------------------|
-| Low modularity Q            | 0.40   | `clamp01((0.30 - Q) / 0.30)` — risk rises as Q falls below 0.30        | Always (when ≥ 2 communities)      |
-| Cross-community edge ratio  | 0.30   | `clamp01(crossRatio / 0.50)`, `crossRatio = crossEdges / (internal + cross)` | When the graph has edges     |
-| Bridge-module count         | 0.30   | `clamp01(bridgeModules / communityCount)` — saturates at ~1 per community | When communities exist          |
-| Low package alignment       | 0.25   | `clamp01(1 - package_alignment_score)`                                 | When package metadata is present   |
-| Low layer alignment         | 0.25   | `clamp01(1 - layer_alignment_score)`                                   | When architecture layers configured |
+| Low modularity Q            | 0.50   | `clamp01((0.50 - Q) / 0.50)` — risk rises as Q falls below 0.50        | Always (when scored)               |
+| Bridging modules            | 0.20   | `clamp01((bridgeModules / totalModules) / 0.60)` — the share of modules reaching into another community | When modules exist |
+| Low package alignment       | 0.30   | `clamp01((1 - package_alignment_score) / 0.25)`                        | When ≥ 2 packages contribute modules |
+| Low layer alignment         | 0.30   | `clamp01((1 - layer_alignment_score) / 0.25)`                          | When ≥ 2 layers contribute modules |
 
-The cross-community edge ratio also captures the aggregate `external_dependency_ratio` at the system level, so that signal is not double-counted.
+There is deliberately no cross-community edge-ratio factor. Modularity Q *is* that ratio measured against a degree-preserving null model — `Q = expectedCrossRatio - crossRatio` — so scoring both counted cross edges twice, and the raw ratio applies no correction for how densely a project imports itself. Q is the density-normalised form and carries the signal on its own.
+
+The bridge factor is a share of **modules**, not of communities. Bridge counts scale with module count while community counts do not, so the old `bridgeModules / communityCount` ratio sat clamped at its maximum for most real projects and contributed a flat penalty.
+
+### Package and layer alignment
+
+`package_alignment_score` and `layer_alignment_score` are module-weighted community purity: the fraction of modules that sit in a community whose dominant package (or layer) is their own. Counting packages that span more than one community instead would be degenerate — community detection nearly always finds more communities than there are packages, so any package large enough to straddle two of them was marked misaligned, and a single-package project scored exactly 0 by construction.
+
+Both scores are omitted entirely when fewer than two packages (or layers) contribute modules: with only one, there is nothing for the partition to disagree with, so the factor drops out of the blend rather than contributing a constant.
 
 ### Per-community `risk_level`
 

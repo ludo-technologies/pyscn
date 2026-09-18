@@ -361,3 +361,51 @@ func TestWriteAnalyzeHTML_ArchitectureViolationsWithoutLayerViolations(t *testin
 	require.NoError(t, writeAnalyzeHTML(response, &buf))
 	assert.Contains(t, buf.String(), "No architecture violations")
 }
+
+// Regression for #784: a project below the community density floor is not
+// scored, so neither the overview dimension nor the Architecture score pill may
+// show its placeholder 100.
+func TestWriteAnalyzeHTML_CommunityScoreHiddenWhenUnscored(t *testing.T) {
+	newResponse := func(internalEdges, crossEdges int) *domain.AnalyzeResponse {
+		summary := domain.AnalyzeSummary{
+			TotalFiles:             40,
+			DepsEnabled:            true,
+			DepsTotalModules:       40,
+			CommunitiesEnabled:     true,
+			CommunityCount:         8,
+			CommunityTotalModules:  40,
+			CommunityModularity:    0.55,
+			CommunityBridgeModules: 4,
+			CommunityInternalEdges: internalEdges,
+			CommunityCrossEdges:    crossEdges,
+		}
+		require.NoError(t, summary.CalculateHealthScore())
+		return &domain.AnalyzeResponse{
+			Summary: summary,
+			System: &domain.SystemAnalysisResponse{
+				DependencyAnalysis: &domain.DependencyAnalysisResult{TotalModules: 40},
+			},
+			Communities: &domain.CommunityAnalysisResult{
+				TotalCommunities: 8,
+				Modularity:       0.55,
+			},
+		}
+	}
+
+	// 6 edges across 40 modules: below CommunityMinEdgesPerModule, so unscored.
+	unscored := newResponse(4, 2)
+	require.False(t, unscored.Summary.CommunityScored)
+	require.Equal(t, 100, unscored.Summary.CommunityScore)
+
+	var buf bytes.Buffer
+	require.NoError(t, writeAnalyzeHTML(unscored, &buf))
+	assert.NotContains(t, buf.String(), "Communities <b")
+
+	// 40 edges across 40 modules clears the floor and the pill comes back.
+	scored := newResponse(32, 8)
+	require.True(t, scored.Summary.CommunityScored)
+
+	buf.Reset()
+	require.NoError(t, writeAnalyzeHTML(scored, &buf))
+	assert.Contains(t, buf.String(), "Communities <b")
+}

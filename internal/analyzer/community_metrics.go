@@ -29,25 +29,45 @@ type CommunityPartition struct {
 	DominantPackage  string
 	PackageCount     int
 	PackageAlignment float64
+	// DominantPackageModules / ModulesWithPackage retain the raw purity counts
+	// (PackageAlignment is later overwritten by the same-package edge ratio when
+	// the community has internal edges), so the system-level rollup can compute
+	// module-weighted purity.
+	DominantPackageModules int
+	ModulesWithPackage     int
 
 	DominantLayer  string
 	LayerCount     int
 	Layers         []string
 	LayerAlignment float64
+	// DominantLayerModules / ModulesWithLayer mirror the package counts above.
+	DominantLayerModules int
+	ModulesWithLayer     int
 }
 
 // PackageMismatchMetrics summarizes how well detected communities align with
 // declared package boundaries.
 type PackageMismatchMetrics struct {
+	// PackageAlignmentScore is module-weighted community purity with respect to
+	// packages: the fraction of package-bearing modules that sit in a community
+	// whose dominant package is their own.
 	PackageAlignmentScore float64
-	SplitPackages         []string
-	MixedCommunities      []string
+	// DistinctPackages is the number of packages contributing modules. Alignment
+	// is only meaningful with at least two.
+	DistinctPackages int
+	SplitPackages    []string
+	MixedCommunities []string
 }
 
 // LayerMismatchMetrics summarizes how well detected communities align with
 // configured architecture layers.
 type LayerMismatchMetrics struct {
-	LayerAlignmentScore   float64
+	// LayerAlignmentScore is module-weighted community purity with respect to
+	// architecture layers, mirroring PackageAlignmentScore.
+	LayerAlignmentScore float64
+	// DistinctLayers is the number of layers contributing modules. Alignment is
+	// only meaningful with at least two.
+	DistinctLayers        int
 	CrossLayerCommunities []string
 	LayerBridgeModules    []string
 }
@@ -154,13 +174,14 @@ func ComputePackageMismatchMetrics(partitions []CommunityPartition) *PackageMism
 
 	packageCommunities := make(map[string]map[string]struct{})
 	mixedCommunities := make([]string, 0)
-	var alignedPackages int
-	var totalPackages int
+	var pureModules, packagedModules int
 
 	for _, partition := range partitions {
 		if partition.PackageCount >= 2 {
 			mixedCommunities = append(mixedCommunities, partition.ID)
 		}
+		pureModules += partition.DominantPackageModules
+		packagedModules += partition.ModulesWithPackage
 
 		for _, pkg := range partition.Packages {
 			if pkg == "" {
@@ -175,23 +196,24 @@ func ComputePackageMismatchMetrics(partitions []CommunityPartition) *PackageMism
 
 	splitPackages := make([]string, 0)
 	for pkg, communities := range packageCommunities {
-		totalPackages++
 		if len(communities) >= 2 {
 			splitPackages = append(splitPackages, pkg)
-			continue
 		}
-		alignedPackages++
 	}
 	sort.Strings(splitPackages)
 	sort.Strings(mixedCommunities)
 
+	// Module-weighted purity. Counting split packages instead would be degenerate:
+	// community detection nearly always yields more communities than packages, so
+	// any package large enough to span two of them is marked misaligned.
 	score := 0.0
-	if totalPackages > 0 {
-		score = float64(alignedPackages) / float64(totalPackages)
+	if packagedModules > 0 {
+		score = float64(pureModules) / float64(packagedModules)
 	}
 
 	return &PackageMismatchMetrics{
 		PackageAlignmentScore: score,
+		DistinctPackages:      len(packageCommunities),
 		SplitPackages:         splitPackages,
 		MixedCommunities:      mixedCommunities,
 	}
@@ -257,6 +279,8 @@ func applyPackageMismatchMetrics(
 			}
 		}
 		partitions[i].DominantPackage = dominantPackage
+		partitions[i].DominantPackageModules = dominantCount
+		partitions[i].ModulesWithPackage = modulesWithPackage
 		partitions[i].PackageAlignment = float64(dominantCount) / float64(modulesWithPackage)
 	}
 
@@ -310,13 +334,14 @@ func ComputeLayerMismatchMetrics(partitions []CommunityPartition, bridges []Brid
 
 	layerCommunities := make(map[string]map[string]struct{})
 	crossLayerCommunities := make([]string, 0)
-	var alignedLayers int
-	var totalLayers int
+	var pureModules, layeredModules int
 
 	for _, partition := range partitions {
 		if partition.LayerCount >= 2 {
 			crossLayerCommunities = append(crossLayerCommunities, partition.ID)
 		}
+		pureModules += partition.DominantLayerModules
+		layeredModules += partition.ModulesWithLayer
 
 		for _, layer := range partition.Layers {
 			if layer == "" || layer == "unknown" {
@@ -326,14 +351,6 @@ func ComputeLayerMismatchMetrics(partitions []CommunityPartition, bridges []Brid
 				layerCommunities[layer] = make(map[string]struct{})
 			}
 			layerCommunities[layer][partition.ID] = struct{}{}
-		}
-	}
-
-	for layer, communities := range layerCommunities {
-		totalLayers++
-		if len(communities) == 1 {
-			alignedLayers++
-			_ = layer
 		}
 	}
 	sort.Strings(crossLayerCommunities)
@@ -368,13 +385,17 @@ func ComputeLayerMismatchMetrics(partitions []CommunityPartition, bridges []Brid
 	}
 	sort.Strings(layerBridgeModules)
 
+	// Module-weighted purity, for the same reason as PackageAlignmentScore: there
+	// are always far more communities than layers, so counting layers that span
+	// more than one community would score almost every project 0.
 	score := 0.0
-	if totalLayers > 0 {
-		score = float64(alignedLayers) / float64(totalLayers)
+	if layeredModules > 0 {
+		score = float64(pureModules) / float64(layeredModules)
 	}
 
 	return &LayerMismatchMetrics{
 		LayerAlignmentScore:   score,
+		DistinctLayers:        len(layerCommunities),
 		CrossLayerCommunities: crossLayerCommunities,
 		LayerBridgeModules:    layerBridgeModules,
 	}
@@ -429,6 +450,8 @@ func applyLayerMismatchMetrics(
 			}
 		}
 		partitions[i].DominantLayer = dominantLayer
+		partitions[i].DominantLayerModules = dominantCount
+		partitions[i].ModulesWithLayer = modulesWithLayer
 		partitions[i].LayerAlignment = float64(dominantCount) / float64(modulesWithLayer)
 	}
 
