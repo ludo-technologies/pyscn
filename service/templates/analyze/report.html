@@ -597,7 +597,7 @@
     <div class="scores">
       {{if .Summary.DepsEnabled}}<span class="score-pill {{scoreBand .Summary.DependencyScore}}">Dependencies <b class="num">{{.Summary.DependencyScore}}</b>/100</span>{{end}}
       {{if .Summary.ArchEnabled}}<span class="score-pill {{scoreBand .Summary.ArchitectureScore}}">Architecture <b class="num">{{.Summary.ArchitectureScore}}</b>/100</span>{{end}}
-      {{if and .Summary.CommunitiesEnabled .Communities}}<span class="score-pill {{scoreBand .Summary.CommunityScore}}">Communities <b class="num">{{.Summary.CommunityScore}}</b>/100</span>{{end}}
+      {{if and .Summary.CommunityScored .Communities}}<span class="score-pill {{scoreBand .Summary.CommunityScore}}">Communities <b class="num">{{.Summary.CommunityScore}}</b>/100</span>{{end}}
     </div>
   </div>
 
