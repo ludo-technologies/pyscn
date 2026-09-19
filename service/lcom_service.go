@@ -67,7 +67,7 @@ func (s *LCOMServiceImpl) Analyze(ctx context.Context, req domain.LCOMRequest) (
 
 	filteredClasses := s.filterClasses(allClasses, req)
 	sortedClasses := s.sortClasses(filteredClasses, req.SortBy)
-	summary := s.generateSummary(sortedClasses, filesProcessed, req)
+	summary := s.generateSummary(allClasses, filesProcessed, req)
 
 	return &domain.LCOMResponse{
 		Classes:     sortedClasses,
@@ -126,7 +126,7 @@ func (s *LCOMServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *Project
 
 	filteredClasses := s.filterClasses(allClasses, req)
 	sortedClasses := s.sortClasses(filteredClasses, req.SortBy)
-	summary := s.generateSummary(sortedClasses, filesProcessed, req)
+	summary := s.generateSummary(allClasses, filesProcessed, req)
 
 	return &domain.LCOMResponse{
 		Classes:     sortedClasses,
@@ -320,7 +320,10 @@ func lcomClassLocationLess(a, b domain.ClassCohesion) bool {
 	return a.Name < b.Name
 }
 
-// generateSummary creates aggregate LCOM statistics
+// generateSummary creates aggregate LCOM statistics over the complete analyzed
+// class population. Presentation filters (min_lcom/max_lcom) only limit
+// LCOMResponse.Classes and must never reach this function, otherwise a display
+// option would move the cohesion score and the health grade.
 func (s *LCOMServiceImpl) generateSummary(classes []domain.ClassCohesion, filesAnalyzed int, req domain.LCOMRequest) domain.LCOMSummary {
 	if len(classes) == 0 {
 		return domain.LCOMSummary{

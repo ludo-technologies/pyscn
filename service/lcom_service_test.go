@@ -201,3 +201,39 @@ func TestLCOMService_Summary(t *testing.T) {
 	assert.NotEmpty(t, summary.LCOMDistribution)
 	assert.NotEmpty(t, summary.LeastCohesiveClasses)
 }
+
+// TestLCOMService_PresentationFiltersDoNotChangeSummary pins the same contract
+// as the CBO counterpart: min_lcom/max_lcom only limit LCOMResponse.Classes.
+// If they reached the summary, the filtered class count would become the
+// denominator of the cohesion penalty and a display option would move the
+// health score and grade.
+func TestLCOMService_PresentationFiltersDoNotChangeSummary(t *testing.T) {
+	svc := NewLCOMService()
+	ctx := context.Background()
+
+	baseline, err := svc.Analyze(ctx, newDefaultLCOMRequest())
+	require.NoError(t, err)
+	require.Greater(t, baseline.Summary.TotalClasses, 1)
+	require.Greater(t, baseline.Summary.MaxLCOM, 1, "fixture must contain classes above and below the cut")
+
+	cases := []struct {
+		name   string
+		mutate func(*domain.LCOMRequest)
+	}{
+		{"min_lcom drops the cohesive classes", func(req *domain.LCOMRequest) { req.MinLCOM = 2 }},
+		{"max_lcom drops the least cohesive classes", func(req *domain.LCOMRequest) { req.MaxLCOM = 1 }},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := newDefaultLCOMRequest()
+			tc.mutate(&req)
+
+			response, err := svc.Analyze(ctx, req)
+			require.NoError(t, err)
+
+			assert.Less(t, len(response.Classes), baseline.Summary.TotalClasses, "the filter must limit the displayed classes")
+			assert.Equal(t, baseline.Summary, response.Summary, "the summary must cover the full analyzed population")
+		})
+	}
+}

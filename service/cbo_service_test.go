@@ -655,3 +655,57 @@ func TestCBOService_ResponseMetadata(t *testing.T) {
 	// Verify config is present
 	assert.NotNil(t, response.Config)
 }
+
+// TestCBOService_PresentationFiltersDoNotChangeSummary pins the contract that
+// min_cbo/max_cbo/show_zeros only limit CBOResponse.Classes. If they reached the
+// summary, the filtered class count would become the denominator of the coupling
+// penalty and a display option would move the health score and grade.
+func TestCBOService_PresentationFiltersDoNotChangeSummary(t *testing.T) {
+	service := NewCBOService()
+	ctx := context.Background()
+
+	fixture := []string{
+		"../testdata/python/cbo_presentation_filters/deps.py",
+		"../testdata/python/cbo_presentation_filters/hub.py",
+	}
+
+	baseline, err := service.Analyze(ctx, newDefaultCBORequest(fixture...))
+	require.NoError(t, err)
+	require.Greater(t, baseline.Summary.TotalClasses, 1)
+	require.Equal(t, 0, baseline.Summary.MinCBO, "fixture must contain zero-coupling classes")
+
+	cases := []struct {
+		name    string
+		mutate  func(*domain.CBORequest)
+		wantLen int
+	}{
+		{
+			name:    "hide zero-coupling classes (the default)",
+			mutate:  func(req *domain.CBORequest) { req.ShowZeros = domain.BoolPtr(false) },
+			wantLen: 2,
+		},
+		{
+			name:    "min_cbo excludes everything but the hub",
+			mutate:  func(req *domain.CBORequest) { req.MinCBO = 3 },
+			wantLen: 1,
+		},
+		{
+			name:    "max_cbo excludes the hub",
+			mutate:  func(req *domain.CBORequest) { req.MaxCBO = 2 },
+			wantLen: baseline.Summary.TotalClasses - 1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := newDefaultCBORequest(fixture...)
+			tc.mutate(&req)
+
+			response, err := service.Analyze(ctx, req)
+			require.NoError(t, err)
+
+			assert.Len(t, response.Classes, tc.wantLen, "the filter must limit the displayed classes")
+			assert.Equal(t, baseline.Summary, response.Summary, "the summary must cover the full analyzed population")
+		})
+	}
+}

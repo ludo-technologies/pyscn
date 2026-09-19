@@ -66,8 +66,13 @@ type ClassCohesion struct {
 	RiskLevel RiskLevel `json:"risk_level" yaml:"risk_level"`
 }
 
-// LCOMSummary represents aggregate LCOM statistics
+// LCOMSummary represents aggregate LCOM statistics over the complete analyzed
+// class population. Presentation filters (min_lcom/max_lcom) only limit
+// LCOMResponse.Classes; they never change these aggregates, so the cohesion
+// score and health grade stay independent of display options.
 type LCOMSummary struct {
+	// TotalClasses is the complete analyzed class population used by all
+	// aggregate metrics below. The displayed subset is len(LCOMResponse.Classes).
 	TotalClasses    int     `json:"total_classes" yaml:"total_classes"`
 	AverageLCOM     float64 `json:"average_lcom" yaml:"average_lcom"`
 	MaxLCOM         int     `json:"max_lcom" yaml:"max_lcom"`

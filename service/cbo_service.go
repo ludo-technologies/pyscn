@@ -70,12 +70,13 @@ func (s *CBOServiceImpl) Analyze(ctx context.Context, req domain.CBORequest) (*d
 		}, nil
 	}
 
-	// Filter and sort results
+	// Filter and sort results for presentation only; the summary is always
+	// computed over the complete analyzed population.
 	filteredClasses := s.filterClasses(allClasses, req)
 	sortedClasses := s.sortClasses(filteredClasses, req.SortBy)
 
 	// Generate summary
-	summary := s.generateSummary(sortedClasses, filesProcessed, req)
+	summary := s.generateSummary(allClasses, filesProcessed, req)
 
 	return &domain.CBOResponse{
 		Classes:     sortedClasses,
@@ -134,7 +135,7 @@ func (s *CBOServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot *ProjectS
 
 	filteredClasses := s.filterClasses(allClasses, req)
 	sortedClasses := s.sortClasses(filteredClasses, req.SortBy)
-	summary := s.generateSummary(sortedClasses, filesProcessed, req)
+	summary := s.generateSummary(allClasses, filesProcessed, req)
 
 	return &domain.CBOResponse{
 		Classes:     sortedClasses,
@@ -349,7 +350,10 @@ func cboClassLocationLess(a, b domain.ClassCoupling) bool {
 	return a.Name < b.Name
 }
 
-// generateSummary creates aggregate statistics
+// generateSummary creates aggregate statistics over the complete analyzed
+// class population. Presentation filters (min_cbo/max_cbo/show_zeros) only
+// limit CBOResponse.Classes and must never reach this function, otherwise a
+// display option would move the coupling score and the health grade.
 func (s *CBOServiceImpl) generateSummary(classes []domain.ClassCoupling, filesAnalyzed int, req domain.CBORequest) domain.CBOSummary {
 	if len(classes) == 0 {
 		return domain.CBOSummary{
