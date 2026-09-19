@@ -76,8 +76,13 @@ type ClassCoupling struct {
 	BaseClasses []string `json:"base_classes" yaml:"base_classes"`
 }
 
-// CBOSummary represents aggregate CBO statistics
+// CBOSummary represents aggregate CBO statistics over the complete analyzed
+// class population. Presentation filters (min_cbo/max_cbo/show_zeros) only
+// limit CBOResponse.Classes; they never change these aggregates, so the
+// coupling score and health grade stay independent of display options.
 type CBOSummary struct {
+	// TotalClasses is the complete analyzed class population used by all
+	// aggregate metrics below. The displayed subset is len(CBOResponse.Classes).
 	TotalClasses    int     `json:"total_classes" yaml:"total_classes"`
 	AverageCBO      float64 `json:"average_cbo" yaml:"average_cbo"`
 	MaxCBO          int     `json:"max_cbo" yaml:"max_cbo"`
