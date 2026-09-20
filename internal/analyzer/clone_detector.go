@@ -75,6 +75,11 @@ type CodeFragment struct {
 	Complexity int      // Cyclomatic complexity (if applicable)
 	Features   []string // Detector-populated clone feature cache for this fragment's tree
 
+	// belowSizeGate marks a fragment that failed MinLines/MinNodes but was kept
+	// as an identical-body candidate. It survives extraction only if
+	// RetainIdenticalUndersizedFragments finds it an identical twin.
+	belowSizeGate bool
+
 	// id is a detector-assigned identifier used for core/clone grouping.
 	id int
 	// core caches the core/clone projection of this fragment, populated by
@@ -310,8 +315,8 @@ type CloneDetectorConfig struct {
 // DefaultCloneDetectorConfig returns default configuration
 func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 	return &CloneDetectorConfig{
-		MinLines:          5,
-		MinNodes:          10,
+		MinLines:          domain.DefaultCloneMinLines,
+		MinNodes:          domain.DefaultCloneMinNodes,
 		Type1Threshold:    domain.DefaultType1CloneThreshold,
 		Type2Threshold:    domain.DefaultType2CloneThreshold,
 		Type3Threshold:    domain.DefaultType3CloneThreshold,
@@ -580,12 +585,7 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 			content = cd.extractSourceContent(lines, &node.Location)
 		}
 
-		fragment := cd.newFragment(location, node, content)
-
-		// Filter fragments based on configuration
-		if cd.shouldIncludeFragment(fragment) {
-			*fragments = append(*fragments, fragment)
-		}
+		cd.collectFragment(cd.newFragment(location, node, content), fragments)
 	}
 
 	// Recursively process children
@@ -652,12 +652,7 @@ func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath s
 			EndCol:    node.Location.EndCol,
 		}
 
-		fragment := cd.newFragment(location, node, "")
-
-		// Filter fragments based on configuration
-		if cd.shouldIncludeFragment(fragment) {
-			*fragments = append(*fragments, fragment)
-		}
+		cd.collectFragment(cd.newFragment(location, node, ""), fragments)
 	}
 
 	// Recursively process children
@@ -687,6 +682,23 @@ func (cd *CloneDetector) isFragmentCandidate(node *parser.Node) bool {
 	return false
 }
 
+// collectFragment appends a fragment that passes the MinLines/MinNodes gate.
+// A fragment that fails the gate is still kept when it is an identical-body
+// candidate, because a byte-identical twin elsewhere in the project is real
+// duplication no matter how short the body is. Such a fragment is provisional:
+// RetainIdenticalUndersizedFragments drops it again once every file has been
+// extracted and no twin has turned up.
+func (cd *CloneDetector) collectFragment(fragment *CodeFragment, fragments *[]*CodeFragment) {
+	switch {
+	case cd.shouldIncludeFragment(fragment):
+	case isIdenticalBodyCandidate(fragment):
+		fragment.belowSizeGate = true
+	default:
+		return
+	}
+	*fragments = append(*fragments, fragment)
+}
+
 // shouldIncludeFragment determines if a fragment should be included in analysis
 func (cd *CloneDetector) shouldIncludeFragment(fragment *CodeFragment) bool {
 	// Check minimum size requirements
@@ -699,6 +711,70 @@ func (cd *CloneDetector) shouldIncludeFragment(fragment *CodeFragment) bool {
 	}
 
 	return true
+}
+
+// identicalBodyMinStatements is how many statements an undersized function body
+// must have before an identical twin counts as duplication. A single-statement
+// override (pass, return self.x, raise NotImplementedError) is protocol
+// boilerplate that repeats across unrelated classes, not copy-paste.
+const identicalBodyMinStatements = 2
+
+// isIdenticalBodyCandidate reports whether an undersized fragment is a complete
+// function body worth keeping until its twin is known. Requiring a whole
+// function excludes partial blocks, whose identical text is rarely actionable
+// on its own, and the fragment needs source content because identity is decided
+// on the Type-1 normalized hash of that content.
+func isIdenticalBodyCandidate(fragment *CodeFragment) bool {
+	if fragment.Hash == "" || fragment.ASTNode == nil {
+		return false
+	}
+
+	switch fragment.ASTNode.Type {
+	case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+	default:
+		return false
+	}
+
+	return countBodyStatements(fragment.ASTNode) >= identicalBodyMinStatements
+}
+
+// countBodyStatements counts the statements in a body, ignoring a leading
+// docstring so that documenting a one-line override does not make it look like
+// copy-pasted logic.
+func countBodyStatements(node *parser.Node) int {
+	count := 0
+	for i, stmt := range node.Body {
+		if i == 0 && isStringConstantStatement(stmt) {
+			continue
+		}
+		count++
+	}
+	return count
+}
+
+// RetainIdenticalUndersizedFragments finalizes a fragment set gathered across
+// files. Fragments held past the size gate during extraction survive only when
+// an identical one was found elsewhere; the rest are discarded, leaving the
+// MinLines/MinNodes contract intact for everything that is not a duplicate.
+func RetainIdenticalUndersizedFragments(fragments []*CodeFragment) []*CodeFragment {
+	occurrences := make(map[string]int)
+	for _, fragment := range fragments {
+		if fragment != nil && fragment.belowSizeGate {
+			occurrences[fragment.Hash]++
+		}
+	}
+	if len(occurrences) == 0 {
+		return fragments
+	}
+
+	retained := make([]*CodeFragment, 0, len(fragments))
+	for _, fragment := range fragments {
+		if fragment != nil && fragment.belowSizeGate && occurrences[fragment.Hash] < 2 {
+			continue
+		}
+		retained = append(retained, fragment)
+	}
+	return retained
 }
 
 // isCancelled checks if the context is cancelled
@@ -1197,6 +1273,12 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	// Check maximum distance threshold (0 means no limit)
 	if pair.CloneType != Type4Clone && cd.cloneDetectorConfig.MaxEditDistance > 0 && pair.Distance > cd.cloneDetectorConfig.MaxEditDistance {
 		return false
+	}
+
+	// Fragments kept past the size gate earn their place only as exact
+	// duplicates of each other; at that size anything less is noise.
+	if pair.Fragment1.belowSizeGate || pair.Fragment2.belowSizeGate {
+		return pair.Fragment1.Hash != "" && pair.Fragment1.Hash == pair.Fragment2.Hash
 	}
 
 	// Additional filtering based on fragment characteristics

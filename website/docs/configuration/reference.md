@@ -67,6 +67,14 @@ Clone detection (the most configurable analyzer).
 | `min_nodes`      | int  | `20`    | Minimum AST nodes. |
 | `skip_docstrings`| bool | `true`  | Skip docstrings when hashing. |
 
+`min_lines` and `min_nodes` have one exception: a function whose body is
+byte-identical to another function's is always reported, however short it is, as
+long as the body has more than one statement. Copy-pasted overrides across
+sibling classes are usually shorter than the threshold, and dropping them would
+hide real duplication. One-statement bodies (`pass`, `raise NotImplementedError`,
+a single `return`) stay out, since those repeat across unrelated classes by
+design.
+
 ### Type thresholds (0.0–1.0)
 
 | Key                    | Default | Clone type |
