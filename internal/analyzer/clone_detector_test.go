@@ -27,8 +27,8 @@ func TestCloneDetector_Creation(t *testing.T) {
 func TestCloneDetectorConfig_Defaults(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 
-	assert.Equal(t, 5, config.MinLines, "Default min lines should be 5")
-	assert.Equal(t, 10, config.MinNodes, "Default min nodes should be 10")
+	assert.Equal(t, domain.DefaultCloneMinLines, config.MinLines, "Default min lines should match constant")
+	assert.Equal(t, domain.DefaultCloneMinNodes, config.MinNodes, "Default min nodes should match constant")
 	assert.Equal(t, domain.DefaultType1CloneThreshold, config.Type1Threshold, "Default Type-1 threshold should match constant")
 	assert.Equal(t, domain.DefaultType2CloneThreshold, config.Type2Threshold, "Default Type-2 threshold should match constant")
 	assert.Equal(t, domain.DefaultType3CloneThreshold, config.Type3Threshold, "Default Type-3 threshold should match constant")
@@ -505,8 +505,8 @@ func TestCloneDetector_IsSignificantClone(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	detector := NewCloneDetector(config)
 
-	fragment1 := &CodeFragment{Size: 15, LineCount: 8}
-	fragment2 := &CodeFragment{Size: 12, LineCount: 7}
+	fragment1 := &CodeFragment{Size: 30, LineCount: 15}
+	fragment2 := &CodeFragment{Size: 24, LineCount: 13}
 
 	tests := []struct {
 		name       string
@@ -1363,6 +1363,8 @@ func TestCloneDetector_PairsPromotedToGroups(t *testing.T) {
 	require.NotNil(t, parseResult.AST)
 
 	cfg := DefaultCloneDetectorConfig()
+	cfg.MinLines = 5 // the aggregation methods are 8 lines each
+	cfg.MinNodes = 10
 	cfg.GroupingThreshold = domain.DefaultType4CloneThreshold
 	detector := NewCloneDetector(cfg)
 	fragments := detector.ExtractFragmentsWithSource([]*parser.Node{parseResult.AST}, "/test/aggregation.py", []byte(src))
@@ -1424,4 +1426,105 @@ func groupContainsFragment(g *CloneGroup, f *CodeFragment) bool {
 		}
 	}
 	return false
+}
+
+// extractAllFragments runs extraction over source exactly as the clone service
+// does, so the size gate and the identical-body carve-out both apply.
+func extractAllFragments(t *testing.T, detector *CloneDetector, filePath, source string) []*CodeFragment {
+	t.Helper()
+
+	p := parser.New()
+	result, err := p.Parse(t.Context(), []byte(source))
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.AST)
+
+	return detector.ExtractFragmentsWithSource([]*parser.Node{result.AST}, filePath, []byte(source))
+}
+
+func TestCloneDetector_RetainIdenticalUndersizedFragments(t *testing.T) {
+	const twin = `class Backend:
+    def has_connections(self):
+        if self.pool is not None:
+            return len(self.pool) > 0
+        return False
+`
+	const single = `class Other:
+    def close(self):
+        raise NotImplementedError
+`
+
+	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+
+	t.Run("keeps undersized function bodies that repeat", func(t *testing.T) {
+		fragments := append(
+			extractAllFragments(t, detector, "a.py", twin),
+			extractAllFragments(t, detector, "b.py", twin)...,
+		)
+
+		retained := RetainIdenticalUndersizedFragments(fragments)
+
+		require.Len(t, retained, 2)
+		for _, fragment := range retained {
+			assert.True(t, fragment.belowSizeGate)
+			assert.Equal(t, parser.NodeFunctionDef, fragment.ASTNode.Type)
+		}
+		assert.Equal(t, retained[0].Hash, retained[1].Hash)
+	})
+
+	t.Run("drops undersized function bodies that do not", func(t *testing.T) {
+		fragments := extractAllFragments(t, detector, "a.py", twin)
+		require.Len(t, fragments, 1)
+
+		assert.Empty(t, RetainIdenticalUndersizedFragments(fragments))
+	})
+
+	t.Run("never holds single-statement bodies", func(t *testing.T) {
+		fragments := append(
+			extractAllFragments(t, detector, "a.py", single),
+			extractAllFragments(t, detector, "b.py", single)...,
+		)
+
+		assert.Empty(t, fragments)
+	})
+}
+
+func TestCloneDetector_IdenticalBodyTwinAcrossSizeGate(t *testing.T) {
+	// The same body either side of MinLines: comments are stripped from the
+	// hash but still count toward LineCount, so only the commented copy clears
+	// the gate on its own.
+	const bare = `def apply(self, payload):
+    total = 0
+    for item in payload:
+        if item.enabled:
+            total += item.weight
+        else:
+            total -= item.weight
+    self.total = total
+    return total
+`
+	const commented = `def apply(self, payload):
+    # weights are signed by the enabled flag
+    total = 0
+    for item in payload:
+        if item.enabled:
+            total += item.weight
+        else:
+            total -= item.weight
+    self.total = total
+    return total
+`
+
+	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+	bareFragments := extractAllFragments(t, detector, "bare.py", bare)
+	commentedFragments := extractAllFragments(t, detector, "commented.py", commented)
+	require.Len(t, bareFragments, 1)
+	require.Len(t, commentedFragments, 1)
+	require.True(t, bareFragments[0].belowSizeGate, "the uncommented copy should be one line short of the gate")
+	require.False(t, commentedFragments[0].belowSizeGate, "the commented copy should clear the gate on its own")
+	require.Equal(t, bareFragments[0].Hash, commentedFragments[0].Hash, "comments must not change the hash")
+
+	retained := RetainIdenticalUndersizedFragments(append(bareFragments, commentedFragments...))
+
+	assert.Len(t, retained, 2, "a twin that cleared the gate still vindicates the held fragment")
 }

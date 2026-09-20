@@ -192,7 +192,7 @@ func (s *CloneService) buildCloneResponse(
 	extraction *fragmentExtraction,
 	req *domain.CloneRequest,
 ) (*domain.CloneResponse, error) {
-	allFragments := extraction.fragments
+	allFragments := analyzer.RetainIdenticalUndersizedFragments(extraction.fragments)
 	if len(allFragments) == 0 {
 		return &domain.CloneResponse{
 			Clones:      []*domain.Clone{},

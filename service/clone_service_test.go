@@ -855,3 +855,90 @@ func TestCloneService_OutputFiltersDoNotChangeScoredPopulation(t *testing.T) {
 		})
 	}
 }
+
+// writeIdenticalBodyFixture writes a module whose sibling classes share
+// byte-identical method bodies that are far shorter than MinLines/MinNodes.
+func writeIdenticalBodyFixture(t *testing.T, body string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "backends.py")
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		t.Fatalf("write fixture: %v", err)
+	}
+	return path
+}
+
+func TestCloneService_DetectsIdenticalShortMethodBodies(t *testing.T) {
+	const siblings = `class Sib1:
+    def tick(self):
+        self.n += 1
+        return self.n
+
+
+class Sib2:
+    def tick(self):
+        self.n += 1
+        return self.n
+`
+
+	path := writeIdenticalBodyFixture(t, siblings)
+	req := domain.DefaultCloneRequest()
+	req.Paths = []string{path}
+	req.OutputFormat = domain.OutputFormatJSON
+
+	response, err := NewCloneService().DetectClones(context.Background(), req)
+	require.NoError(t, err)
+
+	require.Len(t, response.ClonePairs, 1, "identical 3-line sibling methods should be reported despite min_lines=%d", req.MinLines)
+	pair := response.ClonePairs[0]
+	assert.Equal(t, domain.Type1Clone, pair.Type)
+	assert.Equal(t, 1.0, pair.Similarity)
+	assert.Equal(t, 3, pair.Clone1.LineCount)
+	assert.Equal(t, 3, pair.Clone2.LineCount)
+}
+
+func TestCloneService_IgnoresShortBodiesWithoutIdenticalTwin(t *testing.T) {
+	const siblings = `class Sib1:
+    def tick(self):
+        self.n += 1
+        return self.n
+
+
+class Sib2:
+    def tick(self):
+        self.n += 2
+        return self.n
+`
+
+	path := writeIdenticalBodyFixture(t, siblings)
+	req := domain.DefaultCloneRequest()
+	req.Paths = []string{path}
+	req.OutputFormat = domain.OutputFormatJSON
+
+	response, err := NewCloneService().DetectClones(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Empty(t, response.ClonePairs, "near-identical short bodies stay below the size gate")
+	assert.Zero(t, response.Statistics.TotalFragments, "unvindicated short fragments should not be retained")
+}
+
+func TestCloneService_IgnoresIdenticalSingleStatementOverrides(t *testing.T) {
+	const siblings = `class Sib1:
+    def close(self):
+        raise NotImplementedError
+
+
+class Sib2:
+    def close(self):
+        raise NotImplementedError
+`
+
+	path := writeIdenticalBodyFixture(t, siblings)
+	req := domain.DefaultCloneRequest()
+	req.Paths = []string{path}
+	req.OutputFormat = domain.OutputFormatJSON
+
+	response, err := NewCloneService().DetectClones(context.Background(), req)
+	require.NoError(t, err)
+
+	assert.Empty(t, response.ClonePairs, "single-statement overrides are boilerplate, not duplication")
+}

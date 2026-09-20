@@ -37,6 +37,16 @@ func (tc *TreeConverter) isDocstring(node *parser.Node, positionInBody int) bool
 		return false
 	}
 
+	return isStringConstantStatement(node)
+}
+
+// isStringConstantStatement reports whether node is a bare string-constant
+// statement, the shape a docstring takes as the first statement of a body.
+func isStringConstantStatement(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
+
 	// Case 1: Direct Constant node (actual parser output)
 	// The parser's buildExpressionStatement returns the child node directly
 	if node.Type == parser.NodeConstant {
