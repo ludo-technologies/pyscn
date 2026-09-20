@@ -57,7 +57,8 @@ type AnalyzeCommand struct {
 	functionSLOCCriticalThreshold int
 
 	// Clone detection options
-	enableDFA bool // Enable Data Flow Analysis for enhanced Type-4 detection
+	enableDFA      bool   // Enable Data Flow Analysis for enhanced Type-4 detection
+	cloneGroupMode string // Clone grouping strategy (empty = config/default)
 
 	// System analysis options
 	detectCycles bool // Detect circular dependencies
@@ -159,6 +160,7 @@ Examples:
 	cmd.Flags().IntVar(&c.minComplexity, "min-complexity", 0, "Minimum complexity to report (default: 1)")
 	cmd.Flags().StringVar(&c.minSeverity, "min-severity", "", "Minimum dead code severity: critical, warning, info (default: warning)")
 	cmd.Flags().Float64Var(&c.cloneSimilarity, "clone-threshold", 0, "Minimum similarity for clone detection, 0.0-1.0 (default: 0.65)")
+	cmd.Flags().StringVar(&c.cloneGroupMode, "clone-group-mode", "", fmt.Sprintf("Clone grouping strategy: %s (default: %s)", strings.Join(domain.CloneGroupModes, ", "), domain.DefaultCloneGroupMode))
 	cmd.Flags().IntVar(&c.minCBO, "min-cbo", 0, "Minimum CBO to report")
 
 	// Complexity threshold flags (0 = unset, use config file or default)
@@ -241,6 +243,7 @@ func (c *AnalyzeCommand) createUseCaseConfig() app.AnalyzeUseCaseConfig {
 		Verbose:                 c.verbose,
 		MinComplexity:           c.minComplexity,
 		CloneSimilarity:         c.cloneSimilarity,
+		CloneGroupMode:          c.cloneGroupMode,
 		MinCBO:                  c.minCBO,
 		EnableDFA:               c.enableDFA,
 		SkipCommunities:         false,

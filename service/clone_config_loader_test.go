@@ -78,7 +78,7 @@ show_content = true
 	require.NoError(t, err)
 	require.NotNil(t, req)
 
-	assert.Equal(t, "connected", req.GroupMode)
+	assert.Equal(t, domain.DefaultCloneGroupMode, req.GroupMode)
 	assert.Equal(t, domain.DefaultCloneGroupingThreshold, req.GroupThreshold)
 	assert.Equal(t, 2, req.KCoreK)
 	assert.True(t, domain.BoolValue(req.SkipDocstrings, false))

@@ -329,7 +329,7 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 		LargeProjectSize:   500,
 
 		// Grouping defaults
-		GroupingMode:      GroupingModeConnected,
+		GroupingMode:      GroupingMode(domain.DefaultCloneGroupMode),
 		GroupingThreshold: domain.DefaultType4CloneThreshold,
 		KCoreK:            2,
 
@@ -1271,6 +1271,7 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 	}
 	corePairs = coreclone.FilterPairsWithSuppressedMembers(corePairs, groupResult.Suppressed)
 	corePairs = coreclone.FilterSuppressedPairs(corePairs, groupResult.SuppressedPairs)
+	groups = appendUncoveredPairGroups(groups, corePairs, threshold)
 
 	cd.clonePairs = cd.clonePairs[:0]
 	for _, pair := range corePairs {
@@ -1279,13 +1280,66 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 	cd.cloneGroups = make([]*CloneGroup, 0, len(groups))
 	for _, group := range groups {
 		cd.cloneGroups = append(cd.cloneGroups, &CloneGroup{
-			ID:         group.ID,
+			ID:         len(cd.cloneGroups),
 			Fragments:  group.Items,
 			CloneType:  CloneType(group.GroupType),
 			Similarity: group.Similarity,
 			Size:       len(group.Items),
 		})
 	}
+}
+
+// appendUncoveredPairGroups adds a two-member group for every remaining pair
+// that no group already covers.
+//
+// The partitioning strategies (complete linkage, star, centroid) put a fragment
+// in at most one group, so a fragment that clones several others keeps only its
+// best cluster and its other pairs reach no group at all. Reports that render
+// groups would then drop those duplicates entirely, even though the pair was
+// detected and scored.
+func appendUncoveredPairGroups(
+	groups []*coreclone.ItemGroup[*CodeFragment],
+	pairs []*coreclone.ItemPair[*CodeFragment],
+	threshold float64,
+) []*coreclone.ItemGroup[*CodeFragment] {
+	covered := make(map[[2]int]struct{})
+	for _, group := range groups {
+		for i := 0; i < len(group.Items); i++ {
+			for j := i + 1; j < len(group.Items); j++ {
+				covered[fragmentPairKey(group.Items[i], group.Items[j])] = struct{}{}
+			}
+		}
+	}
+
+	for _, pair := range pairs {
+		if pair == nil || pair.Similarity < threshold {
+			continue
+		}
+		key := fragmentPairKey(pair.Item1, pair.Item2)
+		if _, ok := covered[key]; ok {
+			continue
+		}
+		covered[key] = struct{}{}
+
+		members := []*CodeFragment{pair.Item1, pair.Item2}
+		if members[1].id < members[0].id {
+			members[0], members[1] = members[1], members[0]
+		}
+		groups = append(groups, &coreclone.ItemGroup[*CodeFragment]{
+			Items:      members,
+			GroupType:  pair.PairType,
+			Similarity: pair.Similarity,
+		})
+	}
+	return groups
+}
+
+// fragmentPairKey identifies a fragment pair independently of its order.
+func fragmentPairKey(a, b *CodeFragment) [2]int {
+	if a.id > b.id {
+		return [2]int{b.id, a.id}
+	}
+	return [2]int{a.id, b.id}
 }
 
 // isSameLocation checks if two locations refer to the same code

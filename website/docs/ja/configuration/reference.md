@@ -103,7 +103,7 @@
 
 | キー                  | 型   | デフォルト       | 説明 |
 | -------------------- | ------ | ------------- | --- |
-| `grouping_mode`      | string | `"connected"` | `connected`, `star`, `complete_linkage`, `k_core` のいずれか。 |
+| `grouping_mode`      | string | `"complete_linkage"` | `connected`、`star`、`complete_linkage`、`k_core`、`centroid` のいずれか。`connected` はクローンを推移的に連結するため、無関係な断片が 1 つのグループにまとまることがあります。 |
 | `grouping_threshold` | float  | `0.65`        | グルーピングの最小類似度。 |
 | `k_core_k`           | int    | `2`           | `k_core` モードの k パラメータ。 |
 

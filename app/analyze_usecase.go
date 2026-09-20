@@ -33,6 +33,7 @@ type AnalyzeUseCaseConfig struct {
 	MinComplexity   int
 	MinSeverity     domain.DeadCodeSeverity
 	CloneSimilarity float64
+	CloneGroupMode  string
 	MinCBO          int
 
 	// Complexity thresholds (0 = unset, use config file or default)
@@ -879,6 +880,7 @@ func (uc *AnalyzeUseCase) buildCloneTaskRequest(config AnalyzeUseCaseConfig, fil
 		OutputFormat:        domain.OutputFormatJSON,
 		OutputWriter:        io.Discard,
 		SimilarityThreshold: config.CloneSimilarity,
+		GroupMode:           config.CloneGroupMode,
 		ConfigPath:          config.ConfigFile,
 	}
 }

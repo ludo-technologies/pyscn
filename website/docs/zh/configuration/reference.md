@@ -103,7 +103,7 @@
 
 | 键                   | 类型   | 默认值        | 说明 |
 | -------------------- | ------ | ------------- | --- |
-| `grouping_mode`      | string | `"connected"` | `connected`、`star`、`complete_linkage`、`k_core`。 |
+| `grouping_mode`      | string | `"complete_linkage"` | `connected`、`star`、`complete_linkage`、`k_core`、`centroid`。`connected` 会传递性地连接克隆，可能把无关的片段合并到同一组。 |
 | `grouping_threshold` | float  | `0.65`        | 分组的最小相似度。 |
 | `k_core_k`           | int    | `2`           | `k_core` 模式的 k 参数。 |
 

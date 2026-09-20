@@ -59,6 +59,7 @@ pyscn analyze [flags] <paths...>
 | `--min-complexity <N>`    | `5`        | 複雑度が N 以上の関数のみレポートします。 |
 | `--min-severity <level>`  | `warning`  | デッドコードの最小深刻度: `info`、`warning`、`critical`。 |
 | `--clone-threshold <F>`   | `0.65`     | クローン検出の最小類似度（0.0〜1.0）。 |
+| `--clone-group-mode <M>`  | `complete_linkage` | クローンのグループ化方式: `connected`、`star`、`complete_linkage`、`k_core`、`centroid`。 |
 | `--min-cbo <N>`           | `0`        | CBO が N 以上のクラスのみレポートします。 |
 
 ### 設定

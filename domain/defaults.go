@@ -236,7 +236,41 @@ const (
 	// DefaultCloneGroupingThreshold is the threshold for grouping related clones.
 	// Uses Type-4 threshold as default for grouping to include all detected clones.
 	DefaultCloneGroupingThreshold = DefaultType4CloneThreshold
+
+	// Clone grouping strategies. These are the accepted values for the
+	// [clones] grouping_mode config key and the --clone-group-mode flag.
+	CloneGroupModeConnected       = "connected"
+	CloneGroupModeStar            = "star"
+	CloneGroupModeCompleteLinkage = "complete_linkage"
+	CloneGroupModeKCore           = "k_core"
+	CloneGroupModeCentroid        = "centroid"
+
+	// DefaultCloneGroupMode is the grouping strategy used when none is configured.
+	// Complete linkage requires every member pair to clear the threshold, which
+	// keeps a group to fragments that were actually compared. Single-linkage
+	// ("connected") chains A~B and B~C into one group even when A and C were
+	// never scored, which produced package-wide groups with no refactoring value.
+	DefaultCloneGroupMode = CloneGroupModeCompleteLinkage
 )
+
+// CloneGroupModes lists the supported clone grouping strategies.
+var CloneGroupModes = []string{
+	CloneGroupModeConnected,
+	CloneGroupModeStar,
+	CloneGroupModeCompleteLinkage,
+	CloneGroupModeKCore,
+	CloneGroupModeCentroid,
+}
+
+// IsValidCloneGroupMode reports whether mode names a supported grouping strategy.
+func IsValidCloneGroupMode(mode string) bool {
+	for _, valid := range CloneGroupModes {
+		if mode == valid {
+			return true
+		}
+	}
+	return false
+}
 
 // ============================================================================
 // LSH (Locality-Sensitive Hashing) Acceleration Defaults

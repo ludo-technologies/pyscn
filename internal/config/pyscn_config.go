@@ -348,7 +348,7 @@ func DefaultPyscnConfig() *PyscnConfig {
 			TimeoutSeconds: domain.DefaultTimeoutSeconds,
 		},
 		Grouping: GroupingConfig{
-			Mode:      "connected", // Conservative default
+			Mode:      domain.DefaultCloneGroupMode,
 			Threshold: domain.DefaultCloneGroupingThreshold,
 			KCoreK:    2,
 		},

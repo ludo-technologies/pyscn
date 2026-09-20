@@ -103,7 +103,7 @@ Détection de clones (l'analyseur le plus configurable).
 
 | Clé                  | Type   | Défaut       | Description |
 | -------------------- | ------ | ------------- | --- |
-| `grouping_mode`      | string | `"connected"` | `connected`, `star`, `complete_linkage`, `k_core`. |
+| `grouping_mode`      | string | `"complete_linkage"` | `connected`, `star`, `complete_linkage`, `k_core`, `centroid`. `connected` relie les clones de manière transitive et peut fusionner des fragments sans rapport dans un même groupe. |
 | `grouping_threshold` | float  | `0.65`        | Similarité minimale pour le regroupement. |
 | `k_core_k`           | int    | `2`           | Paramètre k pour le mode `k_core`. |
 

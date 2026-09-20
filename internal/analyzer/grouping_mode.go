@@ -2,6 +2,8 @@ package analyzer
 
 import (
 	coreclone "github.com/ludo-technologies/polyscan/core/clone"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 // GroupingMode represents the strategy for grouping clones. The grouping
@@ -10,11 +12,11 @@ import (
 type GroupingMode string
 
 const (
-	GroupingModeConnected       GroupingMode = "connected"        // Current default (high recall)
-	GroupingModeStar            GroupingMode = "star"             // Star/medoid (balanced)
-	GroupingModeCompleteLinkage GroupingMode = "complete_linkage" // Complete linkage (high precision)
-	GroupingModeKCore           GroupingMode = "k_core"           // k-core constrained (scalable)
-	GroupingModeCentroid        GroupingMode = "centroid"         // Centroid based (avoids transitivity issues)
+	GroupingModeConnected       GroupingMode = domain.CloneGroupModeConnected       // Single linkage (high recall, chains unrelated clones)
+	GroupingModeStar            GroupingMode = domain.CloneGroupModeStar            // Star/medoid (balanced)
+	GroupingModeCompleteLinkage GroupingMode = domain.CloneGroupModeCompleteLinkage // Complete linkage (default, high precision)
+	GroupingModeKCore           GroupingMode = domain.CloneGroupModeKCore           // k-core constrained (scalable)
+	GroupingModeCentroid        GroupingMode = domain.CloneGroupModeCentroid        // Centroid based (avoids transitivity issues)
 )
 
 // coreMode translates a pyscn grouping mode to the core/clone grouping mode.

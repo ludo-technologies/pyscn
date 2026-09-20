@@ -578,6 +578,78 @@ func TestCloneDetector_CalculateConfidence(t *testing.T) {
 	assert.LessOrEqual(t, confidence, 1.0, "Confidence should not exceed 1.0")
 }
 
+// Regression for #793: the default grouping mode must not chain A~B and B~C
+// into one group when A and C were never scored above the threshold.
+func TestCloneDetector_DefaultGroupingDoesNotChainUnscoredPairs(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	require.Equal(t, GroupingMode(domain.DefaultCloneGroupMode), config.GroupingMode)
+	config.GroupingThreshold = 0.80
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: 1, EndLine: 10}}
+	}
+	a, b, c := fragment("a.py"), fragment("b.py"), fragment("c.py")
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: a, Fragment2: b, Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: b, Fragment2: c, Similarity: 0.90, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(0.80, 2)
+
+	require.NotEmpty(t, detector.cloneGroups)
+	for _, group := range detector.cloneGroups {
+		if contains(group.Fragments, a) && contains(group.Fragments, c) {
+			t.Fatalf("a and c share a group although that pair was never scored")
+		}
+	}
+}
+
+func contains(fragments []*CodeFragment, target *CodeFragment) bool {
+	for _, fragment := range fragments {
+		if fragment == target {
+			return true
+		}
+	}
+	return false
+}
+
+// Regression for #793: complete linkage keeps a fragment in one group only, so
+// a hub that clones several others must still surface its remaining pairs.
+func TestCloneDetector_DefaultGroupingCoversEveryPair(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.GroupingThreshold = 0.65
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: 1, EndLine: 10}}
+	}
+	hub := fragment("hub.py")
+	spokes := []*CodeFragment{fragment("a.py"), fragment("b.py"), fragment("c.py")}
+	for i, spoke := range spokes {
+		detector.clonePairs = append(detector.clonePairs, &ClonePair{
+			Fragment1:  hub,
+			Fragment2:  spoke,
+			Similarity: 0.85 - 0.05*float64(i),
+			CloneType:  Type3Clone,
+		})
+	}
+
+	detector.groupClones(0.65, 2)
+
+	for _, pair := range detector.clonePairs {
+		grouped := false
+		for _, group := range detector.cloneGroups {
+			if contains(group.Fragments, pair.Fragment1) && contains(group.Fragments, pair.Fragment2) {
+				grouped = true
+				break
+			}
+		}
+		assert.True(t, grouped, "pair %s~%s reached no group",
+			pair.Fragment1.Location.FilePath, pair.Fragment2.Location.FilePath)
+	}
+}
+
 func TestCloneDetector_StarGroupingFiltersMembersBelowMedoidThreshold(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	config.GroupingMode = GroupingModeStar
@@ -596,8 +668,11 @@ func TestCloneDetector_StarGroupingFiltersMembersBelowMedoidThreshold(t *testing
 
 	detector.groupClones(0.80, 2)
 
-	require.Len(t, detector.cloneGroups, 1)
+	require.Len(t, detector.cloneGroups, 2)
 	assert.Equal(t, []*CodeFragment{a, b, c}, detector.cloneGroups[0].Fragments)
+	// d stays out of the star group, but its pair with c is still above the
+	// threshold and surfaces as its own group rather than disappearing.
+	assert.Equal(t, []*CodeFragment{c, d}, detector.cloneGroups[1].Fragments)
 }
 
 func TestCloneDetector_CentroidGroupingComputesMissingSimilarities(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 )
 
@@ -332,6 +333,10 @@ func (req *CloneRequest) Validate() error {
 		return NewValidationError("type3_threshold should be > type4_threshold")
 	}
 
+	if req.GroupMode != "" && !IsValidCloneGroupMode(req.GroupMode) {
+		return NewValidationError(fmt.Sprintf("group_mode must be one of %s", strings.Join(CloneGroupModes, ", ")))
+	}
+
 	return nil
 }
 
@@ -373,7 +378,7 @@ func DefaultCloneRequest() *CloneRequest {
 		ShowContent:         BoolPtr(false),
 		SortBy:              SortBySimilarity,
 		GroupClones:         BoolPtr(true),
-		GroupMode:           "connected",
+		GroupMode:           DefaultCloneGroupMode,
 		GroupThreshold:      DefaultType4CloneThreshold,
 		KCoreK:              2,
 		MinSimilarity:       0.0,
