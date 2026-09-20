@@ -5898,9 +5898,14 @@
 <td>提取的所有片段（函数、类等）。</td>
 </tr>
 <tr>
+<td><code>duplicated_fragments</code></td>
+<td>integer</td>
+<td>参与已检测克隆关系的片段数，在 <code>min_similarity</code>/<code>max_similarity</code> 输出过滤之前统计。与 <code>total_fragments</code> 共享同一总体，是重复度评分的分子。</td>
+</tr>
+<tr>
 <td><code>total_clones</code></td>
 <td>integer</td>
-<td>被分类为克隆的片段数。</td>
+<td>被分类为克隆的片段数（输出过滤之后）。</td>
 </tr>
 <tr>
 <td><code>total_clone_pairs</code></td>

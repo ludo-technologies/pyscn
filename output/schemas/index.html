@@ -6447,9 +6447,14 @@
 <td>All extracted fragments (functions, classes, etc.).</td>
 </tr>
 <tr>
+<td><code>duplicated_fragments</code></td>
+<td>integer</td>
+<td>Fragments in a detected clone relation, before the <code>min_similarity</code>/<code>max_similarity</code> output filters. Shares its population with <code>total_fragments</code>, and is the numerator of the duplication score.</td>
+</tr>
+<tr>
 <td><code>total_clones</code></td>
 <td>integer</td>
-<td>Fragments classified as clones.</td>
+<td>Fragments classified as clones, after output filtering.</td>
 </tr>
 <tr>
 <td><code>total_clone_pairs</code></td>

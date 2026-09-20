@@ -5898,9 +5898,14 @@
 <td>抽出されたすべての断片（関数、クラスなど）。</td>
 </tr>
 <tr>
+<td><code>duplicated_fragments</code></td>
+<td>integer</td>
+<td>検出されたクローン関係に含まれる断片。<code>min_similarity</code>/<code>max_similarity</code> の出力フィルタ適用前の値。<code>total_fragments</code> と同じ母集団を共有し、重複スコアの分子になります。</td>
+</tr>
+<tr>
 <td><code>total_clones</code></td>
 <td>integer</td>
-<td>クローンとして分類された断片。</td>
+<td>クローンとして分類された断片（出力フィルタ適用後）。</td>
 </tr>
 <tr>
 <td><code>total_clone_pairs</code></td>
