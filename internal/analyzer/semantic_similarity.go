@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"math"
+	"strings"
 
 	coresemantic "github.com/ludo-technologies/polyscan/core/semantic"
 	"github.com/ludo-technologies/pyscn/domain"
@@ -117,8 +118,7 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 }
 
 // applySemanticEvidence extracts Python semantic signals from both fragments
-// and delegates the evidence penalties (disjoint literals, missing shared
-// strong signals, incompatible return categories) to core.
+// and combines core's literal/return penalties with Python operation overlap.
 func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float64, f1, f2 *CodeFragment) float64 {
 	if baseSimilarity == 0.0 {
 		return 0.0
@@ -126,7 +126,47 @@ func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float6
 
 	signals1 := extractSemanticSignals(f1.ASTNode)
 	signals2 := extractSemanticSignals(f2.ASTNode)
-	return coresemantic.ApplySemanticEvidence(baseSimilarity, signals1, signals2)
+	similarity := coresemantic.ApplySemanticEvidence(baseSimilarity, signals1, signals2)
+	return math.Min(similarity, baseSimilarity*semanticOperationWeight(signals1, signals2))
+}
+
+// semanticOperationWeight prevents a single incidental shared operation from
+// making otherwise unrelated call vocabularies look equivalent. Jaccard overlap
+// gives full weight only to matching vocabularies; disjoint operations halve the
+// score, below the default Type-4 threshold even for identical CFGs.
+func semanticOperationWeight(first, second coresemantic.SemanticSignals) float64 {
+	callSignals := func(signals map[string]struct{}) map[string]struct{} {
+		calls := make(map[string]struct{})
+		for signal := range signals {
+			if strings.HasPrefix(signal, "call:") || strings.HasPrefix(signal, "method:") {
+				calls[signal] = struct{}{}
+			}
+		}
+		return calls
+	}
+	left, right := callSignals(first.StrongSignals), callSignals(second.StrongSignals)
+	if len(left) > 0 && len(right) > 0 {
+		shared := 0
+		for signal := range left {
+			if _, ok := right[signal]; ok {
+				shared++
+			}
+		}
+		overlap := float64(shared) / float64(len(left)+len(right)-shared)
+		return 0.5 + 0.5*overlap
+	}
+
+	// Retain operator evidence for call-free implementations (e.g. iterative
+	// versus recursive arithmetic), rather than treating them as empty evidence.
+	if len(first.StrongSignals) == 0 || len(second.StrongSignals) == 0 {
+		return 1
+	}
+	for signal := range first.StrongSignals {
+		if _, ok := second.StrongSignals[signal]; ok {
+			return 1
+		}
+	}
+	return 0.5
 }
 
 func extractSemanticSignals(node *parser.Node) coresemantic.SemanticSignals {
