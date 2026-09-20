@@ -38,6 +38,7 @@ type DefaultConfigValues struct {
 	Type4Threshold       float64
 	SimilarityThreshold  float64
 	GroupingThreshold    float64
+	GroupingMode         string
 	CloneMinLines        int
 	CloneMinNodes        int
 	CloneMaxEditDistance float64
@@ -84,6 +85,7 @@ func newDefaultConfigValues() DefaultConfigValues {
 		Type4Threshold:       domain.DefaultType4CloneThreshold,
 		SimilarityThreshold:  domain.DefaultCloneSimilarityThreshold,
 		GroupingThreshold:    domain.DefaultCloneGroupingThreshold,
+		GroupingMode:         domain.DefaultCloneGroupMode,
 		CloneMinLines:        domain.DefaultCloneMinLines,
 		CloneMinNodes:        domain.DefaultCloneMinNodes,
 		CloneMaxEditDistance: domain.DefaultCloneMaxEditDistance,

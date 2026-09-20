@@ -73,7 +73,7 @@ max_similarity = 1.0             # Maximum similarity to report
 max_results = 10000              # Maximum results (0 = no limit)
 
 # Grouping settings
-grouping_mode = "connected"      # Grouping mode: connected, star, complete_linkage, k_core
+grouping_mode = "{{ .GroupingMode }}"  # Grouping mode: connected, star, complete_linkage, k_core, centroid
 grouping_threshold = {{ .GroupingThreshold }}        # Threshold for grouping
 k_core_k = 2                     # K-core parameter
 

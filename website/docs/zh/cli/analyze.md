@@ -59,6 +59,7 @@ pyscn analyze [flags] <paths...>
 | `--min-complexity <N>`    | `5`        | 仅报告复杂度 >= N 的函数。 |
 | `--min-severity <level>`  | `warning`  | 死代码最低严重级别：`info`、`warning`、`critical`。 |
 | `--clone-threshold <F>`   | `0.65`     | 克隆检测的最低相似度（0.0-1.0）。 |
+| `--clone-group-mode <M>`  | `complete_linkage` | 克隆分组策略：`connected`、`star`、`complete_linkage`、`k_core`、`centroid`。 |
 | `--min-cbo <N>`           | `0`        | 仅报告 CBO >= N 的类。 |
 
 ### 配置

@@ -59,6 +59,7 @@ Les fichiers de sortie sont placés par défaut dans `.pyscn/reports/`, nommés 
 | `--min-complexity <N>`    | `5`        | N'affiche que les fonctions de complexité ≥ N. |
 | `--min-severity <level>`  | `warning`  | Sévérité minimale du code mort : `info`, `warning`, `critical`. |
 | `--clone-threshold <F>`   | `0.65`     | Similarité minimale (0.0–1.0) pour la détection de clones. |
+| `--clone-group-mode <M>`  | `complete_linkage` | Stratégie de regroupement des clones : `connected`, `star`, `complete_linkage`, `k_core`, `centroid`. |
 | `--min-cbo <N>`           | `0`        | N'affiche que les classes dont le CBO est ≥ N. |
 
 ### Configuration

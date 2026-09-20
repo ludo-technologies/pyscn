@@ -322,8 +322,7 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 	// Determine grouping defaults
 	groupMode := analyzer.GroupingMode(req.GroupMode)
 	if groupMode == "" {
-		// Use Connected as default to ensure all clone pairs form groups
-		groupMode = analyzer.GroupingModeConnected
+		groupMode = analyzer.GroupingMode(domain.DefaultCloneGroupMode)
 	}
 	groupThreshold := req.GroupThreshold
 	if groupThreshold <= 0 {

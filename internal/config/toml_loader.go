@@ -339,6 +339,7 @@ func (l *TomlConfigLoader) loadFromFile(filePath string) (*PyscnConfig, error) {
 	if err := toml.Unmarshal(data, &parsed); err != nil {
 		return nil, err
 	}
+	warnUnknownTomlKeys(filePath, data, PyscnTomlConfig{})
 	markTomlFieldPresence(data, &parsed.Analysis, "analysis", "include_patterns")
 
 	defaults := DefaultPyscnConfig()
@@ -374,6 +375,7 @@ func (l *TomlConfigLoader) loadFromPyscnToml(startDir string) (*PyscnConfig, err
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
+	warnUnknownTomlKeys(configPath, data, PyscnTomlConfig{})
 	markTomlFieldPresence(data, &config.Analysis, "analysis", "include_patterns")
 
 	// Merge with defaults

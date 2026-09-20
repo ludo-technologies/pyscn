@@ -103,7 +103,7 @@ Clone detection (the most configurable analyzer).
 
 | Key                  | Type   | Default       | Description |
 | -------------------- | ------ | ------------- | --- |
-| `grouping_mode`      | string | `"connected"` | `connected`, `star`, `complete_linkage`, `k_core`. |
+| `grouping_mode`      | string | `"complete_linkage"` | `connected`, `star`, `complete_linkage`, `k_core`, `centroid`. `connected` chains clones transitively and can merge unrelated fragments into one group. |
 | `grouping_threshold` | float  | `0.65`        | Minimum similarity for grouping. |
 | `k_core_k`           | int    | `2`           | k parameter for `k_core` mode. |
 

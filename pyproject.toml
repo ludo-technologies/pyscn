@@ -124,7 +124,7 @@ enabled_clone_types = ["type1", "type2", "type4"]
 max_results = 10000
 
 # Grouping settings
-grouping_mode = "connected"
+grouping_mode = "complete_linkage"
 grouping_threshold = 0.85
 k_core_k = 2
 

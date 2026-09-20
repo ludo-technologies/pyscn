@@ -48,7 +48,7 @@ func LoadPyprojectConfig(startDir string) (*PyscnConfig, error) {
 		return nil, err
 	}
 
-	config, err := loadPyprojectConfigData(data)
+	config, err := loadPyprojectConfigData(data, configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
 		return nil, err
 	}
 
-	config, err := loadPyprojectConfigData(data)
+	config, err := loadPyprojectConfigData(data, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +71,13 @@ func LoadPyprojectConfigFromFile(filePath string) (*PyscnConfig, error) {
 	return config, nil
 }
 
-func loadPyprojectConfigData(data []byte) (*PyscnConfig, error) {
+func loadPyprojectConfigData(data []byte, filePath string) (*PyscnConfig, error) {
 	var pyproject PyprojectToml
 	if err := toml.Unmarshal(data, &pyproject); err != nil {
 		return nil, err
 	}
+	// Only [tool.pyscn] is ours; the rest of pyproject.toml belongs to other tools.
+	warnUnknownTomlKeys(filePath, data, PyprojectPyscnSection{}, "tool", "pyscn")
 	markTomlFieldPresence(data, &pyproject.Tool.Pyscn.Analysis, "tool", "pyscn", "analysis", "include_patterns")
 
 	// Merge with defaults using shared merge logic

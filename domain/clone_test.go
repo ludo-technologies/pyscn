@@ -184,6 +184,23 @@ func TestCloneRequest_Validate(t *testing.T) {
 			errMsg:    "paths cannot be empty",
 		},
 		{
+			name: "unknown group mode",
+			request: &CloneRequest{
+				Paths:               []string{"/test"},
+				MinLines:            5,
+				MinNodes:            10,
+				SimilarityThreshold: 0.8,
+				MaxEditDistance:     50.0,
+				Type1Threshold:      DefaultType1CloneThreshold,
+				Type2Threshold:      DefaultType2CloneThreshold,
+				Type3Threshold:      DefaultType3CloneThreshold,
+				Type4Threshold:      DefaultType4CloneThreshold,
+				GroupMode:           "complete-linkage",
+			},
+			expectErr: true,
+			errMsg:    "group_mode must be one of",
+		},
+		{
 			name: "invalid min lines",
 			request: &CloneRequest{
 				Paths:    []string{"/test"},
