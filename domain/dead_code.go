@@ -147,9 +147,12 @@ func (f FileDeadCode) ExecutionScopes() []FunctionDeadCode {
 	return scopes
 }
 
-// DeadCodeSummary represents aggregate statistics for dead code analysis
+// DeadCodeSummary represents aggregate statistics for dead code analysis.
+// The Total* fields describe the complete analyzed population; DeadCodeResponse.Files
+// only lists the files that kept findings, so it is never the population.
 type DeadCodeSummary struct {
-	// Overall metrics
+	// Overall metrics. TotalFiles, TotalFunctions and TotalClassScopes count every
+	// analyzed unit, including those in files without any dead code.
 	TotalFiles              int `json:"total_files" yaml:"total_files"`
 	TotalFunctions          int `json:"total_functions" yaml:"total_functions"`
 	TotalFindings           int `json:"total_findings" yaml:"total_findings"`
@@ -166,7 +169,8 @@ type DeadCodeSummary struct {
 	// Reason distribution
 	FindingsByReason map[string]int `json:"findings_by_reason" yaml:"findings_by_reason"`
 
-	// Coverage metrics
+	// Coverage metrics. TotalBlocks covers every analyzed execution scope, so
+	// OverallDeadRatio is dead-code density across the whole codebase.
 	TotalBlocks      int     `json:"total_blocks" yaml:"total_blocks"`
 	DeadBlocks       int     `json:"dead_blocks" yaml:"dead_blocks"`
 	OverallDeadRatio float64 `json:"overall_dead_ratio" yaml:"overall_dead_ratio"`
