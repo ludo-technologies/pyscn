@@ -592,23 +592,26 @@ func TestDeadCodeService_GenerateSummary(t *testing.T) {
 		},
 	}
 
+	// The population covers all 3 analyzed files, including the one without findings.
+	population := deadCodePopulation{Files: 3, Functions: 4, ClassScopes: 2, Blocks: 40}
+
 	t.Run("generate summary with files", func(t *testing.T) {
 		req := domain.DeadCodeRequest{}
-		summary := service.generateSummary(files, 3, req)
+		summary := service.generateSummary(files, population, req)
 
 		assert.Equal(t, 3, summary.TotalFiles)
 		assert.Equal(t, 2, summary.FilesWithDeadCode)
-		assert.Equal(t, 3, summary.TotalFunctions)        // 2 + 1
+		assert.Equal(t, 4, summary.TotalFunctions)        // from the population, not the finding files
 		assert.Equal(t, 2, summary.FunctionsWithDeadCode) // 1 + 1
-		assert.Equal(t, 1, summary.TotalClassScopes)
+		assert.Equal(t, 2, summary.TotalClassScopes)      // from the population
 		assert.Equal(t, 1, summary.ClassScopesWithDeadCode)
 		assert.Equal(t, 5, summary.TotalFindings) // 2 + 1 + 2
 		assert.Equal(t, 2, summary.CriticalFindings)
 		assert.Equal(t, 1, summary.WarningFindings)
 		assert.Equal(t, 2, summary.InfoFindings)
-		assert.Equal(t, 19, summary.TotalBlocks) // 10 + 4 + 5
+		assert.Equal(t, 40, summary.TotalBlocks) // every analyzed scope, not just 10 + 4 + 5
 		assert.Equal(t, 4, summary.DeadBlocks)   // 2 + 1 + 1
-		assert.InDelta(t, 4.0/19.0, summary.OverallDeadRatio, 1e-9)
+		assert.InDelta(t, 4.0/40.0, summary.OverallDeadRatio, 1e-9)
 
 		// Check findings by reason
 		assert.Equal(t, 2, summary.FindingsByReason["unreachable_after_return"])
@@ -619,13 +622,15 @@ func TestDeadCodeService_GenerateSummary(t *testing.T) {
 
 	t.Run("generate summary with no files", func(t *testing.T) {
 		req := domain.DeadCodeRequest{}
-		summary := service.generateSummary([]domain.FileDeadCode{}, 5, req)
+		summary := service.generateSummary([]domain.FileDeadCode{}, deadCodePopulation{Files: 5, Functions: 7, Blocks: 21}, req)
 
 		assert.Equal(t, 5, summary.TotalFiles)
 		assert.Equal(t, 0, summary.FilesWithDeadCode)
-		assert.Equal(t, 0, summary.TotalFunctions)
+		assert.Equal(t, 7, summary.TotalFunctions)
 		assert.Equal(t, 0, summary.FunctionsWithDeadCode)
 		assert.Equal(t, 0, summary.TotalFindings)
+		assert.Equal(t, 21, summary.TotalBlocks)
+		assert.Equal(t, 0, summary.DeadBlocks)
 		assert.Equal(t, 0.0, summary.OverallDeadRatio)
 	})
 }
@@ -732,4 +737,51 @@ func TestDeadCodeService_ResponseMetadata(t *testing.T) {
 
 	// Verify config is present
 	assert.NotNil(t, response.Config)
+}
+
+// TestDeadCodeService_SummaryCoversFilesWithoutFindings pins the contract that the
+// analyzed totals cover every file, not just the ones that produced findings. When
+// they were summed over the findings-filtered list, a repo whose dead code sat in
+// one file reported that file's function count as the whole project's and divided
+// OverallDeadRatio by that file's blocks, overstating dead-code density by orders
+// of magnitude.
+func TestDeadCodeService_SummaryCoversFilesWithoutFindings(t *testing.T) {
+	service := NewDeadCodeService()
+	ctx := context.Background()
+
+	fixture := []string{
+		"../testdata/python/deadcode_summary_population/clean1.py",
+		"../testdata/python/deadcode_summary_population/clean2.py",
+		"../testdata/python/deadcode_summary_population/dirty.py",
+	}
+
+	response, err := service.Analyze(ctx, newDefaultDeadCodeRequest(fixture...))
+	require.NoError(t, err)
+
+	// Only dirty.py holds dead code, so it is the only file reported.
+	require.Len(t, response.Files, 1)
+	require.Equal(t, fixture[2], response.Files[0].FilePath)
+	require.Equal(t, 1, response.Summary.TotalFindings)
+
+	summary := response.Summary
+	assert.Equal(t, 3, summary.TotalFiles)
+	assert.Equal(t, 1, summary.FilesWithDeadCode)
+	// clean1: 3, clean2: 3 functions + 1 method, dirty: 2.
+	assert.Equal(t, 9, summary.TotalFunctions)
+	assert.Equal(t, 1, summary.FunctionsWithDeadCode)
+	// The executable class suite in clean2.py, which holds no findings at all.
+	assert.Equal(t, 1, summary.TotalClassScopes)
+	assert.Equal(t, 0, summary.ClassScopesWithDeadCode)
+
+	// The blocks of the one reported scope must be a strict subset of the population.
+	reportedBlocks := 0
+	for _, scope := range response.Files[0].ExecutionScopes() {
+		reportedBlocks += scope.TotalBlocks
+	}
+	assert.Greater(t, summary.TotalBlocks, reportedBlocks,
+		"total_blocks must count every analyzed scope, not only the ones with findings")
+	assert.Equal(t, 1, summary.DeadBlocks)
+	assert.InDelta(t, float64(summary.DeadBlocks)/float64(summary.TotalBlocks), summary.OverallDeadRatio, 1e-9)
+	assert.Less(t, summary.OverallDeadRatio, 0.1,
+		"one dead block in a mostly clean fixture must not read as a double-digit dead ratio")
 }

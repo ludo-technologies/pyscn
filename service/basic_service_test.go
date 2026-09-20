@@ -109,7 +109,7 @@ func TestDeadCodeService_Basic(t *testing.T) {
 	t.Run("generateSummary handles empty data", func(t *testing.T) {
 		var files []domain.FileDeadCode
 		req := domain.DeadCodeRequest{}
-		summary := service.generateSummary(files, 0, req)
+		summary := service.generateSummary(files, deadCodePopulation{}, req)
 
 		assert.Equal(t, 0, summary.TotalFindings)
 	})
