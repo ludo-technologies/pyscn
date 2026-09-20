@@ -4068,6 +4068,17 @@
 </tr>
 </tbody>
 </table>
+<p><code>min_lines</code> and <code>min_nodes</code> have one exception: a function identical to another
+function is always reported, however short it is, as long as its body has more
+than one statement. Copy-pasted overrides across sibling classes are usually
+shorter than the threshold, and dropping them would hide real duplication.
+One-statement bodies (<code>pass</code>, <code>raise NotImplementedError</code>, a single <code>return</code>)
+stay out, since those repeat across unrelated classes by design.</p>
+<p>Identity here is the Type-1 comparison, so comments and whitespace do not break
+the match. They do still count toward <code>min_lines</code>, which is measured on the raw
+source span, so the same body can clear the threshold in one place and fall
+short in another depending on how it is commented; either copy vindicates the
+other.</p>
 <h3 id="type-thresholds-0010">Type thresholds (0.0–1.0)<a class="headerlink" href="#type-thresholds-0010" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
