@@ -756,14 +756,21 @@ func countBodyStatements(node *parser.Node) int {
 // files. Fragments held past the size gate during extraction survive only when
 // an identical one was found elsewhere; the rest are discarded, leaving the
 // MinLines/MinNodes contract intact for everything that is not a duplicate.
+//
+// The twin may be a fragment that cleared the gate on its own. Comments are
+// stripped from the hash but still count toward LineCount, so the same body can
+// land on either side of MinLines depending on how it is commented.
 func RetainIdenticalUndersizedFragments(fragments []*CodeFragment) []*CodeFragment {
-	occurrences := make(map[string]int)
+	held := false
+	occurrences := make(map[string]int, len(fragments))
 	for _, fragment := range fragments {
-		if fragment != nil && fragment.belowSizeGate {
-			occurrences[fragment.Hash]++
+		if fragment == nil || fragment.Hash == "" {
+			continue
 		}
+		held = held || fragment.belowSizeGate
+		occurrences[fragment.Hash]++
 	}
-	if len(occurrences) == 0 {
+	if !held {
 		return fragments
 	}
 

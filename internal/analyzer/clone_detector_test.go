@@ -1488,3 +1488,43 @@ func TestCloneDetector_RetainIdenticalUndersizedFragments(t *testing.T) {
 		assert.Empty(t, fragments)
 	})
 }
+
+func TestCloneDetector_IdenticalBodyTwinAcrossSizeGate(t *testing.T) {
+	// The same body either side of MinLines: comments are stripped from the
+	// hash but still count toward LineCount, so only the commented copy clears
+	// the gate on its own.
+	const bare = `def apply(self, payload):
+    total = 0
+    for item in payload:
+        if item.enabled:
+            total += item.weight
+        else:
+            total -= item.weight
+    self.total = total
+    return total
+`
+	const commented = `def apply(self, payload):
+    # weights are signed by the enabled flag
+    total = 0
+    for item in payload:
+        if item.enabled:
+            total += item.weight
+        else:
+            total -= item.weight
+    self.total = total
+    return total
+`
+
+	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+	bareFragments := extractAllFragments(t, detector, "bare.py", bare)
+	commentedFragments := extractAllFragments(t, detector, "commented.py", commented)
+	require.Len(t, bareFragments, 1)
+	require.Len(t, commentedFragments, 1)
+	require.True(t, bareFragments[0].belowSizeGate, "the uncommented copy should be one line short of the gate")
+	require.False(t, commentedFragments[0].belowSizeGate, "the commented copy should clear the gate on its own")
+	require.Equal(t, bareFragments[0].Hash, commentedFragments[0].Hash, "comments must not change the hash")
+
+	retained := RetainIdenticalUndersizedFragments(append(bareFragments, commentedFragments...))
+
+	assert.Len(t, retained, 2, "a twin that cleared the gate still vindicates the held fragment")
+}
