@@ -1271,7 +1271,11 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 	}
 	corePairs = coreclone.FilterPairsWithSuppressedMembers(corePairs, groupResult.Suppressed)
 	corePairs = coreclone.FilterSuppressedPairs(corePairs, groupResult.SuppressedPairs)
-	groups = appendUncoveredPairGroups(groups, corePairs, threshold)
+	// k-core deliberately prunes fragments with fewer than k similar
+	// neighbours, so its excluded pairs must stay excluded.
+	if cd.cloneDetectorConfig.GroupingMode != GroupingModeKCore {
+		groups = appendUncoveredPairGroups(groups, corePairs, threshold)
+	}
 
 	cd.clonePairs = cd.clonePairs[:0]
 	for _, pair := range corePairs {
@@ -1302,44 +1306,62 @@ func appendUncoveredPairGroups(
 	pairs []*coreclone.ItemPair[*CodeFragment],
 	threshold float64,
 ) []*coreclone.ItemGroup[*CodeFragment] {
-	covered := make(map[[2]int]struct{})
-	for _, group := range groups {
-		for i := 0; i < len(group.Items); i++ {
-			for j := i + 1; j < len(group.Items); j++ {
-				covered[fragmentPairKey(group.Items[i], group.Items[j])] = struct{}{}
+	// Index which groups hold each fragment. Materialising every member
+	// combination instead would cost O(n^2) for a group of n members, most of
+	// it recording pairs that were never detected.
+	groupsByFragment := make(map[int]map[int]struct{}, len(groups))
+	assign := func(fragmentID, groupIndex int) {
+		indexes, ok := groupsByFragment[fragmentID]
+		if !ok {
+			indexes = make(map[int]struct{}, 1)
+			groupsByFragment[fragmentID] = indexes
+		}
+		indexes[groupIndex] = struct{}{}
+	}
+	for index, group := range groups {
+		if group == nil {
+			continue
+		}
+		for _, item := range group.Items {
+			assign(item.id, index)
+		}
+	}
+
+	shareGroup := func(a, b *CodeFragment) bool {
+		left, right := groupsByFragment[a.id], groupsByFragment[b.id]
+		if len(right) < len(left) {
+			left, right = right, left
+		}
+		for index := range left {
+			if _, ok := right[index]; ok {
+				return true
 			}
 		}
+		return false
 	}
 
 	for _, pair := range pairs {
 		if pair == nil || pair.Similarity < threshold {
 			continue
 		}
-		key := fragmentPairKey(pair.Item1, pair.Item2)
-		if _, ok := covered[key]; ok {
+		if shareGroup(pair.Item1, pair.Item2) {
 			continue
 		}
-		covered[key] = struct{}{}
 
 		members := []*CodeFragment{pair.Item1, pair.Item2}
 		if members[1].id < members[0].id {
 			members[0], members[1] = members[1], members[0]
 		}
+		index := len(groups)
 		groups = append(groups, &coreclone.ItemGroup[*CodeFragment]{
 			Items:      members,
 			GroupType:  pair.PairType,
 			Similarity: pair.Similarity,
 		})
+		assign(members[0].id, index)
+		assign(members[1].id, index)
 	}
 	return groups
-}
-
-// fragmentPairKey identifies a fragment pair independently of its order.
-func fragmentPairKey(a, b *CodeFragment) [2]int {
-	if a.id > b.id {
-		return [2]int{b.id, a.id}
-	}
-	return [2]int{a.id, b.id}
 }
 
 // isSameLocation checks if two locations refer to the same code

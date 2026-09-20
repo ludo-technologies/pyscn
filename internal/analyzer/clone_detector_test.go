@@ -650,6 +650,28 @@ func TestCloneDetector_DefaultGroupingCoversEveryPair(t *testing.T) {
 	}
 }
 
+// k-core prunes fragments with fewer than k similar neighbours, so filling in
+// uncovered pairs must not resurrect what it excluded.
+func TestCloneDetector_KCoreGroupingKeepsPairsBelowDegreeExcluded(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.GroupingMode = GroupingModeKCore
+	config.GroupingThreshold = 0.80
+	config.KCoreK = 2
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: 1, EndLine: 10}}
+	}
+	a, b := fragment("a.py"), fragment("b.py")
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: a, Fragment2: b, Similarity: 0.90, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(0.80, 2)
+
+	assert.Empty(t, detector.cloneGroups, "each fragment has one neighbour, below k=2")
+}
+
 func TestCloneDetector_StarGroupingFiltersMembersBelowMedoidThreshold(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	config.GroupingMode = GroupingModeStar
