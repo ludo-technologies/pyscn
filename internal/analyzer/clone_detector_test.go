@@ -672,6 +672,36 @@ func TestCloneDetector_KCoreGroupingKeepsPairsBelowDegreeExcluded(t *testing.T) 
 	assert.Empty(t, detector.cloneGroups, "each fragment has one neighbour, below k=2")
 }
 
+// Regression for #798: suppressing a member must not leave the rest of the
+// group reported as one family when no surviving pair connects them.
+func TestCloneDetector_GroupIsResplitAfterMemberSuppression(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.GroupingMode = GroupingModeConnected
+	config.GroupingThreshold = 0.80
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string, start, end int) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: start, EndLine: end}}
+	}
+	a := fragment("a.py", 1, 10)
+	inner := fragment("b.py", 1, 10)
+	outer := fragment("b.py", 1, 20)
+	c := fragment("c.py", 1, 10)
+
+	// outer covers inner, so inner is suppressed and both of its pairs go with
+	// it. That leaves c connected to nothing.
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: a, Fragment2: inner, Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: inner, Fragment2: c, Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: a, Fragment2: outer, Similarity: 0.90, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(0.80, 2)
+
+	require.Len(t, detector.cloneGroups, 1)
+	assert.Equal(t, []*CodeFragment{a, outer}, detector.cloneGroups[0].Fragments)
+}
+
 func TestCloneDetector_StarGroupingFiltersMembersBelowMedoidThreshold(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	config.GroupingMode = GroupingModeStar

@@ -1262,15 +1262,21 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 	}
 	memberResult := coreclone.DedupeStrictSubsetGroupMembers(groups, corePairs)
 	groupResult := coreclone.DedupeCoveredGroups(memberResult.Groups)
-	groups = coreclone.FilterGroupsWithoutBackingPairs(groupResult.Groups, corePairs)
-	if cd.cloneDetectorConfig.GroupingMode == GroupingModeCentroid {
-		cd.refreshCentroidGroupMetadata(groups)
-	}
 	for key := range memberResult.Suppressed {
 		groupResult.Suppressed[key] = struct{}{}
 	}
+
+	// Drop the suppressed members' pairs before the groups are validated, so a
+	// group that only held together through a suppressed member is re-split
+	// rather than reported as one family.
 	corePairs = coreclone.FilterPairsWithSuppressedMembers(corePairs, groupResult.Suppressed)
 	corePairs = coreclone.FilterSuppressedPairs(corePairs, groupResult.SuppressedPairs)
+
+	groups = splitDisconnectedGroups(groupResult.Groups, corePairs)
+	groups = coreclone.FilterGroupsWithoutBackingPairs(groups, corePairs)
+	if cd.cloneDetectorConfig.GroupingMode == GroupingModeCentroid {
+		cd.refreshCentroidGroupMetadata(groups)
+	}
 	// k-core deliberately prunes fragments with fewer than k similar
 	// neighbours, so its excluded pairs must stay excluded.
 	if cd.cloneDetectorConfig.GroupingMode != GroupingModeKCore {
@@ -1291,6 +1297,105 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 			Size:       len(group.Items),
 		})
 	}
+}
+
+// splitDisconnectedGroups breaks each group into the connected components of
+// the surviving pair graph.
+//
+// Grouping runs before members are suppressed, so a member that is later
+// dropped can leave the rest of a group with no pair holding it together. The
+// group was still reported whole, which presented fragments as one duplication
+// family although no reported pair connects them.
+func splitDisconnectedGroups(
+	groups []*coreclone.ItemGroup[*CodeFragment],
+	pairs []*coreclone.ItemPair[*CodeFragment],
+) []*coreclone.ItemGroup[*CodeFragment] {
+	if len(groups) == 0 {
+		return groups
+	}
+
+	adjacency := make(map[[2]int]struct{}, len(pairs))
+	for _, pair := range pairs {
+		if pair == nil {
+			continue
+		}
+		adjacency[fragmentPairKey(pair.Item1, pair.Item2)] = struct{}{}
+	}
+
+	out := make([]*coreclone.ItemGroup[*CodeFragment], 0, len(groups))
+	for _, group := range groups {
+		if group == nil {
+			continue
+		}
+		components := connectedFragmentComponents(group.Items, adjacency)
+		if len(components) < 2 {
+			out = append(out, group)
+			continue
+		}
+		// Similarity and type are recomputed downstream from the surviving pairs.
+		for _, members := range components {
+			if len(members) < 2 {
+				continue
+			}
+			out = append(out, &coreclone.ItemGroup[*CodeFragment]{
+				ID:         group.ID,
+				Items:      members,
+				GroupType:  group.GroupType,
+				Similarity: group.Similarity,
+			})
+		}
+	}
+	return out
+}
+
+// fragmentPairKey identifies a fragment pair independently of its order.
+func fragmentPairKey(a, b *CodeFragment) [2]int {
+	if a.id > b.id {
+		return [2]int{b.id, a.id}
+	}
+	return [2]int{a.id, b.id}
+}
+
+// connectedFragmentComponents partitions items into connected components,
+// preserving the input order within and across components.
+func connectedFragmentComponents(items []*CodeFragment, adjacency map[[2]int]struct{}) [][]*CodeFragment {
+	parent := make([]int, len(items))
+	for i := range parent {
+		parent[i] = i
+	}
+	find := func(i int) int {
+		for parent[i] != i {
+			parent[i] = parent[parent[i]]
+			i = parent[i]
+		}
+		return i
+	}
+	for i := 0; i < len(items); i++ {
+		for j := i + 1; j < len(items); j++ {
+			if _, ok := adjacency[fragmentPairKey(items[i], items[j])]; !ok {
+				continue
+			}
+			if rootI, rootJ := find(i), find(j); rootI != rootJ {
+				parent[rootI] = rootJ
+			}
+		}
+	}
+
+	roots := make([]int, 0, len(items))
+	buckets := make(map[int][]*CodeFragment, len(items))
+	for i, item := range items {
+		root := find(i)
+		if _, ok := buckets[root]; !ok {
+			roots = append(roots, root)
+		}
+		buckets[root] = append(buckets[root], item)
+	}
+
+	components := make([][]*CodeFragment, 0, len(roots))
+	for _, root := range roots {
+		components = append(components, buckets[root])
+	}
+	return components
 }
 
 // appendUncoveredPairGroups adds a two-member group for every remaining pair
