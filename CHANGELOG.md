@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [1.32.1] - 2026-09-20
+
+### Added
+- Report identical short method bodies as clones (#802)
+
+### Fixed
+- Summarize dead code over the full analyzed population (#804)
+- Align clone group members with filtered pairs (#801)
+- Re-split clone groups after member suppression (#799)
+- Weight Type-4 semantic operation overlap to stop CFG-shape false clones (#796)
+- Score duplication against the full clone population, not the displayed subset (#795)
+- Score CBO and LCOM against the full class population, not the displayed subset (#788)
+- Rework `community_score` so it measures structure, not sparsity (#787)
+- Stop an ancestor `.pyscn.toml` from relocating the project root (#783)
+
+### Changed
+- Clone grouping defaults to `complete_linkage`, and unknown config keys are rejected (#797)
+- Documentation is served at docs.codescan.dev/pyscn/ (#786)
+
 ## [1.32.0] - 2026-09-15
 
 ### Added
