@@ -234,12 +234,14 @@ func (s *CloneService) buildCloneResponse(
 	// The enabled clone types narrow what counts as a clone at all, so they
 	// define the population the duplication score is measured against.
 	scoredClonePairs := s.filterClonePairsByType(allClonePairs, req)
-	scoredCloneGroups := s.filterCloneGroupsByType(allCloneGroups, req)
+	scoredCloneGroups := filterCloneGroupsByPairs(allCloneGroups, scoredClonePairs)
+	scoredCloneGroups = s.filterCloneGroupsByType(scoredCloneGroups, req)
 
 	// min_similarity/max_similarity are output filters on top of that
 	// population: they trim what the response shows without changing it.
 	domainClonePairs := s.filterClonePairsBySimilarity(scoredClonePairs, req)
-	domainCloneGroups := s.filterCloneGroupsBySimilarity(scoredCloneGroups, req)
+	domainCloneGroups := filterCloneGroupsByPairs(scoredCloneGroups, domainClonePairs)
+	domainCloneGroups = s.filterCloneGroupsBySimilarity(domainCloneGroups, req)
 	domainClones = filterClonesToReferencedFragments(domainClones, domainClonePairs, domainCloneGroups)
 
 	// Sort results

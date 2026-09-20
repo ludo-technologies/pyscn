@@ -836,6 +836,20 @@ func TestCloneService_OutputFiltersDoNotChangeScoredPopulation(t *testing.T) {
 
 			assert.Equal(t, tc.wantPairs, response.Statistics.TotalClonePairs, "the filter must trim the reported pairs")
 			assert.Len(t, response.ClonePairs, tc.wantPairs, "the reported counts must match the returned pairs")
+			for _, group := range response.CloneGroups {
+				members := make(map[int]bool)
+				for _, clone := range group.Clones {
+					members[clone.ID] = true
+				}
+				backed := make(map[int]bool)
+				for _, pair := range response.ClonePairs {
+					if members[pair.Clone1.ID] && members[pair.Clone2.ID] {
+						backed[pair.Clone1.ID] = true
+						backed[pair.Clone2.ID] = true
+					}
+				}
+				assert.Equal(t, members, backed, "every displayed group member needs a displayed pair within its group")
+			}
 			assert.Equal(t, baseline.Statistics.TotalFragments, response.Statistics.TotalFragments, "the denominator must not move")
 			assert.Equal(t, baseline.Statistics.DuplicatedFragments, response.Statistics.DuplicatedFragments, "the numerator must not move either")
 		})
