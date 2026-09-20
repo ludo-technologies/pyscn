@@ -123,17 +123,29 @@ func (cg *CloneGroup) AddClone(clone *Clone) {
 	cg.Size = len(cg.Clones)
 }
 
-// CloneStatistics provides statistics about clone detection results
+// CloneStatistics provides statistics about clone detection results.
+//
+// Every count except TotalFragments and DuplicatedFragments describes the
+// clone pairs and groups actually returned in the response, so the reported
+// numbers always match what is displayed. The two exceptions describe the
+// complete analyzed population and are the only counts the duplication score
+// is allowed to read.
 type CloneStatistics struct {
-	TotalFragments    int            `json:"total_fragments" yaml:"total_fragments" csv:"total_fragments"` // All extracted fragments (functions, classes, etc.)
-	TotalClones       int            `json:"total_clones" yaml:"total_clones" csv:"total_clones"`          // Fragments detected as clones
-	TotalClonePairs   int            `json:"total_clone_pairs" yaml:"total_clone_pairs" csv:"total_clone_pairs"`
-	TotalCloneGroups  int            `json:"total_clone_groups" yaml:"total_clone_groups" csv:"total_clone_groups"`
-	ClonesByType      map[string]int `json:"clones_by_type" yaml:"clones_by_type" csv:"clones_by_type"`
-	AverageSimilarity float64        `json:"average_similarity" yaml:"average_similarity" csv:"average_similarity"`
-	LinesAnalyzed     int            `json:"lines_analyzed" yaml:"lines_analyzed" csv:"lines_analyzed"`
-	NodesAnalyzed     int            `json:"nodes_analyzed" yaml:"nodes_analyzed" csv:"nodes_analyzed"`
-	FilesAnalyzed     int            `json:"files_analyzed" yaml:"files_analyzed" csv:"files_analyzed"`
+	TotalFragments int `json:"total_fragments" yaml:"total_fragments" csv:"total_fragments"` // All extracted fragments (functions, classes, etc.)
+	// DuplicatedFragments counts the distinct fragments involved in at least one
+	// detected clone relation, before the min_similarity/max_similarity output
+	// filters trim the response. It shares its population with TotalFragments,
+	// so the two form the duplication ratio behind the health score; using the
+	// filtered TotalClones instead would let a display option move the grade.
+	DuplicatedFragments int            `json:"duplicated_fragments" yaml:"duplicated_fragments" csv:"duplicated_fragments"`
+	TotalClones         int            `json:"total_clones" yaml:"total_clones" csv:"total_clones"` // Fragments detected as clones, after output filtering
+	TotalClonePairs     int            `json:"total_clone_pairs" yaml:"total_clone_pairs" csv:"total_clone_pairs"`
+	TotalCloneGroups    int            `json:"total_clone_groups" yaml:"total_clone_groups" csv:"total_clone_groups"`
+	ClonesByType        map[string]int `json:"clones_by_type" yaml:"clones_by_type" csv:"clones_by_type"`
+	AverageSimilarity   float64        `json:"average_similarity" yaml:"average_similarity" csv:"average_similarity"`
+	LinesAnalyzed       int            `json:"lines_analyzed" yaml:"lines_analyzed" csv:"lines_analyzed"`
+	NodesAnalyzed       int            `json:"nodes_analyzed" yaml:"nodes_analyzed" csv:"nodes_analyzed"`
+	FilesAnalyzed       int            `json:"files_analyzed" yaml:"files_analyzed" csv:"files_analyzed"`
 }
 
 // CloneRequest represents a request for clone detection

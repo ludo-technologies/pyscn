@@ -421,7 +421,8 @@ Reflet de `domain.CloneResponse`. Utilise des noms de champs en snake_case parto
 | Champ                | Type    | Description                                                |
 | -------------------- | ------- | ---------------------------------------------------------- |
 | `total_fragments`    | integer | Tous les fragments extraits (fonctions, classes, etc.).    |
-| `total_clones`       | integer | Fragments classés comme clones.                            |
+| `duplicated_fragments` | integer | Fragments impliqués dans une relation de clone détectée, avant les filtres de sortie `min_similarity`/`max_similarity`. Partage sa population avec `total_fragments` et constitue le numérateur du score de duplication. |
+| `total_clones`       | integer | Fragments classés comme clones, après filtrage de sortie.  |
 | `total_clone_pairs`  | integer | Nombre de paires détectées.                                |
 | `total_clone_groups` | integer | Nombre de groupes.                                         |
 | `clones_by_type`     | object \| null | Map de l'étiquette de type (`Type-1`…`Type-4`) vers le compteur. |

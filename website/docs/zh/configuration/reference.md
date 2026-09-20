@@ -129,6 +129,8 @@
 | `sort_by`       | string| `"similarity"`  | `similarity`、`size`、`location`、`type`。 |
 | `group_clones`  | bool  | `true`          | 对相关克隆进行分组。 |
 
+这些键只影响报告内容，不会改变重复度评分或健康评分。
+
 ---
 
 ## `[cbo]`

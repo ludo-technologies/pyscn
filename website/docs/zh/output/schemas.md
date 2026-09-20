@@ -421,7 +421,8 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | 字段                 | 类型    | 说明                                             |
 | -------------------- | ------- | ------------------------------------------------ |
 | `total_fragments`    | integer | 提取的所有片段（函数、类等）。                   |
-| `total_clones`       | integer | 被分类为克隆的片段数。                           |
+| `duplicated_fragments` | integer | 参与已检测克隆关系的片段数，在 `min_similarity`/`max_similarity` 输出过滤之前统计。与 `total_fragments` 共享同一总体，是重复度评分的分子。 |
+| `total_clones`       | integer | 被分类为克隆的片段数（输出过滤之后）。           |
 | `total_clone_pairs`  | integer | 检测到的克隆对数。                               |
 | `total_clone_groups` | integer | 组的数量。                                       |
 | `clones_by_type`     | object \| null | 按类型标签（`Type-1`…`Type-4`）到数量的映射。 |

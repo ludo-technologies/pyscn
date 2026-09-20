@@ -228,22 +228,24 @@ func (s *CloneService) buildCloneResponse(
 
 	// Convert to domain objects
 	domainClones, fragmentIDs := s.convertFragmentsToDomainClones(allFragments)
-	domainClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShouldShowContent(), fragmentIDs)
-	domainCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShouldShowContent(), fragmentIDs)
+	allClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShouldShowContent(), fragmentIDs)
+	allCloneGroups := s.convertCloneGroupsToDomain(detectionResult.Groups, req.ShouldShowContent(), fragmentIDs)
 
-	// Filter results based on request criteria
-	domainClonePairs = s.filterClonePairs(domainClonePairs, req)
-	domainCloneGroups = s.filterCloneGroups(domainCloneGroups, req)
+	// The enabled clone types narrow what counts as a clone at all, so they
+	// define the population the duplication score is measured against.
+	scoredClonePairs := s.filterClonePairsByType(allClonePairs, req)
+	scoredCloneGroups := s.filterCloneGroupsByType(allCloneGroups, req)
+
+	// min_similarity/max_similarity are output filters on top of that
+	// population: they trim what the response shows without changing it.
+	domainClonePairs := s.filterClonePairsBySimilarity(scoredClonePairs, req)
+	domainCloneGroups := s.filterCloneGroupsBySimilarity(scoredCloneGroups, req)
 	domainClones = filterClonesToReferencedFragments(domainClones, domainClonePairs, domainCloneGroups)
 
 	// Sort results
 	s.sortResults(domainClones, domainClonePairs, domainCloneGroups, req)
 
-	// Build statistics from the filtered results so that counts always match the
-	// returned clone pairs and groups. The detector's result already separates
-	// raw candidates from detected items; we derive final numbers only from the
-	// detected items exposed in the response.
-	statistics := s.buildCloneStatistics(detectionResult, domainClonePairs, domainCloneGroups, extraction.filesAnalyzed, extraction.linesAnalyzed, extraction.nodesAnalyzed)
+	statistics := s.buildCloneStatistics(detectionResult, domainClonePairs, domainCloneGroups, scoredClonePairs, scoredCloneGroups, extraction.filesAnalyzed, extraction.linesAnalyzed, extraction.nodesAnalyzed)
 
 	duration := time.Since(startTime).Milliseconds()
 	// s.progress.Complete(fmt.Sprintf("Clone detection completed in %dms. Found %d clone pairs in %d groups.",
@@ -560,59 +562,68 @@ func (s *CloneService) convertCloneType(cloneType analyzer.CloneType) domain.Clo
 	}
 }
 
-// filterClonePairs filters clone pairs based on request criteria
-func (s *CloneService) filterClonePairs(pairs []*domain.ClonePair, req *domain.CloneRequest) []*domain.ClonePair {
-	var filtered []*domain.ClonePair
-
-	for _, pair := range pairs {
-		// Filter by similarity range
-		if pair.Similarity < req.MinSimilarity || pair.Similarity > req.MaxSimilarity {
-			continue
+// cloneTypeEnabled reports whether a detected clone is of a type the request
+// asked for. This is a detection-scope decision, not a display one.
+func cloneTypeEnabled(cloneType domain.CloneType, req *domain.CloneRequest) bool {
+	for _, enabledType := range req.CloneTypes {
+		if cloneType == enabledType {
+			return true
 		}
-
-		// Filter by clone types
-		typeEnabled := false
-		for _, enabledType := range req.CloneTypes {
-			if pair.Type == enabledType {
-				typeEnabled = true
-				break
-			}
-		}
-		if !typeEnabled {
-			continue
-		}
-
-		filtered = append(filtered, pair)
 	}
+	return false
+}
 
+// similarityInRange reports whether a detected clone passes the
+// min_similarity/max_similarity output filters.
+func similarityInRange(similarity float64, req *domain.CloneRequest) bool {
+	return similarity >= req.MinSimilarity && similarity <= req.MaxSimilarity
+}
+
+// filterClonePairsByType keeps the clone pairs whose type is in scope. The
+// result is the scored population: it must not depend on any output filter.
+func (s *CloneService) filterClonePairsByType(pairs []*domain.ClonePair, req *domain.CloneRequest) []*domain.ClonePair {
+	var filtered []*domain.ClonePair
+	for _, pair := range pairs {
+		if cloneTypeEnabled(pair.Type, req) {
+			filtered = append(filtered, pair)
+		}
+	}
 	return filtered
 }
 
-// filterCloneGroups filters clone groups based on request criteria
-func (s *CloneService) filterCloneGroups(groups []*domain.CloneGroup, req *domain.CloneRequest) []*domain.CloneGroup {
-	var filtered []*domain.CloneGroup
-
-	for _, group := range groups {
-		// Filter by similarity range
-		if group.Similarity < req.MinSimilarity || group.Similarity > req.MaxSimilarity {
-			continue
+// filterClonePairsBySimilarity applies the similarity output filters to pairs
+// that are already in scope.
+func (s *CloneService) filterClonePairsBySimilarity(pairs []*domain.ClonePair, req *domain.CloneRequest) []*domain.ClonePair {
+	var filtered []*domain.ClonePair
+	for _, pair := range pairs {
+		if similarityInRange(pair.Similarity, req) {
+			filtered = append(filtered, pair)
 		}
-
-		// Filter by clone types
-		typeEnabled := false
-		for _, enabledType := range req.CloneTypes {
-			if group.Type == enabledType {
-				typeEnabled = true
-				break
-			}
-		}
-		if !typeEnabled {
-			continue
-		}
-
-		filtered = append(filtered, group)
 	}
+	return filtered
+}
 
+// filterCloneGroupsByType keeps the clone groups whose type is in scope. The
+// result is the scored population: it must not depend on any output filter.
+func (s *CloneService) filterCloneGroupsByType(groups []*domain.CloneGroup, req *domain.CloneRequest) []*domain.CloneGroup {
+	var filtered []*domain.CloneGroup
+	for _, group := range groups {
+		if cloneTypeEnabled(group.Type, req) {
+			filtered = append(filtered, group)
+		}
+	}
+	return filtered
+}
+
+// filterCloneGroupsBySimilarity applies the similarity output filters to groups
+// that are already in scope.
+func (s *CloneService) filterCloneGroupsBySimilarity(groups []*domain.CloneGroup, req *domain.CloneRequest) []*domain.CloneGroup {
+	var filtered []*domain.CloneGroup
+	for _, group := range groups {
+		if similarityInRange(group.Similarity, req) {
+			filtered = append(filtered, group)
+		}
+	}
 	return filtered
 }
 
@@ -623,16 +634,22 @@ func (s *CloneService) sortResults(clones []*domain.Clone, pairs []*domain.Clone
 }
 
 // buildCloneStatistics converts analyzer-level detection statistics into the
-// domain statistics attached to the response. All counts are derived from the
-// filtered results so that reported numbers always match what is returned.
+// domain statistics attached to the response. The displayed counts come from
+// the filtered pairs and groups so that reported numbers always match what is
+// returned; DuplicatedFragments comes from the unfiltered scored population so
+// that it shares TotalFragments' denominator and the duplication score stays
+// independent of the output filters.
 func (s *CloneService) buildCloneStatistics(
 	result *analyzer.CloneDetectionResult,
 	pairs []*domain.ClonePair,
 	groups []*domain.CloneGroup,
+	scoredPairs []*domain.ClonePair,
+	scoredGroups []*domain.CloneGroup,
 	filesAnalyzed, linesAnalyzed, nodesAnalyzed int,
 ) *domain.CloneStatistics {
 	stats := domain.NewCloneStatistics()
 	stats.TotalFragments = result.Statistics.TotalFragments
+	stats.DuplicatedFragments = countUniqueCloneFragments(scoredPairs, scoredGroups)
 	stats.TotalClones = countUniqueCloneFragments(pairs, groups)
 	stats.TotalClonePairs = len(pairs)
 	stats.TotalCloneGroups = len(groups)

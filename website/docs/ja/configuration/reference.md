@@ -129,6 +129,8 @@
 | `sort_by`       | string| `"similarity"`  | `similarity`, `size`, `location`, `type` のいずれか。 |
 | `group_clones`  | bool  | `true`          | 関連するクローンをグループ化します。 |
 
+これらのキーはレポートの見た目だけを変えます。重複スコアやヘルススコアには影響しません。
+
 ---
 
 ## `[cbo]`

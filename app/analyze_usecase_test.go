@@ -1217,8 +1217,9 @@ func TestCalculateSummaryDuplicationPercentageNotClamped(t *testing.T) {
 	response := &domain.AnalyzeResponse{
 		Clone: &domain.CloneResponse{
 			Statistics: &domain.CloneStatistics{
-				TotalFragments: 61,
-				TotalClones:    40,
+				TotalFragments:      61,
+				DuplicatedFragments: 40,
+				TotalClones:         40,
 			},
 		},
 	}
@@ -1236,5 +1237,29 @@ func TestCalculateSummaryDuplicationPercentageNotClamped(t *testing.T) {
 	// at or above it yields the same (zero) duplication score.
 	if summary.DuplicationScore != 0 {
 		t.Errorf("DuplicationScore = %d, want 0 (penalty saturated at 60%%)", summary.DuplicationScore)
+	}
+}
+
+func TestCalculateSummaryDuplicationIgnoresOutputFilters(t *testing.T) {
+	// Regression for #789: min_similarity/max_similarity are output filters, so
+	// they shrink TotalClones without shrinking the analyzed population. Reading
+	// the filtered count here would divide it by an unfiltered TotalFragments and
+	// let a display option raise the health grade on unchanged code.
+	summary := &domain.AnalyzeSummary{}
+	response := &domain.AnalyzeResponse{
+		Clone: &domain.CloneResponse{
+			Statistics: &domain.CloneStatistics{
+				TotalFragments:      61,
+				DuplicatedFragments: 40,
+				TotalClones:         0, // every clone hidden by min_similarity
+			},
+		},
+	}
+
+	(&AnalyzeUseCase{}).calculateSummary(summary, response)
+
+	want := 40.0 / 61.0 * 100
+	if math.Abs(summary.CodeDuplication-want) > 1e-9 {
+		t.Errorf("CodeDuplication = %f, want %f (scored population, not the displayed subset)", summary.CodeDuplication, want)
 	}
 }
