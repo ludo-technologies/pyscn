@@ -421,7 +421,8 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | フィールド            | 型      | 説明                                                     |
 | -------------------- | ------- | -------------------------------------------------------- |
 | `total_fragments`    | integer | 抽出されたすべての断片（関数、クラスなど）。             |
-| `total_clones`       | integer | クローンとして分類された断片。                           |
+| `duplicated_fragments` | integer | 検出されたクローン関係に含まれる断片。`min_similarity`/`max_similarity` の出力フィルタ適用前の値。`total_fragments` と同じ母集団を共有し、重複スコアの分子になります。 |
+| `total_clones`       | integer | クローンとして分類された断片（出力フィルタ適用後）。     |
 | `total_clone_pairs`  | integer | 検出されたペアの数。                                     |
 | `total_clone_groups` | integer | グループの数。                                           |
 | `clones_by_type`     | object \| null | タイプラベル（`Type-1`…`Type-4`）からカウントへのマップ。 |

@@ -607,7 +607,7 @@ func TestCloneService_FilterClonePairs(t *testing.T) {
 		req.MaxSimilarity = 0.85
 		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
 
-		filtered := service.filterClonePairs(pairs, req)
+		filtered := service.filterClonePairsBySimilarity(service.filterClonePairsByType(pairs, req), req)
 
 		require.Len(t, filtered, 1)
 		assert.Equal(t, 1, filtered[0].ID)
@@ -620,7 +620,7 @@ func TestCloneService_FilterClonePairs(t *testing.T) {
 		req.MaxSimilarity = 1.0
 		req.CloneTypes = []domain.CloneType{domain.Type1Clone}
 
-		filtered := service.filterClonePairs(pairs, req)
+		filtered := service.filterClonePairsByType(pairs, req)
 
 		require.Len(t, filtered, 2)
 		assert.Equal(t, domain.Type1Clone, filtered[0].Type)
@@ -633,7 +633,7 @@ func TestCloneService_FilterClonePairs(t *testing.T) {
 		req.MaxSimilarity = 1.0
 		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type3Clone}
 
-		filtered := service.filterClonePairs(pairs, req)
+		filtered := service.filterClonePairsBySimilarity(service.filterClonePairsByType(pairs, req), req)
 
 		require.Len(t, filtered, 2)
 		assert.Contains(t, []domain.CloneType{domain.Type1Clone, domain.Type3Clone}, filtered[0].Type)
@@ -668,7 +668,7 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 		req.MaxSimilarity = 0.85
 		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone}
 
-		filtered := service.filterCloneGroups(groups, req)
+		filtered := service.filterCloneGroupsBySimilarity(service.filterCloneGroupsByType(groups, req), req)
 
 		require.Len(t, filtered, 1)
 		assert.Equal(t, 1, filtered[0].ID)
@@ -681,7 +681,7 @@ func TestCloneService_FilterCloneGroups(t *testing.T) {
 		req.MaxSimilarity = 1.0
 		req.CloneTypes = []domain.CloneType{domain.Type2Clone, domain.Type3Clone}
 
-		filtered := service.filterCloneGroups(groups, req)
+		filtered := service.filterCloneGroupsByType(groups, req)
 
 		require.Len(t, filtered, 2)
 		assert.Contains(t, []domain.CloneType{domain.Type2Clone, domain.Type3Clone}, filtered[0].Type)
@@ -728,11 +728,12 @@ func TestCloneService_BuildCloneStatistics(t *testing.T) {
 	linesAnalyzed := 1000
 	nodesAnalyzed := 500
 
-	stats := service.buildCloneStatistics(result, pairs, groups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	stats := service.buildCloneStatistics(result, pairs, groups, pairs, groups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 
 	assert.NotNil(t, stats)
 	assert.Equal(t, 10, stats.TotalFragments)
-	assert.Equal(t, 3, stats.TotalClones) // 3 unique fragments from union of pairs and groups
+	assert.Equal(t, 3, stats.DuplicatedFragments) // 3 unique fragments in the scored population
+	assert.Equal(t, 3, stats.TotalClones)         // 3 unique fragments from union of pairs and groups
 	assert.Equal(t, 3, stats.TotalClonePairs)
 	assert.Equal(t, 2, stats.TotalCloneGroups)
 	assert.Equal(t, 5, stats.FilesAnalyzed)
@@ -745,8 +746,13 @@ func TestCloneService_BuildCloneStatistics(t *testing.T) {
 	assert.Equal(t, 1, stats.ClonesByType["Type-2"])
 
 	// When groups are pruned but pairs exist, TotalClones should still count pair endpoints
-	statsNilGroups := service.buildCloneStatistics(result, pairs, nil, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	statsNilGroups := service.buildCloneStatistics(result, pairs, nil, pairs, nil, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 	assert.Equal(t, 3, statsNilGroups.TotalClones)
+
+	// An output filter that hides every pair must not shrink DuplicatedFragments
+	statsAllHidden := service.buildCloneStatistics(result, nil, nil, pairs, groups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
+	assert.Equal(t, 0, statsAllHidden.TotalClones)
+	assert.Equal(t, 3, statsAllHidden.DuplicatedFragments)
 }
 
 func TestCloneService_ResponseStructure(t *testing.T) {
@@ -786,4 +792,52 @@ func TestCloneService_ResponseStructure(t *testing.T) {
 	assert.GreaterOrEqual(t, stats.AverageSimilarity, 0.0)
 	assert.LessOrEqual(t, stats.AverageSimilarity, 1.0)
 	assert.NotNil(t, stats.ClonesByType)
+}
+
+// TestCloneService_OutputFiltersDoNotChangeScoredPopulation pins the contract
+// that min_similarity/max_similarity only trim the returned clone lists. If they
+// reached DuplicatedFragments, that filtered numerator would be divided by an
+// unfiltered TotalFragments and a display option would move the duplication
+// score and the health grade. Regression for #789.
+func TestCloneService_OutputFiltersDoNotChangeScoredPopulation(t *testing.T) {
+	service := NewCloneService()
+	ctx := context.Background()
+
+	newRequest := func() *domain.CloneRequest {
+		req := newDefaultCloneRequest("../testdata/python/clone_presentation_filters/dup.py")
+		req.MinSimilarity = 0.0
+		req.MaxSimilarity = 1.0
+		req.CloneTypes = []domain.CloneType{domain.Type1Clone, domain.Type2Clone, domain.Type3Clone, domain.Type4Clone}
+		return req
+	}
+
+	baseline, err := service.DetectClones(ctx, newRequest())
+	require.NoError(t, err)
+	require.Equal(t, 2, baseline.Statistics.TotalClonePairs, "fixture must produce pairs at two different similarities")
+	require.Equal(t, 4, baseline.Statistics.DuplicatedFragments)
+
+	cases := []struct {
+		name      string
+		mutate    func(*domain.CloneRequest)
+		wantPairs int
+	}{
+		{"min_similarity hides the less similar pair", func(req *domain.CloneRequest) { req.MinSimilarity = 0.99 }, 1},
+		{"max_similarity hides the most similar pair", func(req *domain.CloneRequest) { req.MaxSimilarity = 0.96 }, 1},
+		{"max_similarity hides every pair", func(req *domain.CloneRequest) { req.MaxSimilarity = 0.5 }, 0},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := newRequest()
+			tc.mutate(req)
+
+			response, err := service.DetectClones(ctx, req)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.wantPairs, response.Statistics.TotalClonePairs, "the filter must trim the reported pairs")
+			assert.Len(t, response.ClonePairs, tc.wantPairs, "the reported counts must match the returned pairs")
+			assert.Equal(t, baseline.Statistics.TotalFragments, response.Statistics.TotalFragments, "the denominator must not move")
+			assert.Equal(t, baseline.Statistics.DuplicatedFragments, response.Statistics.DuplicatedFragments, "the numerator must not move either")
+		})
+	}
 }

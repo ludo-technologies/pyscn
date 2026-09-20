@@ -129,6 +129,8 @@ Clone detection (the most configurable analyzer).
 | `sort_by`       | string| `"similarity"`  | `similarity`, `size`, `location`, `type`. |
 | `group_clones`  | bool  | `true`          | Group related clones. |
 
+These keys only shape the report. They never change the duplication score or the health grade.
+
 ---
 
 ## `[cbo]`

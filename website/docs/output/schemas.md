@@ -515,7 +515,8 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
 | Field                | Type    | Description                                              |
 | -------------------- | ------- | -------------------------------------------------------- |
 | `total_fragments`    | integer | All extracted fragments (functions, classes, etc.).      |
-| `total_clones`       | integer | Fragments classified as clones.                          |
+| `duplicated_fragments` | integer | Fragments in a detected clone relation, before the `min_similarity`/`max_similarity` output filters. Shares its population with `total_fragments`, and is the numerator of the duplication score. |
+| `total_clones`       | integer | Fragments classified as clones, after output filtering.  |
 | `total_clone_pairs`  | integer | Number of pairs detected.                                |
 | `total_clone_groups` | integer | Number of groups.                                        |
 | `clones_by_type`     | object \| null | Map from type label (`Type-1`…`Type-4`) to count.  |

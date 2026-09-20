@@ -124,15 +124,15 @@ func TestCloneService_Basic(t *testing.T) {
 	})
 
 	// Test filtering function
-	t.Run("filterClonePairs handles empty slice", func(t *testing.T) {
+	t.Run("clone pair filters handle empty slice", func(t *testing.T) {
 		var pairs []*domain.ClonePair
 		req := &domain.CloneRequest{
 			MinLines:            3,
 			MinNodes:            5,
 			SimilarityThreshold: 0.8,
 		}
-		result := service.filterClonePairs(pairs, req)
-		assert.Equal(t, 0, len(result))
+		assert.Equal(t, 0, len(service.filterClonePairsByType(pairs, req)))
+		assert.Equal(t, 0, len(service.filterClonePairsBySimilarity(pairs, req)))
 	})
 
 	// Test statistics creation
@@ -145,7 +145,7 @@ func TestCloneService_Basic(t *testing.T) {
 			Groups:     []*analyzer.CloneGroup{},
 			Statistics: &analyzer.CloneDetectionStatistics{TotalFragments: 0},
 		}
-		stats := service.buildCloneStatistics(result, pairs, groups, 0, 0, 0)
+		stats := service.buildCloneStatistics(result, pairs, groups, pairs, groups, 0, 0, 0)
 
 		assert.Equal(t, 0, stats.TotalFragments)
 		assert.Equal(t, 0, stats.TotalClones)
