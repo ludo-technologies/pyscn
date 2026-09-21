@@ -76,10 +76,11 @@ func TestSemanticOperationWeight(t *testing.T) {
 	}{
 		{"disjoint calls despite shared operator", []string{"call:encrypt", "binop:+"}, []string{"call:checksum", "binop:+"}, 0.5},
 		{"mostly shared calls", []string{"call:normalize", "method:digest"}, []string{"call:normalize", "method:digest", "call:validate"}, 0.5 + 0.5*2/3},
-		{"one call-free side with shared operator", []string{"binop:+"}, []string{"call:sum_numbers", "binop:+"}, 1},
+		{"one call-free side with shared operator", []string{"binop:+"}, []string{"call:sum_numbers", "binop:+"}, 0.5},
 		{"disjoint call-free operators", []string{"binop:+"}, []string{"compare:>"}, 0.5},
 		{"no evidence", nil, nil, 1},
-		{"one empty side", nil, []string{"call:normalize"}, 1},
+		{"one empty side with calls", nil, []string{"call:normalize"}, 0.5},
+		{"one empty side without calls", nil, []string{"binop:+"}, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -93,6 +94,65 @@ func TestSemanticOperationWeight(t *testing.T) {
 			left, right := signals(tt.left), signals(tt.right)
 			require.InDelta(t, tt.want, semanticOperationWeight(left, right), 1e-10)
 			require.InDelta(t, tt.want, semanticOperationWeight(right, left), 1e-10)
+		})
+	}
+}
+
+func TestSemanticEvidence_CallFreeBitScan(t *testing.T) {
+	left := fragmentFor(t, `def scan_bits(n, width, bitmask):
+    _n = n >> width
+    setbits = 0
+    zerochunks = 0
+    while _n:
+        setbits |= _n & bitmask
+        _n >>= width
+        if (((1 << width) - 1) & _n) == 0:
+            zerochunks += 1
+    if zerochunks >= 2:
+        return False
+    return setbits == 0
+`, parser.NodeFunctionDef)
+	tests := []struct {
+		name, source string
+	}{
+		{"string processing with matching control flow", `def collect_names(rows, sep, prefix):
+    out = sep.join(rows)
+    seen = 0
+    skipped = 0
+    while out:
+        seen += len(out.split(sep))
+        out = out.removeprefix(prefix)
+        if len(out.strip()) == 0:
+            skipped += 1
+    if skipped >= 2:
+        return False
+    return seen == 0
+`},
+		{"loop-free guard clauses calling the helper", `def check_key(n, width, bitmask):
+    if n <= 0:
+        return False
+    if width <= 0:
+        return False
+    if scan_bits(n, width, bitmask):
+        return False
+    if scan_bits(n >> 1, width, bitmask):
+        return False
+    return True
+`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			right := fragmentFor(t, tt.source, parser.NodeFunctionDef)
+			for name, analyzer := range map[string]*SemanticSimilarityAnalyzer{
+				"cfg": NewSemanticSimilarityAnalyzer(),
+				"dfa": NewSemanticSimilarityAnalyzerWithDFA(),
+			} {
+				t.Run(name, func(t *testing.T) {
+					score := analyzer.ComputeSimilarity(left, right)
+					require.Less(t, score, domain.DefaultType4CloneThreshold)
+					require.InDelta(t, score, analyzer.ComputeSimilarity(right, left), 1e-10)
+				})
+			}
 		})
 	}
 }
