@@ -145,7 +145,9 @@ func semanticOperationWeight(first, second coresemantic.SemanticSignals) float64
 		return calls
 	}
 	left, right := callSignals(first.StrongSignals), callSignals(second.StrongSignals)
-	if len(left) > 0 && len(right) > 0 {
+	// A call-free fragment also has zero overlap with a nonempty call vocabulary.
+	// Shared operators must not erase that mismatch.
+	if len(left) > 0 || len(right) > 0 {
 		shared := 0
 		for signal := range left {
 			if _, ok := right[signal]; ok {
@@ -156,8 +158,8 @@ func semanticOperationWeight(first, second coresemantic.SemanticSignals) float64
 		return 0.5 + 0.5*overlap
 	}
 
-	// Retain operator evidence for call-free implementations (e.g. iterative
-	// versus recursive arithmetic), rather than treating them as empty evidence.
+	// Retain operator evidence when both implementations are call-free,
+	// rather than treating them as empty evidence.
 	if len(first.StrongSignals) == 0 || len(second.StrongSignals) == 0 {
 		return 1
 	}
