@@ -20,9 +20,7 @@ Building with Cursor, Claude, or ChatGPT? pyscn keeps AI-generated code maintain
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-**Track your codebase's health every week with Polyscan.**<br>
-Automatically monitor complexity, duplication, and dead code, with changes delivered as a GitHub Issue.<br>
-[Set up weekly monitoring →](https://codescan.dev/pyscn-bot) · Free for public repositories
+<a href="https://codescan.dev/pyscn-bot"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 </div>
 
@@ -55,6 +53,12 @@ pyscn looks at your code from five angles:
 **100,000+ lines/sec** • Built with Go + tree-sitter
 
 *Working with other languages? pyscn is part of [polyscan](https://github.com/ludo-technologies/polyscan), code quality analyzers for JavaScript/TypeScript and more.*
+
+## Polyscan for GitHub
+
+[Polyscan App](https://codescan.dev/pyscn-bot) files a weekly audit report as a GitHub Issue. Free for public repositories.
+
+<a href="https://codescan.dev/pyscn-bot"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 ## AI Agent Integration
 
