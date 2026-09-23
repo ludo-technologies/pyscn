@@ -1,6 +1,8 @@
 package analyzer
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 	"time"
 
@@ -158,7 +160,7 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 	// finding whose line range is nested inside the `if` finding's range. Left
 	// as-is, the same source line is reported—and tallied—more than once. Merging
 	// collapses each contiguous dead region into a single non-overlapping finding.
-	result.Findings = mergeContiguousFindings(result.Findings)
+	result.Findings = dropNestedFindings(mergeContiguousFindings(result.Findings))
 
 	result.AnalysisTime = time.Since(startTime)
 	return result
@@ -254,13 +256,19 @@ func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason 
 		reason, severity = ReasonUnreachableAfterRaise, SeverityLevelCritical
 	}
 
+	startLine, endLine := dcd.getBlockStartLine(block), dcd.getBlockEndLine(block)
+	if try := enclosingDeadTry(block); try != nil {
+		startLine = min(startLine, try.Location.StartLine)
+		endLine = max(endLine, try.Location.EndLine)
+	}
+
 	// Create a finding for this dead block
 	finding := &DeadCodeFinding{
 		FunctionName: dcd.getFunctionName(),
 		ScopeKind:    dcd.scope.Kind,
 		FilePath:     dcd.getFilePath(),
-		StartLine:    dcd.getBlockStartLine(block),
-		EndLine:      dcd.getBlockEndLine(block),
+		StartLine:    startLine,
+		EndLine:      endLine,
 		BlockID:      block.ID,
 		Code:         dcd.getBlockCode(block),
 		Reason:       reason,
@@ -635,6 +643,43 @@ func mergeContiguousFindings(findings []*DeadCodeFinding) []*DeadCodeFinding {
 		merged = append(merged, finding)
 	}
 	return merged
+}
+
+// dropNestedFindings removes findings whose line range lies inside another
+// finding's range. Merging only joins findings that share a reason, so a block
+// inside a dead region that got a different reason (e.g. an except handler
+// entered only from a dead inner finally) would otherwise re-report lines the
+// enclosing finding already covers.
+func dropNestedFindings(findings []*DeadCodeFinding) []*DeadCodeFinding {
+	slices.SortStableFunc(findings, func(a, b *DeadCodeFinding) int {
+		return cmp.Or(cmp.Compare(a.StartLine, b.StartLine), cmp.Compare(b.EndLine, a.EndLine))
+	})
+	kept := findings[:0]
+	maxEnd := 0
+	for _, finding := range findings {
+		if len(kept) > 0 && finding.EndLine <= maxEnd {
+			continue
+		}
+		kept = append(kept, finding)
+		maxEnd = finding.EndLine
+	}
+	return kept
+}
+
+// enclosingDeadTry returns the outermost try statement whose body starts with
+// the block's first statement, or nil. The `try:` header is not a CFG
+// statement, but the first body statement runs exactly when the try is
+// entered, so that statement being dead means the whole try statement (header,
+// handlers, else and finally) is dead.
+func enclosingDeadTry(block *BasicBlock) *parser.Node {
+	var try *parser.Node
+	node := mustPythonNode(block.Statements[0])
+	for node.Parent != nil && node.Parent.Type == parser.NodeTry &&
+		len(node.Parent.Body) > 0 && node.Parent.Body[0] == node {
+		try = node.Parent
+		node = try
+	}
+	return try
 }
 
 // isOnlyNoOpStatements reports whether every statement is pass or a bare `;`.
