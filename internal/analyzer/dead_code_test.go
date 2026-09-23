@@ -759,6 +759,104 @@ def do_flip(self, show_widgets=True):
 	assert.Len(t, result.Findings, 1, "contiguous dead region should be one finding")
 }
 
+func TestDeadCodeTryStatementRangeIncludesHeader(t *testing.T) {
+	// The `try:` header is not a CFG statement, so a dead try block used to be
+	// reported from its first body statement, and a dead `finally:` header split
+	// the region into two findings.
+	tests := []struct {
+		name      string
+		code      string
+		startLine int
+		endLine   int
+	}{
+		{
+			name: "try except",
+			code: `
+def f(r):
+    return
+    try:
+        r.x
+    except AttributeError:
+        r.x = 1
+`,
+			startLine: 4,
+			endLine:   7,
+		},
+		{
+			name: "try finally",
+			code: `
+def f(r):
+    return
+    try:
+        r.x
+    finally:
+        r.y
+`,
+			startLine: 4,
+			endLine:   7,
+		},
+		{
+			name: "nested try",
+			code: `
+def f(r):
+    return
+    try:
+        try:
+            r.x
+        finally:
+            r.y
+    except AttributeError:
+        pass
+`,
+			startLine: 4,
+			endLine:   10,
+		},
+		{
+			name: "try body starts with loop",
+			code: `
+def f(r):
+    return
+    try:
+        for x in r:
+            print(x)
+    finally:
+        r.close()
+`,
+			startLine: 4,
+			endLine:   8,
+		},
+		{
+			name: "dead statement inside reachable try",
+			code: `
+def f(r):
+    try:
+        return r.x
+        r.y = 1
+    except AttributeError:
+        pass
+`,
+			startLine: 5,
+			endLine:   5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parseResult, err := parser.New().Parse(context.Background(), []byte(tt.code))
+			require.NoError(t, err)
+			cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+			require.NoError(t, err)
+			cfg, ok := findCFG(cfgs, "f")
+			require.True(t, ok, "expected CFG for f")
+
+			result := DetectInFunction(cfg)
+			require.Len(t, result.Findings, 1)
+			assert.Equal(t, tt.startLine, result.Findings[0].StartLine)
+			assert.Equal(t, tt.endLine, result.Findings[0].EndLine)
+		})
+	}
+}
+
 func TestDetectInFileIncludesClassExecutionScopes(t *testing.T) {
 	parseResult, err := parser.New().Parse(context.Background(), []byte(`class Config:
     raise RuntimeError("stop")
