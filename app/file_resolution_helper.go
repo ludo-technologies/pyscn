@@ -1,11 +1,8 @@
 package app
 
 import (
-	"path/filepath"
-	"strings"
-
-	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/service"
 )
 
 // ResolveFilePaths resolves file paths for analysis.
@@ -55,9 +52,15 @@ func ResolveFilePaths(
 	// If all paths are already files, no need to collect again
 	if allFiles {
 		if len(excludePatterns) > 0 {
+			projectRoot := service.FindProjectRoot(paths)
+			selection := domain.PythonFileSelection{ExcludePatterns: excludePatterns}
 			filtered := make([]string, 0, len(paths))
 			for _, p := range paths {
-				if !matchesExcludePattern(p, excludePatterns) {
+				included, err := service.MatchesPythonFileSelection(projectRoot, p, selection)
+				if err != nil {
+					return nil, err
+				}
+				if included {
 					filtered = append(filtered, p)
 				}
 			}
@@ -78,19 +81,4 @@ func ResolveFilePaths(
 	}
 
 	return files, nil
-}
-
-func matchesExcludePattern(path string, excludePatterns []string) bool {
-	normalized := strings.ReplaceAll(filepath.ToSlash(path), "\\", "/")
-	for _, pattern := range excludePatterns {
-		if matched, _ := doublestar.Match(pattern, normalized); matched {
-			return true
-		}
-		if !strings.ContainsAny(pattern, "/\\") {
-			if matched, _ := doublestar.Match(pattern, filepath.Base(normalized)); matched {
-				return true
-			}
-		}
-	}
-	return false
 }

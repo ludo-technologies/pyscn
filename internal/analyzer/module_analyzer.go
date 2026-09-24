@@ -953,7 +953,14 @@ func (ma *ModuleAnalyzer) collectPythonFiles() ([]string, error) {
 		}
 
 		// Check if file is a Python module and matches include patterns
-		if ma.isValidPythonFile(path) && ma.matchesIncludePatterns(path) && !ma.matchesExcludePatterns(path) {
+		if !ma.isValidPythonFile(path) {
+			return nil
+		}
+		relPath, err := ProjectRelativePath(ma.projectRoot, path)
+		if err != nil {
+			return err
+		}
+		if ma.matchesIncludePatterns(relPath) && !ma.matchesExcludePatterns(relPath) {
 			files = append(files, path)
 		}
 
@@ -1239,47 +1246,27 @@ func isPythonPackageInit(filePath string) bool {
 	return false
 }
 
-// matchesIncludePatterns checks if path matches any include pattern
-func (ma *ModuleAnalyzer) matchesIncludePatterns(path string) bool {
+// matchesIncludePatterns checks if a project-relative path matches any include pattern
+func (ma *ModuleAnalyzer) matchesIncludePatterns(relPath string) bool {
 	if len(ma.includePatterns) == 0 {
 		return true
 	}
 	for _, pattern := range ma.includePatterns {
-		if matchPathPattern(pattern, ma.projectRoot, path) {
+		if MatchPathPattern(pattern, relPath) {
 			return true
 		}
 	}
 	return false
 }
 
-// matchesExcludePatterns checks if path matches any exclude pattern
-func (ma *ModuleAnalyzer) matchesExcludePatterns(path string) bool {
+// matchesExcludePatterns checks if a project-relative path matches any exclude pattern
+func (ma *ModuleAnalyzer) matchesExcludePatterns(relPath string) bool {
 	for _, pattern := range ma.excludePatterns {
-		if matchPathPattern(pattern, ma.projectRoot, path) {
+		if MatchPathPattern(pattern, relPath) {
 			return true
 		}
 	}
 	return false
-}
-
-func matchPathPattern(pattern, root, path string) bool {
-	for _, candidate := range pathPatternCandidates(root, path) {
-		if matched, _ := doublestar.Match(pattern, candidate); matched {
-			return true
-		}
-	}
-	return false
-}
-
-func pathPatternCandidates(root, path string) []string {
-	candidates := []string{
-		filepath.ToSlash(path),
-		filepath.Base(path),
-	}
-	if rel, err := filepath.Rel(root, path); err == nil {
-		candidates = append(candidates, filepath.ToSlash(rel))
-	}
-	return candidates
 }
 
 // isStandardLibrary checks if a module is part of the Python standard library

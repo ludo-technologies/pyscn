@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bmatcuk/doublestar/v4"
 	"github.com/ludo-technologies/pyscn/domain"
+	"github.com/ludo-technologies/pyscn/internal/analyzer"
 )
 
 // FileReaderImpl implements the FileReader interface
@@ -22,6 +22,8 @@ func NewFileReader() *FileReaderImpl {
 func (f *FileReaderImpl) CollectPythonFiles(paths []string, recursive bool, includePatterns, excludePatterns []string) ([]string, error) {
 
 	var files []string
+	selection := domain.PythonFileSelection{IncludePatterns: includePatterns, ExcludePatterns: excludePatterns}
+	projectRoot := FindProjectRoot(paths)
 
 	for _, path := range paths {
 		// Check if path exists
@@ -32,14 +34,21 @@ func (f *FileReaderImpl) CollectPythonFiles(paths []string, recursive bool, incl
 
 		if info.IsDir() {
 			// Process directory
-			dirFiles, err := f.collectFromDirectory(path, recursive, includePatterns, excludePatterns)
+			dirFiles, err := f.collectFromDirectory(path, recursive, projectRoot, selection)
 			if err != nil {
 				return nil, err
 			}
 			files = append(files, dirFiles...)
 		} else {
 			// Process single file
-			if f.IsValidPythonFile(path) && f.shouldIncludeFile(path, includePatterns, excludePatterns) {
+			if !f.IsValidPythonFile(path) {
+				continue
+			}
+			included, err := MatchesPythonFileSelection(projectRoot, path, selection)
+			if err != nil {
+				return nil, err
+			}
+			if included {
 				files = append(files, path)
 			}
 		}
@@ -76,7 +85,7 @@ func (f *FileReaderImpl) FileExists(path string) (bool, error) {
 }
 
 // collectFromDirectory collects Python files from a directory
-func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, includePatterns, excludePatterns []string) ([]string, error) {
+func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, projectRoot string, selection domain.PythonFileSelection) ([]string, error) {
 	var files []string
 
 	walkFunc := func(path string, info os.FileInfo, err error) error {
@@ -105,7 +114,11 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 
 		// Check if it's a Python file
 		if !info.IsDir() && f.IsValidPythonFile(path) {
-			if f.shouldIncludeFile(path, includePatterns, excludePatterns) {
+			included, err := MatchesPythonFileSelection(projectRoot, path, selection)
+			if err != nil {
+				return err
+			}
+			if included {
 				files = append(files, path)
 			}
 		}
@@ -120,48 +133,28 @@ func (f *FileReaderImpl) collectFromDirectory(dirPath string, recursive bool, in
 	return files, nil
 }
 
-// shouldIncludeFile checks if a file should be included based on patterns
-func (f *FileReaderImpl) shouldIncludeFile(path string, includePatterns, excludePatterns []string) bool {
-	// Check exclude patterns first
-	for _, pattern := range excludePatterns {
-		if patternMatches(pattern, path) {
-			return false
+// MatchesPythonFileSelection reports whether path passes the selection's
+// include and exclude patterns. Patterns match the path relative to
+// projectRoot, never the directories above it.
+func MatchesPythonFileSelection(projectRoot, path string, selection domain.PythonFileSelection) (bool, error) {
+	relPath, err := analyzer.ProjectRelativePath(projectRoot, path)
+	if err != nil {
+		return false, err
+	}
+	for _, pattern := range selection.ExcludePatterns {
+		if analyzer.MatchPathPattern(pattern, relPath) {
+			return false, nil
 		}
 	}
-
-	// If no include patterns specified, include by default
-	if len(includePatterns) == 0 {
-		return true
+	if len(selection.IncludePatterns) == 0 {
+		return true, nil
 	}
-
-	// Check include patterns
-	for _, pattern := range includePatterns {
-		if patternMatches(pattern, path) {
-			return true
+	for _, pattern := range selection.IncludePatterns {
+		if analyzer.MatchPathPattern(pattern, relPath) {
+			return true, nil
 		}
 	}
-
-	return false
-}
-
-// patternMatches checks whether a glob pattern matches a file path.
-// Paths are normalized to forward slashes so directory globs behave
-// consistently across platforms. Bare filename patterns match the basename at
-// any depth, so include and exclude rules keep the same meaning for discovered
-// files and for files that were resolved before analysis.
-func patternMatches(pattern, path string) bool {
-	// ToSlash only replaces the platform separator; also fold backslashes so
-	// directory globs work for Windows-style paths on every platform.
-	normalized := strings.ReplaceAll(filepath.ToSlash(path), "\\", "/")
-	if matched, _ := doublestar.Match(pattern, normalized); matched {
-		return true
-	}
-	if !strings.ContainsAny(pattern, "/\\") {
-		if matched, _ := doublestar.Match(pattern, filepath.Base(normalized)); matched {
-			return true
-		}
-	}
-	return false
+	return false, nil
 }
 
 // shouldSkipDirectory checks if a directory should be skipped entirely

@@ -282,6 +282,23 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			expectError:     false,
 		},
 		{
+			name: "default analysis exclude patterns ignore directories above the project",
+			setupFiles: func(t *testing.T) (string, []string) {
+				tmpDir := createTempDir(t)
+				projectDir := filepath.Join(tmpDir, "docs", "examples", "myproject")
+				createTestFile(t, projectDir, "pyproject.toml", "[project]\nname = 'myproject'\n")
+				createTestFile(t, projectDir, "src/app.py", "def app(): pass")
+				createTestFile(t, projectDir, "docs/conf.py", "project = 'x'")
+				return projectDir, []string{projectDir}
+			},
+			recursive:       true,
+			includePatterns: []string{},
+			excludePatterns: domain.DefaultAnalysisExcludePatterns(),
+			expectedCount:   1,
+			expectedFiles:   []string{"app.py"},
+			expectError:     false,
+		},
+		{
 			name: "current directory with dot path",
 			setupFiles: func(t *testing.T) (string, []string) {
 				tmpDir := createTempDir(t)
@@ -537,10 +554,11 @@ func TestFileReader_FileExists(t *testing.T) {
 	}
 }
 
-// TestFileReader_shouldIncludeFile tests pattern matching logic
-func TestFileReader_shouldIncludeFile(t *testing.T) {
+// TestMatchesPythonFileSelection tests pattern matching logic
+func TestMatchesPythonFileSelection(t *testing.T) {
 	tests := []struct {
 		name            string
+		root            string
 		path            string
 		includePatterns []string
 		excludePatterns []string
@@ -583,6 +601,7 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 		},
 		{
 			name:            "full path pattern matching",
+			root:            "/project",
 			path:            "/project/src/main.py",
 			includePatterns: []string{"**/main*"},
 			excludePatterns: []string{},
@@ -637,15 +656,36 @@ func TestFileReader_shouldIncludeFile(t *testing.T) {
 			excludePatterns: []string{"**/testing/**"},
 			expected:        false,
 		},
+		{
+			name:            "directory exclude ignores directories above the project root",
+			root:            "/Users/alice/docs/myproject",
+			path:            "/Users/alice/docs/myproject/src/app.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/docs/**"},
+			expected:        true,
+		},
+		{
+			name:            "directory exclude matches inside the project root",
+			root:            "/Users/alice/docs/myproject",
+			path:            "/Users/alice/docs/myproject/docs/conf.py",
+			includePatterns: []string{},
+			excludePatterns: []string{"**/docs/**"},
+			expected:        false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reader := &FileReaderImpl{}
-			result := reader.shouldIncludeFile(tt.path, tt.includePatterns, tt.excludePatterns)
+			root := tt.root
+			if root == "" {
+				root = "."
+			}
+			selection := domain.PythonFileSelection{IncludePatterns: tt.includePatterns, ExcludePatterns: tt.excludePatterns}
+			result, err := MatchesPythonFileSelection(root, tt.path, selection)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, result,
-				"shouldIncludeFile(%s, %v, %v) = %v, expected %v",
-				tt.path, tt.includePatterns, tt.excludePatterns, result, tt.expected)
+				"MatchesPythonFileSelection(%s, %s, %v, %v) = %v, expected %v",
+				root, tt.path, tt.includePatterns, tt.excludePatterns, result, tt.expected)
 		})
 	}
 }

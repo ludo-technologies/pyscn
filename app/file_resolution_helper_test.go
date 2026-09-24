@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -286,7 +288,13 @@ func TestResolveFilePaths_AllFilesAreFiles_WithExcludePattern(t *testing.T) {
 
 func TestResolveFilePaths_AllFilesAreFiles_WithPathQualifiedExcludePattern(t *testing.T) {
 	mockReader := new(MockFileReader)
-	paths := []string{"./src/main.py", "./tests/test_main.py", "./src/tests/test_utils.py"}
+	projectRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(projectRoot, "pyproject.toml"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mainPath := filepath.Join(projectRoot, "src", "main.py")
+	nestedTestPath := filepath.Join(projectRoot, "src", "tests", "test_utils.py")
+	paths := []string{mainPath, filepath.Join(projectRoot, "tests", "test_main.py"), nestedTestPath}
 
 	for _, path := range paths {
 		mockReader.On("FileExists", path).Return(true, nil)
@@ -303,7 +311,7 @@ func TestResolveFilePaths_AllFilesAreFiles_WithPathQualifiedExcludePattern(t *te
 	)
 
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"./src/main.py", "./src/tests/test_utils.py"}, result,
+	assert.Equal(t, []string{mainPath, nestedTestPath}, result,
 		"Should preserve path-qualified exclude semantics when all paths are pre-resolved files")
 	mockReader.AssertExpectations(t)
 	mockReader.AssertNotCalled(t, "CollectPythonFiles")
