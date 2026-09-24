@@ -262,6 +262,26 @@ func TestFileReader_CollectPythonFiles(t *testing.T) {
 			expectError:     false,
 		},
 		{
+			name: "default analysis exclude patterns omit example and docs scripts",
+			setupFiles: func(t *testing.T) (string, []string) {
+				tmpDir := createTempDir(t)
+				createTestFile(t, tmpDir, "src/app.py", "def app(): pass")
+				createTestFile(t, tmpDir, "examples/a/app.py", "def a(): pass")
+				createTestFile(t, tmpDir, "docs/conf.py", "project = 'x'")
+				createTestFile(t, tmpDir, "docs_src/tutorial/main.py", "def main(): pass")
+				createTestFile(t, tmpDir, "pkg/demo/run.py", "def run(): pass")
+				createTestFile(t, tmpDir, "samples/basic.py", "def basic(): pass")
+				createTestFile(t, tmpDir, "pkg/example.py", "def example(): pass")
+				return tmpDir, []string{tmpDir}
+			},
+			recursive:       true,
+			includePatterns: []string{},
+			excludePatterns: domain.DefaultAnalysisExcludePatterns(),
+			expectedCount:   2,
+			expectedFiles:   []string{"app.py", "example.py"},
+			expectError:     false,
+		},
+		{
 			name: "current directory with dot path",
 			setupFiles: func(t *testing.T) (string, []string) {
 				tmpDir := createTempDir(t)
