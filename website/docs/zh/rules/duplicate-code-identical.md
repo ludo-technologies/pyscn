@@ -58,7 +58,7 @@ def send_reset_email(user):
 | --- | --- | --- |
 | [`clones.type1_threshold`](../configuration/reference.md#clones) | `0.85` | 一对代码被报告为完全相同所需的最低相似度。 |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | 在按类型阈值之前应用的全局下限。 |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | 最小片段大小（行数）。 |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | 最小片段大小（SLOC）。 |
 | [`clones.min_nodes`](../configuration/reference.md#clones) | `10` | 最小片段大小（AST 节点数）。 |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | 包含 `"type1"` 以保持此规则生效。 |
 

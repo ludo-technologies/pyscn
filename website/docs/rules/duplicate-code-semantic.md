@@ -50,7 +50,7 @@ def unique_emails(users):
 | [`clones.enable_dfa`](../configuration/reference.md#clones) | `true` | Enables the data-flow analysis that powers Type-4 detection. |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | Global floor applied before per-type thresholds. |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | Include `"type4"` to keep this rule active. |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | Minimum fragment size in lines. |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | Minimum fragment size in SLOC. |
 
 ## References
 

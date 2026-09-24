@@ -63,7 +63,7 @@ Détection de clones (l'analyseur le plus configurable).
 
 | Clé              | Type | Défaut | Description |
 | ---------------- | ---- | ------- | --- |
-| `min_lines`      | int  | `10`    | Nombre minimal de lignes pour considérer un fragment. |
+| `min_lines`      | int  | `8`     | SLOC minimal pour considérer un fragment (hors commentaires, lignes vides et docstrings). |
 | `min_nodes`      | int  | `20`    | Nombre minimal de nœuds AST. |
 | `skip_docstrings`| bool | `true`  | Ignore les docstrings lors du hachage. |
 

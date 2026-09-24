@@ -50,7 +50,7 @@ def unique_emails(users):
 | [`clones.enable_dfa`](../configuration/reference.md#clones) | `true` | Type-4 検出を支えるデータフロー分析を有効にします。 |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | タイプ別の閾値の前に適用されるグローバルな下限値。 |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | `"type4"` を含めることでこのルールを有効にします。 |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | フラグメントの最小行数。 |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | フラグメントの最小 SLOC。 |
 
 ## 参照
 

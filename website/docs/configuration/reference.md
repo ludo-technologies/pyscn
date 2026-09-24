@@ -63,7 +63,7 @@ Clone detection (the most configurable analyzer).
 
 | Key              | Type | Default | Description |
 | ---------------- | ---- | ------- | --- |
-| `min_lines`      | int  | `10`    | Minimum lines to consider a fragment. |
+| `min_lines`      | int  | `8`     | Minimum SLOC to consider a fragment (comments, blank lines and docstrings excluded). |
 | `min_nodes`      | int  | `20`    | Minimum AST nodes. |
 | `skip_docstrings`| bool | `true`  | Skip docstrings when hashing. |
 
@@ -75,10 +75,9 @@ One-statement bodies (`pass`, `raise NotImplementedError`, a single `return`)
 stay out, since those repeat across unrelated classes by design.
 
 Identity here is the Type-1 comparison, so comments and whitespace do not break
-the match. They do still count toward `min_lines`, which is measured on the raw
-source span, so the same body can clear the threshold in one place and fall
-short in another depending on how it is commented; either copy vindicates the
-other.
+the match. Line breaks do still count toward `min_lines`, so the same body can
+clear the threshold in one place and fall short in another depending on how its
+statements are wrapped; either copy vindicates the other.
 
 ### Type thresholds (0.0–1.0)
 

@@ -581,8 +581,8 @@ def helper():
 		require.NoError(t, err1)
 		require.NoError(t, err2)
 
-		fragments1 := detector.ExtractFragments([]*parser.Node{result1.AST}, "test1.py")
-		fragments2 := detector.ExtractFragments([]*parser.Node{result2.AST}, "test2.py")
+		fragments1 := detector.ExtractFragmentsWithSource([]*parser.Node{result1.AST}, "test1.py", []byte(source1))
+		fragments2 := detector.ExtractFragmentsWithSource([]*parser.Node{result2.AST}, "test2.py", []byte(source2))
 
 		require.NotEmpty(t, fragments1)
 		require.NotEmpty(t, fragments2)
@@ -784,8 +784,8 @@ class ProductInventory:
 		config.MinNodes = 1
 		detector := NewCloneDetector(config)
 
-		fragments1 := detector.ExtractFragments([]*parser.Node{result1.AST}, "test1.py")
-		fragments2 := detector.ExtractFragments([]*parser.Node{result2.AST}, "test2.py")
+		fragments1 := detector.ExtractFragmentsWithSource([]*parser.Node{result1.AST}, "test1.py", []byte(code1))
+		fragments2 := detector.ExtractFragmentsWithSource([]*parser.Node{result2.AST}, "test2.py", []byte(code2))
 
 		require.NotEmpty(t, fragments1)
 		require.NotEmpty(t, fragments2)
@@ -856,8 +856,8 @@ class ProductInventory:
 		config.MinNodes = 1
 		detector := NewCloneDetector(config)
 
-		fragments1 := detector.ExtractFragments([]*parser.Node{result1.AST}, "test1.py")
-		fragments2 := detector.ExtractFragments([]*parser.Node{result2.AST}, "test2.py")
+		fragments1 := detector.ExtractFragmentsWithSource([]*parser.Node{result1.AST}, "test1.py", []byte(code1))
+		fragments2 := detector.ExtractFragmentsWithSource([]*parser.Node{result2.AST}, "test2.py", []byte(code2))
 
 		require.NotEmpty(t, fragments1)
 		require.NotEmpty(t, fragments2)
@@ -935,8 +935,8 @@ class UserMetricsV2:
 		config.MinNodes = 1
 		detector := NewCloneDetector(config)
 
-		fragments1 := detector.ExtractFragments([]*parser.Node{result1.AST}, "test1.py")
-		fragments2 := detector.ExtractFragments([]*parser.Node{result2.AST}, "test2.py")
+		fragments1 := detector.ExtractFragmentsWithSource([]*parser.Node{result1.AST}, "test1.py", []byte(code1))
+		fragments2 := detector.ExtractFragmentsWithSource([]*parser.Node{result2.AST}, "test2.py", []byte(code2))
 
 		require.NotEmpty(t, fragments1)
 		require.NotEmpty(t, fragments2)

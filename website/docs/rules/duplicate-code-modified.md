@@ -65,7 +65,7 @@ def export_orders_csv(orders, path):
 | [`clones.type3_threshold`](../configuration/reference.md#clones) | `0.70` | Minimum similarity for a pair to be reported as modified. |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | Add `"type3"` to enable this rule. |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | Global floor applied before per-type thresholds. |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | Minimum fragment size in lines. |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | Minimum fragment size in SLOC. |
 | [`clones.min_nodes`](../configuration/reference.md#clones) | `10` | Minimum fragment size in AST nodes. |
 
 ## References

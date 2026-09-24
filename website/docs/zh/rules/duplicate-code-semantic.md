@@ -50,7 +50,7 @@ def unique_emails(users):
 | [`clones.enable_dfa`](../configuration/reference.md#clones) | `true` | 启用驱动 Type-4 检测的数据流分析。 |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | 在按类型阈值之前应用的全局下限。 |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | 包含 `"type4"` 以保持此规则生效。 |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | 最小片段大小（行数）。 |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | 最小片段大小（SLOC）。 |
 
 ## 参考
 

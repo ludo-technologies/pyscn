@@ -52,7 +52,7 @@ func RegisterTools(s *server.MCPServer, handlers *HandlerSet) {
 		mcp.WithNumber("similarity_threshold",
 			mcp.Description("Minimum similarity threshold 0.0-1.0 (default: 0.8)")),
 		mcp.WithNumber("min_lines",
-			mcp.Description("Minimum lines to consider as clone (default: 5)")),
+			mcp.Description("Minimum SLOC to consider as clone (default: 8)")),
 		mcp.WithBoolean("group_clones",
 			mcp.Description("Group related clones together (default: true)")),
 		mcp.WithString("output_mode",

@@ -55,7 +55,7 @@ def total_for_invoices(invoices):
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | Global floor applied before per-type thresholds. |
 | [`clones.ignore_identifiers`](../configuration/reference.md#clones) | `true` | Treat differing variable names as equivalent when computing similarity. |
 | [`clones.ignore_literals`](../configuration/reference.md#clones) | `true` | Treat differing numeric and string literals as equivalent. |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | Minimum fragment size in lines. |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | Minimum fragment size in SLOC. |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | Include `"type2"` to keep this rule active. |
 
 ## References

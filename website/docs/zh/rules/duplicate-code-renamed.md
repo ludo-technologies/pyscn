@@ -55,7 +55,7 @@ def total_for_invoices(invoices):
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | 在按类型阈值之前应用的全局下限。 |
 | [`clones.ignore_identifiers`](../configuration/reference.md#clones) | `true` | 计算相似度时将不同的变量名视为等价。 |
 | [`clones.ignore_literals`](../configuration/reference.md#clones) | `true` | 将不同的数字和字符串字面量视为等价。 |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | 最小片段大小（行数）。 |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | 最小片段大小（SLOC）。 |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | 包含 `"type2"` 以保持此规则生效。 |
 
 ## 参考

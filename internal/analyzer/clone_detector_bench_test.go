@@ -53,30 +53,6 @@ func benchmarkCloneDetectionMode(b *testing.B, name string, config *CloneDetecto
 	})
 }
 
-func BenchmarkCloneDetector_ExtractFragments(b *testing.B) {
-	config := DefaultCloneDetectorConfig()
-	detector := NewCloneDetector(config)
-
-	astNodes := make([]*parser.Node, 100)
-	for i := 0; i < 100; i++ {
-		astNodes[i] = &parser.Node{
-			Type:     parser.NodeFunctionDef,
-			Name:     fmt.Sprintf("function_%d", i),
-			Location: parser.Location{StartLine: i * 10, EndLine: (i * 10) + 8},
-			Children: []*parser.Node{
-				{Type: parser.NodeName, Name: fmt.Sprintf("param_%d", i)},
-			},
-		}
-	}
-
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		fragments := detector.ExtractFragments(astNodes, "/benchmark.py")
-		_ = fragments
-	}
-}
-
 func BenchmarkCloneDetector_ExtractFragmentsWithSource(b *testing.B) {
 	config := DefaultCloneDetectorConfig()
 	detector := NewCloneDetector(config)

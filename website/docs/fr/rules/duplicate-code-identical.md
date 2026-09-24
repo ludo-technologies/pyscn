@@ -58,7 +58,7 @@ def send_reset_email(user):
 | --- | --- | --- |
 | [`clones.type1_threshold`](../configuration/reference.md#clones) | `0.85` | Similarité minimale pour qu'une paire soit signalée comme identique. |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | Plancher global appliqué avant les seuils par type. |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | Taille minimale du fragment en lignes. |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | Taille minimale du fragment en SLOC. |
 | [`clones.min_nodes`](../configuration/reference.md#clones) | `10` | Taille minimale du fragment en nœuds AST. |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | Incluez `"type1"` pour garder cette règle active. |
 
