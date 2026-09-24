@@ -443,6 +443,12 @@ func DefaultAnalysisExcludePatterns() []string {
 		"**/test/**",
 		"**/testing/**",
 		"**/migrations/**",
+		// Standalone example and docs scripts repeat setup code on purpose.
+		"**/examples/**",
+		"**/docs/**",
+		"**/docs_src/**",
+		"**/demo/**",
+		"**/samples/**",
 	}
 }
 

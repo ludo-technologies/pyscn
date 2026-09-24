@@ -242,8 +242,8 @@ func TestComplexitySnapshotRequiresRawMetrics(t *testing.T) {
 	}
 }
 
-func TestProjectSnapshotSelectionUsesCollectionPathBase(t *testing.T) {
-	projectRoot := t.TempDir()
+func TestProjectSnapshotSelectionMatchesProjectRelativePaths(t *testing.T) {
+	projectRoot := filepath.Join(t.TempDir(), "docs", "myproject")
 	identityPath := filepath.Join(projectRoot, "subproject", "app", "main.py")
 	snapshot := &ProjectSnapshot{
 		Files: []*ProjectFile{{
@@ -254,11 +254,15 @@ func TestProjectSnapshotSelectionUsesCollectionPathBase(t *testing.T) {
 		projectRoot:   projectRoot,
 	}
 
-	selected := snapshot.selectedAnalysisProjectFiles(domain.PythonFileSelection{
-		IncludePatterns: []string{"app/**/*.py"},
+	selected, err := snapshot.selectedAnalysisProjectFiles(domain.PythonFileSelection{
+		IncludePatterns: []string{"subproject/app/**/*.py"},
+		ExcludePatterns: []string{"**/docs/**"},
 	})
+	if err != nil {
+		t.Fatalf("select files: %v", err)
+	}
 	if len(selected) != 1 || selected[0].Path != filepath.Join("app", "main.py") {
-		t.Fatalf("expected selection to use the path matched during collection, got %+v", selected)
+		t.Fatalf("expected selection to match the project-relative path, got %+v", selected)
 	}
 }
 

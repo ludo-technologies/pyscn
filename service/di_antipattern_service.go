@@ -97,7 +97,11 @@ func (s *DIAntipatternServiceImpl) AnalyzeSnapshot(ctx context.Context, snapshot
 		IncludePatterns: req.IncludePatterns,
 		ExcludePatterns: req.ExcludePatterns,
 	}
-	for _, file := range snapshot.selectedAnalysisProjectFiles(selection) {
+	selectedFiles, err := snapshot.selectedAnalysisProjectFiles(selection)
+	if err != nil {
+		return nil, fmt.Errorf("select di anti-pattern files: %w", err)
+	}
+	for _, file := range selectedFiles {
 		if err := ctx.Err(); err != nil {
 			return nil, fmt.Errorf("di anti-pattern analysis cancelled: %w", err)
 		}

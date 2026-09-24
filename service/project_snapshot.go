@@ -296,32 +296,19 @@ func (s *ProjectSnapshot) analysisProjectFiles() []*ProjectFile {
 	return files
 }
 
-func (s *ProjectSnapshot) selectedAnalysisProjectFiles(selection domain.PythonFileSelection) []*ProjectFile {
+func (s *ProjectSnapshot) selectedAnalysisProjectFiles(selection domain.PythonFileSelection) ([]*ProjectFile, error) {
 	files := s.analysisProjectFiles()
 	selected := make([]*ProjectFile, 0, len(files))
 	for _, file := range files {
-		if matchesPythonFileSelection(file.Path, selection) {
+		included, err := MatchesPythonFileSelection(s.projectRoot, file.identityPath, selection)
+		if err != nil {
+			return nil, err
+		}
+		if included {
 			selected = append(selected, file)
 		}
 	}
-	return selected
-}
-
-func matchesPythonFileSelection(path string, selection domain.PythonFileSelection) bool {
-	for _, pattern := range selection.ExcludePatterns {
-		if patternMatches(pattern, path) {
-			return false
-		}
-	}
-	if len(selection.IncludePatterns) == 0 {
-		return true
-	}
-	for _, pattern := range selection.IncludePatterns {
-		if patternMatches(pattern, path) {
-			return true
-		}
-	}
-	return false
+	return selected, nil
 }
 
 func (s *ProjectSnapshot) hasAnalysisFile(file *ProjectFile) bool {

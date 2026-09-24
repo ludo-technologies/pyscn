@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ludo-technologies/pyscn/domain"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -47,8 +50,8 @@ func TestDefaultConfig(t *testing.T) {
 		config.Analysis.IncludePatterns[0] != "**/*.py" {
 		t.Errorf("Expected include patterns ['**/*.py'], got %v", config.Analysis.IncludePatterns)
 	}
-	if len(config.Analysis.ExcludePatterns) != 6 {
-		t.Errorf("Expected 6 exclude patterns, got %d", len(config.Analysis.ExcludePatterns))
+	if !reflect.DeepEqual(config.Analysis.ExcludePatterns, domain.DefaultAnalysisExcludePatterns()) {
+		t.Errorf("Expected default exclude patterns %v, got %v", domain.DefaultAnalysisExcludePatterns(), config.Analysis.ExcludePatterns)
 	}
 	if !config.Analysis.Recursive {
 		t.Error("Expected recursive to be true by default")
