@@ -285,6 +285,21 @@ def f():
 		assert.Equal(t, 5, slocOf(source, 1, 9))
 	})
 
+	t.Run("colon inside a multi-line signature does not end the header", func(t *testing.T) {
+		const source = `def f(
+    callback=lambda x:
+        x + 1,
+    key={"a": 1},
+):  # trailing comment
+    """A long docstring.
+
+    Spanning lines.
+    """
+    return 1
+`
+		assert.Equal(t, 6, slocOf(source, 1, 10))
+	})
+
 	t.Run("multi-line string assignment counts as source", func(t *testing.T) {
 		const source = `def template():
     text = """

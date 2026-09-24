@@ -67,8 +67,10 @@ type rawMetricsState struct {
 	blockDocstringIndent *int
 	// openHeaderIndent is the indent of a def/class header whose signature has
 	// not reached its closing colon yet, so a docstring after a multi-line
-	// signature is still recognized.
+	// signature is still recognized. headerDepth is the bracket depth reached
+	// so far in that signature.
 	openHeaderIndent *int
+	headerDepth      int
 }
 
 // CalculateRawMetrics calculates raw code metrics without requiring AST parsing.
@@ -208,11 +210,60 @@ func (s *rawMetricsState) classifyLine(line string, lineIndex int, docstringLine
 	if s.openHeaderIndent == nil && startsDocstringEligibleHeader(trimmed) {
 		headerIndent := indent
 		s.openHeaderIndent = &headerIndent
+		s.headerDepth = 0
 	}
-	if s.openHeaderIndent != nil && strings.HasSuffix(trimmed, ":") {
-		s.blockDocstringIndent = s.openHeaderIndent
-		s.openHeaderIndent = nil
+	if s.openHeaderIndent != nil {
+		var closed bool
+		s.headerDepth, closed = scanHeaderLine(line, s.headerDepth)
+		if closed {
+			s.blockDocstringIndent = s.openHeaderIndent
+			s.openHeaderIndent = nil
+		}
 	}
+}
+
+// scanHeaderLine continues a def/class header at the given bracket depth. It
+// returns the depth after the line and whether the line ends the header, i.e.
+// its code ends with a colon outside any brackets. Colons inside the signature,
+// such as a lambda default or a dict literal, therefore do not end it. Strings
+// and trailing comments are skipped.
+func scanHeaderLine(line string, depth int) (int, bool) {
+	var quote byte
+	escaped := false
+	last := byte(0)
+
+	for i := 0; i < len(line); i++ {
+		ch := line[i]
+
+		if quote != 0 {
+			switch {
+			case escaped:
+				escaped = false
+			case ch == '\\':
+				escaped = true
+			case ch == quote:
+				quote = 0
+			}
+			last = ch
+			continue
+		}
+
+		switch ch {
+		case '#':
+			return depth, depth == 0 && last == ':'
+		case '\'', '"':
+			quote = ch
+		case '(', '[', '{':
+			depth++
+		case ')', ']', '}':
+			depth--
+		}
+		if ch != ' ' && ch != '\t' {
+			last = ch
+		}
+	}
+
+	return depth, depth == 0 && last == ':'
 }
 
 func (s *rawMetricsState) docstringDelimiter(trimmed string, indent int) string {
