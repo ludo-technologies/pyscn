@@ -71,7 +71,7 @@ type CodeFragment struct {
 	Content    string   // Original source code content
 	Hash       string   // FNV-64a hex hash of Type-1 normalized content; "" when no source content
 	Size       int      // Number of AST nodes
-	LineCount  int      // Number of source lines
+	LineCount  int      // Source lines of code (comments, blanks and docstrings excluded)
 	Complexity int      // Cyclomatic complexity (if applicable)
 	Features   []string // Detector-populated clone feature cache for this fragment's tree
 
@@ -158,13 +158,15 @@ func NewCodeFragment(location *CodeLocation, astNode *parser.Node, content strin
 	}
 }
 
-// newFragment creates a fragment whose size and line count honor SkipDocstrings,
-// so docstrings neither pad MinLines/MinNodes nor appear in the compared tree.
-func (cd *CloneDetector) newFragment(location *CodeLocation, astNode *parser.Node, content string) *CodeFragment {
+// newFragment creates a fragment measured in SLOC, the same measure the
+// complexity analyzer uses, so comments, blank lines and docstrings never pad
+// MinLines. Its node count honors SkipDocstrings, so docstrings neither pad
+// MinNodes nor appear in the compared tree.
+func (cd *CloneDetector) newFragment(location *CodeLocation, astNode *parser.Node, content string, rawMetrics *RawMetricsResult) *CodeFragment {
 	fragment := NewCodeFragment(location, astNode, content)
+	fragment.LineCount = rawMetrics.FunctionSLOC(location.StartLine, location.EndLine)
 	if cd.cloneDetectorConfig.SkipDocstrings {
 		fragment.Size = cd.converter.CountNodes(astNode)
-		fragment.LineCount -= cd.converter.DocstringLines(astNode)
 	}
 	return fragment
 }
@@ -539,32 +541,22 @@ func (cd *CloneDetector) SetBatchSizeLarge(size int) {
 	cd.cloneDetectorConfig.BatchSizeLarge = size
 }
 
-// ExtractFragments extracts code fragments from AST nodes
-func (cd *CloneDetector) ExtractFragments(astNodes []*parser.Node, filePath string) []*CodeFragment {
-	var fragments []*CodeFragment
-
-	for _, node := range astNodes {
-		cd.extractFragmentsRecursive(node, filePath, &fragments)
-	}
-
-	return fragments
-}
-
 // ExtractFragmentsWithSource extracts code fragments from AST nodes with source content.
 // Source content is needed for Type-1 clone classification and optional report output.
 func (cd *CloneDetector) ExtractFragmentsWithSource(astNodes []*parser.Node, filePath string, sourceCode []byte) []*CodeFragment {
 	var fragments []*CodeFragment
 	lines := splitLines(sourceCode)
+	rawMetrics := CalculateRawMetrics(sourceCode, filePath)
 
 	for _, node := range astNodes {
-		cd.extractFragmentsRecursiveWithSource(node, filePath, lines, &fragments)
+		cd.extractFragmentsRecursiveWithSource(node, filePath, lines, rawMetrics, &fragments)
 	}
 
 	return fragments
 }
 
 // extractFragmentsRecursiveWithSource recursively extracts fragments with source content
-func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, lines [][]byte, fragments *[]*CodeFragment) {
+func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, filePath string, lines [][]byte, rawMetrics *RawMetricsResult, fragments *[]*CodeFragment) {
 	if node == nil {
 		return
 	}
@@ -585,12 +577,12 @@ func (cd *CloneDetector) extractFragmentsRecursiveWithSource(node *parser.Node, 
 			content = cd.extractSourceContent(lines, &node.Location)
 		}
 
-		cd.collectFragment(cd.newFragment(location, node, content), fragments)
+		cd.collectFragment(cd.newFragment(location, node, content, rawMetrics), fragments)
 	}
 
 	// Recursively process children
 	for _, child := range parser.OrderedChildren(node, nil) {
-		cd.extractFragmentsRecursiveWithSource(child, filePath, lines, fragments)
+		cd.extractFragmentsRecursiveWithSource(child, filePath, lines, rawMetrics, fragments)
 	}
 }
 
@@ -634,31 +626,6 @@ func splitLines(sourceCode []byte) [][]byte {
 		lines = append(lines, sourceCode[start:])
 	}
 	return lines
-}
-
-// extractFragmentsRecursive recursively extracts fragments from AST
-func (cd *CloneDetector) extractFragmentsRecursive(node *parser.Node, filePath string, fragments *[]*CodeFragment) {
-	if node == nil {
-		return
-	}
-
-	// Check if this node should be considered as a fragment
-	if cd.isFragmentCandidate(node) {
-		location := &CodeLocation{
-			FilePath:  filePath,
-			StartLine: node.Location.StartLine,
-			EndLine:   node.Location.EndLine,
-			StartCol:  node.Location.StartCol,
-			EndCol:    node.Location.EndCol,
-		}
-
-		cd.collectFragment(cd.newFragment(location, node, ""), fragments)
-	}
-
-	// Recursively process children
-	for _, child := range parser.OrderedChildren(node, nil) {
-		cd.extractFragmentsRecursive(child, filePath, fragments)
-	}
 }
 
 // isFragmentCandidate checks if a node should be considered as a fragment candidate
@@ -757,9 +724,9 @@ func countBodyStatements(node *parser.Node) int {
 // an identical one was found elsewhere; the rest are discarded, leaving the
 // MinLines/MinNodes contract intact for everything that is not a duplicate.
 //
-// The twin may be a fragment that cleared the gate on its own. Comments are
-// stripped from the hash but still count toward LineCount, so the same body can
-// land on either side of MinLines depending on how it is commented.
+// The twin may be a fragment that cleared the gate on its own. The hash
+// collapses whitespace, line breaks included, so the same body can land on
+// either side of MinLines depending on how its statements are wrapped.
 func RetainIdenticalUndersizedFragments(fragments []*CodeFragment) []*CodeFragment {
 	held := false
 	occurrences := make(map[string]int, len(fragments))

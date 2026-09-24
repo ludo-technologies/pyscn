@@ -65,6 +65,10 @@ type rawMetricsState struct {
 	multilineMode        rawStringMode
 	moduleDocstringReady bool
 	blockDocstringIndent *int
+	// openHeaderIndent is the indent of a def/class header whose signature has
+	// not reached its closing colon yet, so a docstring after a multi-line
+	// signature is still recognized.
+	openHeaderIndent *int
 }
 
 // CalculateRawMetrics calculates raw code metrics without requiring AST parsing.
@@ -201,9 +205,13 @@ func (s *rawMetricsState) classifyLine(line string, lineIndex int, docstringLine
 		s.multilineMode = rawStringModeCode
 	}
 
-	if startsDocstringEligibleBlock(trimmed) {
-		blockIndent := indent
-		s.blockDocstringIndent = &blockIndent
+	if s.openHeaderIndent == nil && startsDocstringEligibleHeader(trimmed) {
+		headerIndent := indent
+		s.openHeaderIndent = &headerIndent
+	}
+	if s.openHeaderIndent != nil && strings.HasSuffix(trimmed, ":") {
+		s.blockDocstringIndent = s.openHeaderIndent
+		s.openHeaderIndent = nil
 	}
 }
 
@@ -239,11 +247,10 @@ func countLeadingIndent(line string) int {
 	return count
 }
 
-func startsDocstringEligibleBlock(trimmed string) bool {
-	return (strings.HasPrefix(trimmed, "def ") ||
+func startsDocstringEligibleHeader(trimmed string) bool {
+	return strings.HasPrefix(trimmed, "def ") ||
 		strings.HasPrefix(trimmed, "async def ") ||
-		strings.HasPrefix(trimmed, "class ")) &&
-		strings.HasSuffix(trimmed, ":")
+		strings.HasPrefix(trimmed, "class ")
 }
 
 func leadingTripleQuoteDelimiter(trimmed string) string {

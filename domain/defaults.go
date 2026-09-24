@@ -220,8 +220,9 @@ const (
 // ============================================================================
 
 const (
-	// DefaultCloneMinLines is the minimum number of lines for a code fragment to be considered.
-	DefaultCloneMinLines = 10
+	// DefaultCloneMinLines is the minimum SLOC (comments, blanks and docstrings
+	// excluded) for a code fragment to be considered.
+	DefaultCloneMinLines = 8
 
 	// DefaultCloneMinNodes is the minimum number of AST nodes for a code fragment.
 	DefaultCloneMinNodes = 20

@@ -50,7 +50,7 @@ def unique_emails(users):
 | [`clones.enable_dfa`](../configuration/reference.md#clones) | `true` | Active l'analyse de flot de données qui alimente la détection de Type 4. |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | Plancher global appliqué avant les seuils par type. |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | Incluez `"type4"` pour garder cette règle active. |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | Taille minimale du fragment en lignes. |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | Taille minimale du fragment en SLOC. |
 
 ## Références
 

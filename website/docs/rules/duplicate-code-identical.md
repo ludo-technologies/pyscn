@@ -58,7 +58,7 @@ def send_reset_email(user):
 | --- | --- | --- |
 | [`clones.type1_threshold`](../configuration/reference.md#clones) | `0.85` | Minimum similarity for a pair to be reported as identical. |
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | Global floor applied before per-type thresholds. |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | Minimum fragment size in lines. |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | Minimum fragment size in SLOC. |
 | [`clones.min_nodes`](../configuration/reference.md#clones) | `10` | Minimum fragment size in AST nodes. |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | Include `"type1"` to keep this rule active. |
 

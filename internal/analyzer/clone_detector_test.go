@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -785,44 +786,49 @@ func TestCloneDetector_GetStatistics(t *testing.T) {
 	assert.InDelta(t, expected, avgSimilarity, 0.001)
 }
 
-// Integration test with mock AST nodes
-func TestCloneDetector_ExtractFragments_Integration(t *testing.T) {
-	config := &CloneDetectorConfig{
-		MinLines: 1,
-		MinNodes: 1,
-	}
+func TestCloneDetector_ExtractFragments_MeasuresSLOC(t *testing.T) {
+	// Both functions span 10 raw lines. commented has only 5 SLOC once its
+	// comments, blank lines and docstring are excluded, so it falls below
+	// MinLines; dense clears it with 10.
+	source := `def commented(items):
+    """Sum the items."""
+    # accumulate
+
+    total = 0
+    for item in items:
+        # skip empties
+        total += item
+
+    return total
+
+def dense(items):
+    total = 0
+    count = 0
+    for item in items:
+        total += item
+        count += 1
+    if count == 0:
+        return 0
+    mean = total / count
+    return mean
+`
+	result, err := parser.New().Parse(context.Background(), []byte(source))
+	require.NoError(t, err)
+
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 10
+	config.MinNodes = 1
 	detector := NewCloneDetector(config)
 
-	// Create mock AST nodes representing functions
-	function1 := &parser.Node{
-		Type:     parser.NodeFunctionDef,
-		Name:     "test_function_1",
-		Location: parser.Location{StartLine: 1, EndLine: 10},
-		Children: []*parser.Node{
-			{Type: parser.NodeName, Name: "param1"},
-		},
+	fragments := detector.ExtractFragmentsWithSource([]*parser.Node{result.AST}, "test.py", []byte(source))
+
+	lineCounts := map[string]int{}
+	for _, fragment := range fragments {
+		if fragment.ASTNode.Type == parser.NodeFunctionDef && !fragment.belowSizeGate {
+			lineCounts[fragment.ASTNode.Name] = fragment.LineCount
+		}
 	}
-
-	function2 := &parser.Node{
-		Type:     parser.NodeFunctionDef,
-		Name:     "test_function_2",
-		Location: parser.Location{StartLine: 15, EndLine: 25},
-		Children: []*parser.Node{
-			{Type: parser.NodeName, Name: "param2"},
-		},
-	}
-
-	astNodes := []*parser.Node{function1, function2}
-	fragments := detector.ExtractFragments(astNodes, "/test.py")
-
-	assert.Len(t, fragments, 2, "Should extract 2 fragments")
-
-	for i, fragment := range fragments {
-		assert.NotNil(t, fragment.Location, "Fragment %d should have location", i)
-		assert.Equal(t, "/test.py", fragment.Location.FilePath, "Fragment %d should have correct file path", i)
-		assert.Greater(t, fragment.Size, 0, "Fragment %d should have positive size", i)
-		assert.Greater(t, fragment.LineCount, 0, "Fragment %d should have positive line count", i)
-	}
+	assert.Equal(t, map[string]int{"dense": 10}, lineCounts)
 }
 
 func TestCloneDetector_DetectClones(t *testing.T) {
@@ -1295,10 +1301,9 @@ func TestExtractFragments_SkipDocstringsExcludesDocstringFromSize(t *testing.T) 
 	}
 
 	withDocstring := extract(false)
-	assert.Equal(t, 15, withDocstring.LineCount)
-
 	withoutDocstring := extract(true)
 	assert.Equal(t, 6, withoutDocstring.LineCount, "9 docstring lines must be excluded")
+	assert.Equal(t, 6, withDocstring.LineCount, "LineCount is SLOC, which never counts docstrings")
 	assert.Equal(t, withDocstring.Size-1, withoutDocstring.Size, "docstring node must be excluded")
 
 	cfg := DefaultCloneDetectorConfig()
@@ -1490,9 +1495,9 @@ func TestCloneDetector_RetainIdenticalUndersizedFragments(t *testing.T) {
 }
 
 func TestCloneDetector_IdenticalBodyTwinAcrossSizeGate(t *testing.T) {
-	// The same body either side of MinLines: comments are stripped from the
-	// hash but still count toward LineCount, so only the commented copy clears
-	// the gate on its own.
+	// The same body either side of MinLines: line breaks are collapsed in the
+	// hash but a wrapped statement spans more SLOC, so only the wrapped copy
+	// clears the gate on its own.
 	const bare = `def apply(self, payload):
     total = 0
     for item in payload:
@@ -1501,10 +1506,9 @@ func TestCloneDetector_IdenticalBodyTwinAcrossSizeGate(t *testing.T) {
         else:
             total -= item.weight
     self.total = total
-    return total
+    return max(total, 0)
 `
-	const commented = `def apply(self, payload):
-    # weights are signed by the enabled flag
+	const wrapped = `def apply(self, payload):
     total = 0
     for item in payload:
         if item.enabled:
@@ -1512,19 +1516,23 @@ func TestCloneDetector_IdenticalBodyTwinAcrossSizeGate(t *testing.T) {
         else:
             total -= item.weight
     self.total = total
-    return total
+    return max(
+        total, 0
+    )
 `
 
-	detector := NewCloneDetector(DefaultCloneDetectorConfig())
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 10
+	detector := NewCloneDetector(config)
 	bareFragments := extractAllFragments(t, detector, "bare.py", bare)
-	commentedFragments := extractAllFragments(t, detector, "commented.py", commented)
+	wrappedFragments := extractAllFragments(t, detector, "wrapped.py", wrapped)
 	require.Len(t, bareFragments, 1)
-	require.Len(t, commentedFragments, 1)
-	require.True(t, bareFragments[0].belowSizeGate, "the uncommented copy should be one line short of the gate")
-	require.False(t, commentedFragments[0].belowSizeGate, "the commented copy should clear the gate on its own")
-	require.Equal(t, bareFragments[0].Hash, commentedFragments[0].Hash, "comments must not change the hash")
+	require.Len(t, wrappedFragments, 1)
+	require.True(t, bareFragments[0].belowSizeGate, "the unwrapped copy should be one line short of the gate")
+	require.False(t, wrappedFragments[0].belowSizeGate, "the wrapped copy should clear the gate on its own")
+	require.Equal(t, bareFragments[0].Hash, wrappedFragments[0].Hash, "line breaks must not change the hash")
 
-	retained := RetainIdenticalUndersizedFragments(append(bareFragments, commentedFragments...))
+	retained := RetainIdenticalUndersizedFragments(append(bareFragments, wrappedFragments...))
 
 	assert.Len(t, retained, 2, "a twin that cleared the gate still vindicates the held fragment")
 }

@@ -55,7 +55,7 @@ def total_for_invoices(invoices):
 | [`clones.similarity_threshold`](../configuration/reference.md#clones) | `0.65` | タイプ別の閾値の前に適用されるグローバルな下限値。 |
 | [`clones.ignore_identifiers`](../configuration/reference.md#clones) | `true` | 類似度計算時に異なる変数名を同等として扱います。 |
 | [`clones.ignore_literals`](../configuration/reference.md#clones) | `true` | 異なる数値リテラルや文字列リテラルを同等として扱います。 |
-| [`clones.min_lines`](../configuration/reference.md#clones) | `5` | フラグメントの最小行数。 |
+| [`clones.min_lines`](../configuration/reference.md#clones) | `8` | フラグメントの最小 SLOC。 |
 | [`clones.enabled_clone_types`](../configuration/reference.md#clones) | `["type1","type2","type4"]` | `"type2"` を含めることでこのルールを有効にします。 |
 
 ## 参照
