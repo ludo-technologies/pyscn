@@ -18,6 +18,13 @@ const (
 	LabelEntry        = "ENTRY"
 	LabelExit         = "EXIT"
 
+	// Labels of the block receiving the code that follows a terminator. They
+	// record which terminator made that code dead.
+	LabelUnreachableAfterReturn   = LabelUnreachable + "_after_return"
+	LabelUnreachableAfterRaise    = LabelUnreachable + "_after_raise"
+	LabelUnreachableAfterBreak    = LabelUnreachable + "_after_break"
+	LabelUnreachableAfterContinue = LabelUnreachable + "_after_continue"
+
 	// Conditional labels
 	LabelIfThen  = "if_then"
 	LabelIfMerge = "if_merge"
@@ -392,7 +399,7 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 			// Route through the next outer finally block
 			b.cfg.ConnectBlocks(b.currentBlock, targetFinallyBlock, EdgeReturn)
 			// Create unreachable block for any code after return
-			unreachableBlock := b.createBlock(LabelUnreachable)
+			unreachableBlock := b.createBlock(LabelUnreachableAfterReturn)
 			b.currentBlock = unreachableBlock
 			return
 		}
@@ -403,7 +410,7 @@ func (b *CFGBuilder) processStatement(stmt *parser.Node) {
 		// Create unreachable block for any code following the return statement.
 		// This block will not be connected to the exit, making it truly unreachable
 		// in the CFG, which helps with dead code detection in later analysis phases.
-		unreachableBlock := b.createBlock(LabelUnreachable)
+		unreachableBlock := b.createBlock(LabelUnreachableAfterReturn)
 		b.currentBlock = unreachableBlock
 
 	case parser.NodePass:
@@ -893,7 +900,7 @@ func (b *CFGBuilder) processBreakStatement(stmt *parser.Node) {
 	}
 
 	// Create unreachable block for any code after break
-	unreachableBlock := b.createBlock(LabelUnreachable)
+	unreachableBlock := b.createBlock(LabelUnreachableAfterBreak)
 	b.currentBlock = unreachableBlock
 }
 
@@ -936,7 +943,7 @@ func (b *CFGBuilder) processContinueStatement(stmt *parser.Node) {
 	}
 
 	// Create unreachable block for any code after continue
-	unreachableBlock := b.createBlock(LabelUnreachable)
+	unreachableBlock := b.createBlock(LabelUnreachableAfterContinue)
 	b.currentBlock = unreachableBlock
 }
 
@@ -1198,7 +1205,7 @@ func (b *CFGBuilder) processRaiseStatement(stmt *parser.Node) {
 	}
 
 	// Create unreachable block for any code after raise
-	unreachableBlock := b.createBlock(LabelUnreachable)
+	unreachableBlock := b.createBlock(LabelUnreachableAfterRaise)
 	b.currentBlock = unreachableBlock
 }
 

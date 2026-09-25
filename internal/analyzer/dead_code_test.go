@@ -857,6 +857,91 @@ def f(r):
 	}
 }
 
+func TestDeadCodeRegionKeepsTerminatorReason(t *testing.T) {
+	// The reason used to come from a terminator within 5 source lines, so a
+	// block further down the same dead region became unreachable_branch and
+	// was reported as a separate, sometimes overlapping, finding.
+	tests := []struct {
+		name      string
+		code      string
+		startLine int
+		endLine   int
+		reason    DeadCodeReason
+	}{
+		{
+			name: "loop after try",
+			code: `
+def f(r):
+    return
+    x = 1
+    try:
+        r.x
+    except AttributeError:
+        pass
+    for i in r:
+        r.y = i
+`,
+			startLine: 4,
+			endLine:   10,
+			reason:    ReasonUnreachableAfterReturn,
+		},
+		{
+			name: "if after try finally",
+			code: `
+def f(r):
+    return
+    try:
+        r.x
+    except AttributeError:
+        r.z = 1
+    else:
+        r.q = 3
+    finally:
+        r.y = 2
+    if r:
+        r.k = 1
+`,
+			startLine: 4,
+			endLine:   13,
+			reason:    ReasonUnreachableAfterReturn,
+		},
+		{
+			name: "loop after with",
+			code: `
+def f(r):
+    raise ValueError
+    with r:
+        try:
+            r.x
+        except AttributeError:
+            r.z = 1
+    while r:
+        r.w = 2
+`,
+			startLine: 4,
+			endLine:   10,
+			reason:    ReasonUnreachableAfterRaise,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parseResult, err := parser.New().Parse(context.Background(), []byte(tt.code))
+			require.NoError(t, err)
+			cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+			require.NoError(t, err)
+			cfg, ok := findCFG(cfgs, "f")
+			require.True(t, ok, "expected CFG for f")
+
+			result := DetectInFunction(cfg)
+			require.Len(t, result.Findings, 1)
+			assert.Equal(t, tt.startLine, result.Findings[0].StartLine)
+			assert.Equal(t, tt.endLine, result.Findings[0].EndLine)
+			assert.Equal(t, tt.reason, result.Findings[0].Reason)
+		})
+	}
+}
+
 func TestDetectInFileIncludesClassExecutionScopes(t *testing.T) {
 	parseResult, err := parser.New().Parse(context.Background(), []byte(`class Config:
     raise RuntimeError("stop")
