@@ -112,15 +112,22 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	result.ExcludedMethods = collected.excluded
 
 	// Step 2: Collect all distinct instance variables, including the ones only a
-	// constructor touches and ctypes-declared fields that no method accesses
+	// constructor touches and ctypes-declared fields that no method accesses.
+	// A `self.<name>` reference to a method defined in the class body is a
+	// method, not instance state.
+	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
 	allVars := make(map[string]bool)
 	for _, vars := range methods {
 		for v := range vars {
-			allVars[v] = true
+			if !methodNames[v] {
+				allVars[v] = true
+			}
 		}
 	}
 	for v := range collected.excludedVars {
-		allVars[v] = true
+		if !methodNames[v] {
+			allVars[v] = true
+		}
 	}
 	for v := range declaredFields {
 		allVars[v] = true
@@ -476,6 +483,12 @@ func isExcludedLCOMDecorator(name string) bool {
 // in the class body. Reads of these via `self.<name>` are descriptor-protocol
 // method invocations rather than instance-variable accesses.
 func (a *LCOMAnalyzer) collectPropertyNames(classNode *parser.Node) map[string]bool {
+	return a.collectMethodNames(classNode, a.isProperty)
+}
+
+// collectMethodNames returns the names of the methods defined in the class
+// body that satisfy keep.
+func (a *LCOMAnalyzer) collectMethodNames(classNode *parser.Node, keep func(*parser.Node) bool) map[string]bool {
 	names := make(map[string]bool)
 	for _, node := range classNode.Body {
 		if node == nil {
@@ -484,7 +497,7 @@ func (a *LCOMAnalyzer) collectPropertyNames(classNode *parser.Node) map[string]b
 		if node.Type != parser.NodeFunctionDef && node.Type != parser.NodeAsyncFunctionDef {
 			continue
 		}
-		if a.isProperty(node) {
+		if keep(node) {
 			names[node.Name] = true
 		}
 	}

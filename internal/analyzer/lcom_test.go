@@ -1325,3 +1325,36 @@ class Probe:
 	assert.Equal(t, 0, r.InstanceVariables, "the class stores no instance state")
 	assert.Equal(t, 1, r.ExcludedMethods, "__init__")
 }
+
+// TestLCOMAnalyzer_MethodReferencesAreNotVariables pins issue #678: a
+// `self.<method>` reference names a method defined in the class, not
+// instance state, whether it is called or passed along as a callback.
+func TestLCOMAnalyzer_MethodReferencesAreNotVariables(t *testing.T) {
+	p := parser.New()
+	code := `
+class C:
+    def __init__(self):
+        self._a = 1
+        self._b = 2
+        self._setup()
+    def _setup(self):
+        register(self.helper)
+    def helper(self):
+        return self._a
+    def run(self):
+        self.helper()
+        self._callback()
+        return self._b
+`
+	result, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	analyzer := NewLCOMAnalyzer(nil)
+	results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	r := results[0]
+	assert.Equal(t, 3, r.InstanceVariables, "self._a, self._b and self._callback; _setup and helper are methods")
+	assert.Equal(t, 1, r.LCOM4)
+}
