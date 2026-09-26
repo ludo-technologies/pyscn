@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"cmp"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -140,6 +141,7 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 		result.ReachableRatio = float64(reachResult.ReachableCount) / float64(result.TotalBlocks)
 	}
 	coreResult := corecfg.DetectDeadCode(dcd.cfg, corecfg.DeadCodeConfig{Classifier: classifier})
+	regionReasons := deadRegionReasons(dcd.cfg, reachResult.Reachable)
 
 	reportedBlocks := make(map[string]bool)
 	for _, coreFinding := range coreResult.Findings {
@@ -147,7 +149,7 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 			continue
 		}
 		block := dcd.cfg.GetBlock(coreFinding.BlockID)
-		findings := dcd.analyzeCoreDeadBlock(block, coreFinding.Reason)
+		findings := dcd.analyzeCoreDeadBlock(block, coreFinding.Reason, regionReasons)
 		result.Findings = append(result.Findings, findings...)
 		if len(findings) > 0 {
 			reportedBlocks[coreFinding.BlockID] = true
@@ -212,7 +214,7 @@ func DetectInFile(cfgs ControlFlowGraphs, filePath string) []*DeadCodeResult {
 	return results
 }
 
-func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason string) []*DeadCodeFinding {
+func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason string, regionReasons map[string]DeadCodeReason) []*DeadCodeFinding {
 	var findings []*DeadCodeFinding
 
 	if block == nil || len(block.Statements) == 0 {
@@ -244,7 +246,10 @@ func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason 
 		return findings
 	}
 
-	reason, severity := dcd.determineDeadCodeReason(block)
+	reason, severity := ReasonUnreachableBranch, SeverityLevelWarning
+	if regionReason, ok := regionReasons[block.ID]; ok {
+		reason, severity = regionReason, SeverityLevelCritical
+	}
 	switch coreReason {
 	case "after_return":
 		reason, severity = ReasonUnreachableAfterReturn, SeverityLevelCritical
@@ -280,167 +285,6 @@ func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason 
 	findings = append(findings, finding)
 
 	return findings
-}
-
-// determineDeadCodeReason analyzes the block to determine why it's dead
-func (dcd *DeadCodeDetector) determineDeadCodeReason(block *BasicBlock) (DeadCodeReason, SeverityLevel) {
-	// Check direct predecessors for control flow patterns
-	reason := ReasonUnreachableBranch // default
-	severity := SeverityLevelWarning  // default
-
-	// Analyze control flow patterns by checking predecessors
-	if terminatorReason, terminatorSeverity := dcd.findTerminatorInPredecessors(block); terminatorReason != "" {
-		reason = terminatorReason
-		severity = terminatorSeverity
-	}
-
-	return reason, severity
-}
-
-// findTerminatorInPredecessors efficiently finds terminator statements in control flow predecessors
-func (dcd *DeadCodeDetector) findTerminatorInPredecessors(block *BasicBlock) (DeadCodeReason, SeverityLevel) {
-	if block == nil {
-		return "", SeverityLevelWarning
-	}
-
-	// First, check all blocks in the CFG for terminators that precede this block
-	// This handles cases where CFG edges might not be perfectly set up
-	blockStartLine := dcd.getBlockStartLine(block)
-
-	for _, otherBlock := range dcd.cfg.Blocks {
-		if otherBlock == nil || otherBlock == block {
-			continue
-		}
-
-		otherEndLine := dcd.getBlockEndLine(otherBlock)
-
-		// Check if the other block ends before this block starts (sequential in source)
-		if otherEndLine < blockStartLine && (blockStartLine-otherEndLine) <= 5 {
-			if dcd.blockContainsReturn(otherBlock) {
-				return ReasonUnreachableAfterReturn, SeverityLevelCritical
-			}
-			if dcd.blockContainsBreak(otherBlock) {
-				return ReasonUnreachableAfterBreak, SeverityLevelCritical
-			}
-			if dcd.blockContainsContinue(otherBlock) {
-				return ReasonUnreachableAfterContinue, SeverityLevelCritical
-			}
-			if dcd.blockContainsRaise(otherBlock) {
-				return ReasonUnreachableAfterRaise, SeverityLevelCritical
-			}
-		}
-	}
-
-	// Secondary check: use CFG edges if available
-	for _, predEdge := range block.Predecessors {
-		if predEdge == nil || predEdge.From == nil {
-			continue
-		}
-
-		predBlock := predEdge.From
-
-		// Check for terminator statements in predecessor block
-		if dcd.blockContainsReturn(predBlock) {
-			if dcd.isSequentiallyAfter(predBlock, block) {
-				return ReasonUnreachableAfterReturn, SeverityLevelCritical
-			}
-		}
-		if dcd.blockContainsBreak(predBlock) {
-			if dcd.isSequentiallyAfter(predBlock, block) {
-				return ReasonUnreachableAfterBreak, SeverityLevelCritical
-			}
-		}
-		if dcd.blockContainsContinue(predBlock) {
-			if dcd.isSequentiallyAfter(predBlock, block) {
-				return ReasonUnreachableAfterContinue, SeverityLevelCritical
-			}
-		}
-		if dcd.blockContainsRaise(predBlock) {
-			if dcd.isSequentiallyAfter(predBlock, block) {
-				return ReasonUnreachableAfterRaise, SeverityLevelCritical
-			}
-		}
-	}
-
-	return "", SeverityLevelWarning
-}
-
-// blockContainsReturn checks if a block contains a return statement
-func (dcd *DeadCodeDetector) blockContainsReturn(block *BasicBlock) bool {
-	classifier := pythonCFGClassifier{}
-	for _, stmt := range block.Statements {
-		if classifier.IsReturn(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-// blockContainsBreak checks if a block contains a break statement
-func (dcd *DeadCodeDetector) blockContainsBreak(block *BasicBlock) bool {
-	classifier := pythonCFGClassifier{}
-	for _, stmt := range block.Statements {
-		if classifier.IsBreak(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-// blockContainsContinue checks if a block contains a continue statement
-func (dcd *DeadCodeDetector) blockContainsContinue(block *BasicBlock) bool {
-	classifier := pythonCFGClassifier{}
-	for _, stmt := range block.Statements {
-		if classifier.IsContinue(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-// blockContainsRaise checks if a block contains a raise statement
-func (dcd *DeadCodeDetector) blockContainsRaise(block *BasicBlock) bool {
-	classifier := pythonCFGClassifier{}
-	for _, stmt := range block.Statements {
-		if classifier.IsThrow(stmt) {
-			return true
-		}
-	}
-	return false
-}
-
-// isSequentiallyAfter checks if successor block comes sequentially after predecessor
-// This uses both CFG edge analysis and line number heuristics for accurate detection
-func (dcd *DeadCodeDetector) isSequentiallyAfter(predecessor, successor *BasicBlock) bool {
-	if predecessor == nil || successor == nil {
-		return false
-	}
-
-	// Primary check: line numbers (for dead code after return/break/continue/raise)
-	predEnd := dcd.getBlockEndLine(predecessor)
-	succStart := dcd.getBlockStartLine(successor)
-
-	// If successor comes immediately after predecessor in source code
-	if predEnd < succStart && (succStart-predEnd) <= 10 { // Allow reasonable gap
-		return true
-	}
-
-	// Secondary check: CFG edge analysis for complex control flow
-	for _, succEdge := range predecessor.Successors {
-		if succEdge != nil && succEdge.To == successor {
-			// Consider normal sequential flow
-			if succEdge.Type == EdgeNormal {
-				return true
-			}
-			// Also consider cases where the terminator forces this flow
-			if succEdge.Type == EdgeReturn || succEdge.Type == EdgeBreak ||
-				succEdge.Type == EdgeContinue {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 // Helper methods for extracting information from blocks
@@ -643,6 +487,52 @@ func mergeContiguousFindings(findings []*DeadCodeFinding) []*DeadCodeFinding {
 		merged = append(merged, finding)
 	}
 	return merged
+}
+
+// unreachableLabelReasons maps the label the CFG builder gives the block after
+// each terminator to the reason reported for the code in that block.
+var unreachableLabelReasons = map[string]DeadCodeReason{
+	LabelUnreachableAfterReturn:   ReasonUnreachableAfterReturn,
+	LabelUnreachableAfterRaise:    ReasonUnreachableAfterRaise,
+	LabelUnreachableAfterBreak:    ReasonUnreachableAfterBreak,
+	LabelUnreachableAfterContinue: ReasonUnreachableAfterContinue,
+}
+
+// deadRegionReasons maps each unreachable block to the terminator that made
+// its region dead. The block following a terminator is labeled with it, and
+// every unreachable block reachable from that block inherits the reason, so a
+// dead region reports one reason however far it extends. Blocks are visited in
+// creation (source) order: a terminator inside an already dead region, whose
+// following block flows back into that region, does not override its reason.
+func deadRegionReasons(cfg *CFG, reachable map[string]bool) map[string]DeadCodeReason {
+	blocks := slices.Collect(maps.Values(cfg.Blocks))
+	// Block IDs are "bb<N>" in creation order; comparing length first sorts N numerically.
+	slices.SortFunc(blocks, func(a, b *BasicBlock) int {
+		return cmp.Or(cmp.Compare(len(a.ID), len(b.ID)), cmp.Compare(a.ID, b.ID))
+	})
+
+	reasons := make(map[string]DeadCodeReason)
+	var mark func(block *BasicBlock, reason DeadCodeReason)
+	mark = func(block *BasicBlock, reason DeadCodeReason) {
+		if reachable[block.ID] {
+			return
+		}
+		if _, marked := reasons[block.ID]; marked {
+			return
+		}
+		reasons[block.ID] = reason
+		for _, edge := range block.Successors {
+			mark(edge.To, reason)
+		}
+	}
+	for _, block := range blocks {
+		// createBlock suffixes the label with "_<counter>".
+		label := block.Label[:max(strings.LastIndexByte(block.Label, '_'), 0)]
+		if reason, ok := unreachableLabelReasons[label]; ok {
+			mark(block, reason)
+		}
+	}
+	return reasons
 }
 
 // dropNestedFindings removes findings whose line range lies inside another

@@ -219,23 +219,15 @@ After reachability analysis, only candidate blocks with actionable statements ar
 
 ## Dead Code Reason Classification
 
-The `DeadCodeDetector.determineDeadCodeReason()` method (`internal/analyzer/dead_code.go:219-231`) determines why a block is dead by examining its context in the CFG.
+The reason comes from the CFG, not from source line distance.
 
 ### Classification Logic
 
-The detector uses a two-step approach (`internal/analyzer/dead_code.go:234-298`):
+1. **Terminator labels**: When the CFG builder processes `return`, `raise`, `break` or `continue`, it starts a new block for the code that follows. That block is labeled with the terminator (`unreachable_after_return_<n>`, `unreachable_after_raise_<n>`, and so on).
 
-1. **Source proximity check**: For each unreachable block, scan all other blocks in the CFG. If a block ending within 5 lines before the unreachable block contains a terminator statement, classify accordingly.
+2. **Region propagation** (`deadRegionReasons`): Starting from each labeled block, in block creation order, the reason is copied to every unreachable block reachable through successor edges. One dead region therefore reports one reason, however far it extends. A terminator inside a region that is already dead does not override the region's reason.
 
-2. **CFG edge check**: Examine the predecessor edges of the unreachable block. If a predecessor contains a terminator and is sequentially before the unreachable block (verified by line numbers and edge types), classify accordingly.
-
-The classification priority is:
-1. `unreachable_after_return` -- predecessor contains `return`
-2. `unreachable_after_break` -- predecessor contains `break`
-3. `unreachable_after_continue` -- predecessor contains `continue`
-4. `unreachable_after_raise` -- predecessor contains `raise`
-5. `unreachable_branch` -- default for blocks unreachable due to exhaustive branching
-6. `unreachable_after_infinite_loop` -- code after an infinite loop
+3. **Default**: An unreachable block that no labeled block reaches is reported as `unreachable_branch`.
 
 | Reason | Description |
 |---|---|
@@ -316,10 +308,6 @@ The `__main__` module-level CFG is excluded from dead code analysis (`internal/a
 ### Empty Blocks Excluded
 
 Unreachable blocks with no statements are excluded from results (`internal/analyzer/reachability.go:140-150`). These are structural artifacts of the CFG (merge nodes, empty exit blocks) and do not correspond to actual dead code.
-
-### Sequential Proximity Heuristic
-
-The `isSequentiallyAfter()` method (`internal/analyzer/dead_code.go:343-373`) uses a line-number gap threshold of 10 lines to determine whether an unreachable block is "directly after" a terminator block. This avoids misclassifying structurally distant blocks that happen to be unreachable for other reasons.
 
 ## Concrete Examples
 
@@ -461,7 +449,7 @@ For each finding, the following information is included:
 - CFG construction is linear in the number of AST nodes.
 - DFS reachability is O(V + E) where V = blocks and E = edges.
 - Shared reachability and dead-block selection are O(V + E).
-- The `findTerminatorInPredecessors` method has O(B) complexity per unreachable block, where B is the total number of blocks in the CFG.
+- Reason propagation visits each unreachable block once, O(V log V + E) including the block sort.
 
 ### Parallel File Processing
 
