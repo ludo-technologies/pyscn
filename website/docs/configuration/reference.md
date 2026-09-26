@@ -96,6 +96,12 @@ shape across a codebase without sharing logic.
 | `type4_threshold`      | `0.65`  | Semantic equivalence. |
 | `similarity_threshold` | `0.65`  | Global minimum for any clone. |
 
+A Type-4 pair is dropped when both of its fragments have a Type-1 to Type-3
+match elsewhere that is at least 0.15 more similar. Each fragment's real
+counterpart is then already reported, and the weak Type-4 match only links two
+code blocks that share a generic skeleton, such as the same decode-and-flush
+loop.
+
 ### Algorithm
 
 | Key                 | Type   | Default    | Description |
