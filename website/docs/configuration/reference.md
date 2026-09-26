@@ -79,6 +79,13 @@ the match. Line breaks do still count toward `min_lines`, so the same body can
 clear the threshold in one place and fall short in another depending on how its
 statements are wrapped; either copy vindicates the other.
 
+The reverse also holds: a fragment that clears `min_lines` only because one
+statement's arguments or literal span many lines is reported only when it is
+identical to another. This covers a fragment with one statement, or two where
+the second fits on one line (docstrings and nested `def`/`class` lines do not
+count). Deprecation shims, template-tag wrappers and dispatch guards share a
+shape across a codebase without sharing logic.
+
 ### Type thresholds (0.0–1.0)
 
 | Key                    | Default | Clone type |

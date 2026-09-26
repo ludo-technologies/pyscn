@@ -80,6 +80,10 @@ type CodeFragment struct {
 	// RetainIdenticalUndersizedFragments finds it an identical twin.
 	belowSizeGate bool
 
+	// singleStatement marks a fragment whose logic is one statement, see
+	// isSingleStatementFragment. It pairs only as an identical clone.
+	singleStatement bool
+
 	// id is a detector-assigned identifier used for core/clone grouping.
 	id int
 	// core caches the core/clone projection of this fragment, populated by
@@ -168,6 +172,7 @@ func (cd *CloneDetector) newFragment(location *CodeLocation, astNode *parser.Nod
 	if cd.cloneDetectorConfig.SkipDocstrings {
 		fragment.Size = cd.converter.CountNodes(astNode)
 	}
+	fragment.singleStatement = isSingleStatementFragment(astNode)
 	return fragment
 }
 
@@ -719,6 +724,59 @@ func countBodyStatements(node *parser.Node) int {
 	return count
 }
 
+// singleStatementMaxStatements is how many statements a fragment may hold and
+// still count as a single statement, provided all but one fit on a line: the
+// deprecation shim `warnings.warn(...)` then `super().__init__(...)` is one
+// call with a one-line tail.
+const singleStatementMaxStatements = 2
+
+// isSingleStatementFragment reports whether a fragment's lines are mostly one
+// statement's arguments or literal, such as a framework-mandated call or a
+// return of a dict. Two of these share a shape without sharing logic, so they
+// clear MinLines on argument lines alone. Statements are counted recursively,
+// ignoring docstrings and nested def/class headers, which carry no logic.
+func isSingleStatementFragment(node *parser.Node) bool {
+	statements, multiLine := 0, 0
+	var visit func(nodes []*parser.Node, allowDocstring bool)
+	visitChildren := func(n *parser.Node) {
+		switch n.Type {
+		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
+			visit(n.Body, true)
+		default:
+			visit(n.Body, false)
+		}
+		visit(n.Orelse, false)
+		visit(n.Handlers, false)
+		visit(n.Finalbody, false)
+	}
+	visit = func(nodes []*parser.Node, allowDocstring bool) {
+		for i, n := range nodes {
+			if statements > singleStatementMaxStatements {
+				return
+			}
+			if n == nil || isLogicalSeparator(n) || (allowDocstring && i == 0 && isStringConstantStatement(n)) {
+				continue
+			}
+			switch n.Type {
+			case parser.NodeElseClause, parser.NodeBlock, parser.NodeExceptHandler, parser.NodeMatchCase,
+				parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
+			case parser.NodeIf, parser.NodeElifClause, parser.NodeFor, parser.NodeAsyncFor, parser.NodeWhile,
+				parser.NodeTry, parser.NodeWith, parser.NodeAsyncWith, parser.NodeMatch:
+				statements++
+			default:
+				statements++
+				if n.Location.EndLine > n.Location.StartLine {
+					multiLine++
+				}
+				continue
+			}
+			visitChildren(n)
+		}
+	}
+	visitChildren(node)
+	return statements <= singleStatementMaxStatements && multiLine <= 1
+}
+
 // RetainIdenticalUndersizedFragments finalizes a fragment set gathered across
 // files. Fragments held past the size gate during extraction survive only when
 // an identical one was found elsewhere; the rest are discarded, leaving the
@@ -1253,6 +1311,12 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	// duplicates of each other; at that size anything less is noise.
 	if pair.Fragment1.belowSizeGate || pair.Fragment2.belowSizeGate {
 		return pair.Fragment1.Hash != "" && pair.Fragment1.Hash == pair.Fragment2.Hash
+	}
+
+	// A single-statement fragment only matches another's shape, so it earns a
+	// report as an identical copy alone.
+	if (pair.Fragment1.singleStatement || pair.Fragment2.singleStatement) && pair.CloneType != Type1Clone {
+		return false
 	}
 
 	// Additional filtering based on fragment characteristics

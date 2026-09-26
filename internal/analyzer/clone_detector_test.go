@@ -1536,3 +1536,133 @@ func TestCloneDetector_IdenticalBodyTwinAcrossSizeGate(t *testing.T) {
 
 	assert.Len(t, retained, 2, "a twin that cleared the gate still vindicates the held fragment")
 }
+
+func TestIsSingleStatementFragment(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   bool
+	}{
+		{
+			name: "one call",
+			source: `def pagination_tag(parser, token):
+    """Render the pagination."""
+    return InclusionAdminNode(
+        "pagination",
+        parser,
+        token,
+    )
+`,
+			want: true,
+		},
+		{
+			name: "one call with a one-line tail",
+			source: `def __init__(self, expression, **extra):
+    warnings.warn(
+        "BitAnd is deprecated.",
+        category=RemovedInDjango2028Warning,
+    )
+    super().__init__(expression, **extra)
+`,
+			want: true,
+		},
+		{
+			name: "nested definitions carry no logic",
+			source: `class BitAnd(_BitAnd):
+    def __init__(self, expression, **extra):
+        warnings.warn(
+            "BitAnd is deprecated.",
+            category=RemovedInDjango2028Warning,
+        )
+        super().__init__(expression, **extra)
+`,
+			want: true,
+		},
+		{
+			name: "guarded call",
+			source: `def ones(xp, shape):
+    if is_numpy(xp):
+        return xp.ones(
+            shape,
+        )
+`,
+			want: true,
+		},
+		{
+			name: "two multi-line statements",
+			source: `def __mul__(self, other):
+    if isinstance(other, NUMERIC_TYPES):
+        return self.__class__(
+            default_unit=self._default_unit,
+        )
+    else:
+        raise TypeError(
+            "must be multiplied with number",
+        )
+`,
+			want: false,
+		},
+		{
+			name: "three statements",
+			source: `def __eq__(self, other):
+    if not isinstance(other, self.__class__):
+        return NotImplemented
+    return (
+        self.limit_value == other.limit_value
+    )
+`,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parser.New().Parse(t.Context(), []byte(tt.source))
+			require.NoError(t, err)
+			require.NotEmpty(t, result.AST.Body)
+
+			assert.Equal(t, tt.want, isSingleStatementFragment(result.AST.Body[0]))
+		})
+	}
+}
+
+func TestCloneDetector_SingleStatementFragmentsPairOnlyAsIdentical(t *testing.T) {
+	const shim = `class Bit%s(_Bit%s):
+    def __init__(self, expression, **extra):
+        warnings.warn(
+            "The PostgreSQL-specific Bit%s function is deprecated. Use "
+            "django.db.models.aggregates.Bit%s instead.",
+            category=RemovedInDjango2028Warning,
+            stacklevel=2,
+        )
+        super().__init__(expression, **extra)
+`
+	shimFor := func(name string) string { return fmt.Sprintf(shim, name, name, name, name) }
+
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 6
+	detector := NewCloneDetector(config)
+
+	t.Run("shape-only match is not reported", func(t *testing.T) {
+		fragments := append(
+			extractAllFragments(t, detector, "a.py", shimFor("And")),
+			extractAllFragments(t, detector, "b.py", shimFor("Or"))...,
+		)
+		require.Len(t, fragments, 4)
+
+		assert.Empty(t, detector.DetectClones(fragments).Pairs)
+	})
+
+	t.Run("identical copy is still reported", func(t *testing.T) {
+		fragments := append(
+			extractAllFragments(t, detector, "a.py", shimFor("And")),
+			extractAllFragments(t, detector, "b.py", shimFor("And"))...,
+		)
+
+		pairs := detector.DetectClones(fragments).Pairs
+		require.NotEmpty(t, pairs)
+		for _, pair := range pairs {
+			assert.Equal(t, Type1Clone, pair.CloneType)
+		}
+	})
+}
