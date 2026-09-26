@@ -366,6 +366,7 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 		source1 := `def scan_paths(items):
     if items:
         total = len(items)
+        total += 1
     else:
         total = 0
     return total
@@ -373,6 +374,7 @@ func TestCloneService_DetectClonesInFiles(t *testing.T) {
 		source2 := `def measure_radius(values):
     if values:
         area = len(values)
+        area += 1
     else:
         area = 0
     return area
