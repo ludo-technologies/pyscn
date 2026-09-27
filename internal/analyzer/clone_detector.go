@@ -1005,6 +1005,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	for _, pairs := range verified {
 		cd.clonePairs = append(cd.clonePairs, pairs...)
 	}
+	cd.clonePairs = dropShadowedSemanticPairs(cd.clonePairs)
 
 	// Finalize results
 	cd.limitAndSortClonePairs(cd.cloneDetectorConfig.MaxClonePairs)
@@ -1110,6 +1111,7 @@ func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 	}
 
 	cd.detectClonePairsParallel(ctx, maxPairs)
+	cd.clonePairs = dropShadowedSemanticPairs(cd.clonePairs)
 
 	// Sort and limit final results
 	cd.limitAndSortClonePairs(maxPairs)
@@ -1644,6 +1646,36 @@ func (cd *CloneDetector) tryCreateClonePair(i, j int, minSimilarity float64) *Cl
 		return pair
 	}
 	return nil
+}
+
+// shadowedSemanticMargin is how far a Type-4 pair must fall below both of its
+// fragments' syntactic matches to count as shadowed by them.
+const shadowedSemanticMargin = 0.15
+
+// dropShadowedSemanticPairs removes Type-4 pairs whose fragments both have a
+// much stronger syntactic (Type-1 to Type-3) clone elsewhere. Such a
+// fragment's real counterpart is already reported, and its weak Type-4 matches
+// only link it to siblings that share a generic skeleton, such as the same
+// decode-and-flush loop.
+func dropShadowedSemanticPairs(pairs []*ClonePair) []*ClonePair {
+	bestSyntactic := make(map[*CodeFragment]float64)
+	for _, pair := range pairs {
+		if pair.CloneType != Type4Clone {
+			bestSyntactic[pair.Fragment1] = math.Max(bestSyntactic[pair.Fragment1], pair.Similarity)
+			bestSyntactic[pair.Fragment2] = math.Max(bestSyntactic[pair.Fragment2], pair.Similarity)
+		}
+	}
+	kept := pairs[:0]
+	for _, pair := range pairs {
+		if pair.CloneType == Type4Clone {
+			floor := pair.Similarity + shadowedSemanticMargin
+			if bestSyntactic[pair.Fragment1] >= floor && bestSyntactic[pair.Fragment2] >= floor {
+				continue
+			}
+		}
+		kept = append(kept, pair)
+	}
+	return kept
 }
 
 // limitAndSortClonePairs ensures final results are sorted and limited

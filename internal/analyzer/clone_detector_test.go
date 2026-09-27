@@ -1666,3 +1666,28 @@ func TestCloneDetector_SingleStatementFragmentsPairOnlyAsIdentical(t *testing.T)
 		}
 	})
 }
+
+func TestDropShadowedSemanticPairs(t *testing.T) {
+	iterBytes, aiterBytes := &CodeFragment{}, &CodeFragment{}
+	iterLines, aiterLines := &CodeFragment{}, &CodeFragment{}
+	loner := &CodeFragment{}
+	pair := func(f1, f2 *CodeFragment, cloneType CloneType, similarity float64) *ClonePair {
+		return &ClonePair{Fragment1: f1, Fragment2: f2, CloneType: cloneType, Similarity: similarity}
+	}
+
+	bytesTwins := pair(iterBytes, aiterBytes, Type2Clone, 0.85)
+	linesTwins := pair(iterLines, aiterLines, Type2Clone, 0.85)
+	nearCounterpart := pair(aiterBytes, aiterLines, Type4Clone, 0.75)
+	oneSideShadowed := pair(iterLines, loner, Type4Clone, 0.66)
+	pairs := []*ClonePair{
+		bytesTwins,
+		linesTwins,
+		pair(iterBytes, iterLines, Type4Clone, 0.67),
+		nearCounterpart,
+		oneSideShadowed,
+	}
+
+	assert.Equal(t,
+		[]*ClonePair{bytesTwins, linesTwins, nearCounterpart, oneSideShadowed},
+		dropShadowedSemanticPairs(pairs))
+}
