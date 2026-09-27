@@ -4121,6 +4121,11 @@ shape across a codebase without sharing logic.</p>
 </tr>
 </tbody>
 </table>
+<p>A Type-4 pair is dropped when both of its fragments have a Type-1 to Type-3
+match elsewhere that is at least 0.15 more similar. Each fragment's real
+counterpart is then already reported, and the weak Type-4 match only links two
+code blocks that share a generic skeleton, such as the same decode-and-flush
+loop.</p>
 <h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
