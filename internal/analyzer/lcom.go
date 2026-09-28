@@ -593,21 +593,8 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 		case parser.NodeCompare:
 			// The parser retains only one operator for a comparison chain.
 			// A single comparison has an unambiguous receiver and operator.
-			if isSelfName(node.Left) && len(node.Children) == 1 {
-				switch node.Op {
-				case "==":
-					calls["__eq__"] = true
-				case "!=":
-					calls["__ne__"] = true
-				case "<":
-					calls["__lt__"] = true
-				case "<=":
-					calls["__le__"] = true
-				case ">":
-					calls["__gt__"] = true
-				case ">=":
-					calls["__ge__"] = true
-				}
+			if isSelfName(node.Left) && len(node.Children) == 1 && node.Op == "==" {
+				calls["__eq__"] = true
 			}
 		case parser.NodeSubscript:
 			if isSelfName(nodeValue(node)) {
@@ -625,11 +612,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 		case parser.NodeFor, parser.NodeComprehension:
 			if isSelfName(node.Iter) {
-				addIterationCall(calls, methodNames)
-			}
-		case parser.NodeAsyncFor:
-			if isSelfName(node.Iter) {
-				calls["__aiter__"] = true
+				calls["__iter__"] = true
 			}
 		case parser.NodeCall:
 			callee := nodeValue(node)
@@ -641,16 +624,16 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 			if callee.Type == parser.NodeName && len(node.Args) == 1 && isSelfName(node.Args[0]) {
 				switch callee.Name {
-				case "iter", "list":
-					addIterationCall(calls, methodNames)
+				case "iter":
+					calls["__iter__"] = true
+				case "list":
+					calls["__iter__"] = true
 				case "dict":
 					// dict(mapping) calls keys() and then __getitem__ for
-					// each key. Without keys(), it consumes an iterable of pairs.
+					// each key. Other conversion paths need more context.
 					if methodNames["keys"] {
 						calls["keys"] = true
 						calls["__getitem__"] = true
-					} else {
-						addIterationCall(calls, methodNames)
 					}
 				}
 			}
@@ -661,16 +644,6 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 
 func isSelfName(node *parser.Node) bool {
 	return node != nil && node.Type == parser.NodeName && node.Name == "self"
-}
-
-// Python's synchronous iterator protocol falls back to indexed access when
-// the class does not define __iter__. Graph edges remain class-local.
-func addIterationCall(calls, methodNames map[string]bool) {
-	if methodNames["__iter__"] {
-		calls["__iter__"] = true
-	} else {
-		calls["__getitem__"] = true
-	}
 }
 
 type subscriptAccess uint8

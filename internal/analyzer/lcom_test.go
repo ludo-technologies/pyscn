@@ -1389,55 +1389,6 @@ class Iterable:
 	}, r.MethodGroups)
 }
 
-func TestLCOMAnalyzer_AsyncIterationProtocolConnectsMethods(t *testing.T) {
-	r := analyzeLCOMClass(t, `
-class AsyncIterable:
-    def __aiter__(self):
-        return self.stream
-
-    async def consume(self):
-        async for item in self:
-            return item
-
-    async def unrelated(self, other):
-        async for item in other:
-            return item
-`)
-
-	require.Equal(t, 2, r.LCOM4)
-	assert.ElementsMatch(t, [][]string{
-		{"__aiter__", "consume"},
-		{"unrelated"},
-	}, r.MethodGroups)
-}
-
-func TestLCOMAnalyzer_IterationFallsBackToItemAccess(t *testing.T) {
-	r := analyzeLCOMClass(t, `
-class Sequence:
-    def __getitem__(self, index):
-        return self.items[index]
-
-    def via_list(self):
-        return list(self)
-
-    def via_iter(self):
-        return iter(self)
-
-    def via_loop(self):
-        for item in self:
-            return item
-
-    def unrelated(self, other):
-        return list(other)
-`)
-
-	require.Equal(t, 2, r.LCOM4)
-	assert.ElementsMatch(t, [][]string{
-		{"__getitem__", "via_iter", "via_list", "via_loop"},
-		{"unrelated"},
-	}, r.MethodGroups)
-}
-
 func TestLCOMAnalyzer_IterationPrefersDeclaredIterator(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class Both:
@@ -1539,37 +1490,14 @@ class Mapping:
 	}, r.MethodGroups)
 }
 
-func TestLCOMAnalyzer_DictConversionUsesPairIteratorWithoutKeys(t *testing.T) {
-	r := analyzeLCOMClass(t, `
-class PairIterable:
-    def __iter__(self):
-        return iter(self.pairs)
-
-    def as_dict(self):
-        return dict(self)
-`)
-
-	require.Equal(t, 1, r.LCOM4)
-	assert.Equal(t, [][]string{{"__iter__", "as_dict"}}, r.MethodGroups)
-}
-
 func TestLCOMAnalyzer_ComparisonProtocolsRespectReceiver(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class Comparisons:
     def __eq__(self, other):
         return self.equality_state == other
 
-    def __ne__(self, other):
-        return not self == other
-
-    def not_equal(self, other):
-        return self != other
-
-    def __lt__(self, other):
-        return self.order_state < other
-
-    def less(self, other):
-        return self < other
+    def equal(self, other):
+        return self == other
 
     def foreign_left(self, other):
         return other == self
@@ -1578,13 +1506,54 @@ class Comparisons:
         return self < other == 3
 `)
 
-	require.Equal(t, 4, r.LCOM4)
+	require.Equal(t, 3, r.LCOM4)
 	assert.ElementsMatch(t, [][]string{
-		{"__eq__", "__ne__", "not_equal"},
-		{"__lt__", "less"},
+		{"__eq__", "equal"},
 		{"foreign_left"},
 		{"mixed_chain"},
 	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_InheritedProtocolsDoNotCreateLocalEdges(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		groups [][]string
+	}{
+		{
+			name: "inherited iterator prevents assumed item fallback",
+			source: `
+class Derived(Base):
+    def __getitem__(self, key):
+        return self.items[key]
+
+    def consume(self):
+        return list(self)
+`,
+			groups: [][]string{{"__getitem__"}, {"consume"}},
+		},
+		{
+			name: "inherited keys prevents assumed pair iteration",
+			source: `
+class Derived(Base):
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def __getitem__(self, key):
+        return self.item_state[key]
+
+    def as_dict(self):
+        return dict(self)
+`,
+			groups: [][]string{{"__iter__"}, {"__getitem__"}, {"as_dict"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, tt.source)
+			assert.ElementsMatch(t, tt.groups, r.MethodGroups)
+		})
+	}
 }
 
 func TestLCOMAnalyzer_OrderedMappingProtocolRepro(t *testing.T) {
