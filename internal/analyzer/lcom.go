@@ -628,6 +628,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 					calls["__iter__"] = true
 				case "list":
 					calls["__iter__"] = true
+					calls["__len__"] = true
 				case "dict":
 					// dict(mapping) calls keys() and then __getitem__ for
 					// each key. Other conversion paths need more context.

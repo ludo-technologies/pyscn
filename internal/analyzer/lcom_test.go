@@ -1556,6 +1556,22 @@ class Derived(Base):
 	}
 }
 
+func TestLCOMAnalyzer_ListUsesDeclaredLength(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class SizedIterable:
+    def __iter__(self):
+        return iter(self.items)
+
+    def __len__(self):
+        return self.size
+
+    def consume(self):
+        return list(self)
+`)
+
+	assert.Equal(t, [][]string{{"__iter__", "__len__", "consume"}}, r.MethodGroups)
+}
+
 func TestLCOMAnalyzer_OrderedMappingProtocolRepro(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class OrderedDictLike:
