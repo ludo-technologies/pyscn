@@ -625,7 +625,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 		case parser.NodeFor, parser.NodeComprehension:
 			if isSelfName(node.Iter) {
-				calls["__iter__"] = true
+				addIterationCall(calls, methodNames)
 			}
 		case parser.NodeAsyncFor:
 			if isSelfName(node.Iter) {
@@ -642,7 +642,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			if callee.Type == parser.NodeName && len(node.Args) == 1 && isSelfName(node.Args[0]) {
 				switch callee.Name {
 				case "iter", "list":
-					calls["__iter__"] = true
+					addIterationCall(calls, methodNames)
 				case "dict":
 					// dict(mapping) calls keys() and then __getitem__ for
 					// each key. Without keys(), it consumes an iterable of pairs.
@@ -650,7 +650,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 						calls["keys"] = true
 						calls["__getitem__"] = true
 					} else {
-						calls["__iter__"] = true
+						addIterationCall(calls, methodNames)
 					}
 				}
 			}
@@ -661,6 +661,16 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 
 func isSelfName(node *parser.Node) bool {
 	return node != nil && node.Type == parser.NodeName && node.Name == "self"
+}
+
+// Python's synchronous iterator protocol falls back to indexed access when
+// the class does not define __iter__. Graph edges remain class-local.
+func addIterationCall(calls, methodNames map[string]bool) {
+	if methodNames["__iter__"] {
+		calls["__iter__"] = true
+	} else {
+		calls["__getitem__"] = true
+	}
 }
 
 type subscriptAccess uint8

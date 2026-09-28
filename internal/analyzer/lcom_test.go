@@ -1411,6 +1411,53 @@ class AsyncIterable:
 	}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_IterationFallsBackToItemAccess(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Sequence:
+    def __getitem__(self, index):
+        return self.items[index]
+
+    def via_list(self):
+        return list(self)
+
+    def via_iter(self):
+        return iter(self)
+
+    def via_loop(self):
+        for item in self:
+            return item
+
+    def unrelated(self, other):
+        return list(other)
+`)
+
+	require.Equal(t, 2, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__getitem__", "via_iter", "via_list", "via_loop"},
+		{"unrelated"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_IterationPrefersDeclaredIterator(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Both:
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def __getitem__(self, index):
+        return self.item_state[index]
+
+    def consume(self):
+        return list(self)
+`)
+
+	require.Equal(t, 2, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__iter__", "consume"},
+		{"__getitem__"},
+	}, r.MethodGroups)
+}
+
 func TestLCOMAnalyzer_SubscriptProtocolsRespectAccessContext(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class Mapping:
