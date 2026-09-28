@@ -640,6 +640,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 				calls[callee.Name] = true
 			}
 			if callee.Type == parser.NodeName && !shadowedBuiltins[callee.Name] &&
+				!comprehensionBindsName(node, methodNode, callee.Name) &&
 				len(node.Args) == 1 && isSelfName(node.Args[0]) {
 				switch callee.Name {
 				case "iter":
@@ -670,17 +671,10 @@ func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
 			bound[name] = true
 		}
 	}
-	var bindTarget func(*parser.Node)
-	bindTarget = func(target *parser.Node) {
-		if target == nil {
-			return
-		}
-		switch target.Type {
-		case parser.NodeName:
-			bind(target.Name)
-		case parser.NodeTuple, parser.NodeList, parser.NodeStarred:
-			for _, child := range parser.OrderedChildren(target, nil) {
-				bindTarget(child)
+	bindTarget := func(target *parser.Node) {
+		for _, name := range [...]string{"iter", "list", "dict"} {
+			if bindingTargetContainsName(target, name) {
+				bound[name] = true
 			}
 		}
 	}
@@ -701,7 +695,7 @@ func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
 			case parser.NodeLambda:
 				return false
 			case parser.NodeAssign, parser.NodeAnnAssign, parser.NodeAugAssign,
-				parser.NodeFor, parser.NodeAsyncFor, parser.NodeComprehension, parser.NodeDelete:
+				parser.NodeFor, parser.NodeAsyncFor, parser.NodeDelete:
 				for _, target := range node.Targets {
 					bindTarget(target)
 				}
@@ -740,6 +734,43 @@ func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
 		})
 	}
 	return bound
+}
+
+func comprehensionBindsName(call, method *parser.Node, name string) bool {
+	for scope := call.Parent; scope != nil && scope != method; scope = scope.Parent {
+		if scope.Type != parser.NodeListComp && scope.Type != parser.NodeSetComp &&
+			scope.Type != parser.NodeDictComp && scope.Type != parser.NodeGeneratorExp {
+			continue
+		}
+		for _, clause := range scope.Children {
+			if clause == nil || clause.Type != parser.NodeComprehension {
+				continue
+			}
+			for _, target := range clause.Targets {
+				if bindingTargetContainsName(target, name) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func bindingTargetContainsName(target *parser.Node, name string) bool {
+	if target == nil {
+		return false
+	}
+	switch target.Type {
+	case parser.NodeName:
+		return target.Name == name
+	case parser.NodeTuple, parser.NodeList, parser.NodeStarred:
+		for _, child := range parser.OrderedChildren(target, nil) {
+			if bindingTargetContainsName(child, name) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func isSelfName(node *parser.Node) bool {

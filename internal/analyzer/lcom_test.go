@@ -1648,6 +1648,32 @@ def factory(list):
 `,
 			groups: [][]string{{"__iter__"}, {"consume"}},
 		},
+		{
+			name: "comprehension target stays in its own scope",
+			source: `
+class Iterable:
+    def __iter__(self):
+        return self.items
+
+    def consume(self):
+        values = list(self)
+        ignored = [0 for list in [1]]
+        return values
+`,
+			groups: [][]string{{"__iter__", "consume"}},
+		},
+		{
+			name: "comprehension target shadows inside comprehension",
+			source: `
+class Iterable:
+    def __iter__(self):
+        return self.items
+
+    def consume(self):
+        return [list(self) for list in [lambda value: []]]
+`,
+			groups: [][]string{{"__iter__"}, {"consume"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
