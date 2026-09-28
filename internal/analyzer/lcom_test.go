@@ -1465,6 +1465,47 @@ class Counter:
 	assert.Equal(t, [][]string{{"__getitem__", "__setitem__", "increment"}}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_DictConversionUsesMappingProtocol(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Mapping:
+    def __iter__(self):
+        return iter(self.iter_store)
+
+    def __getitem__(self, key):
+        return self.item_store[key]
+
+    def keys(self):
+        return self.key_store
+
+    def as_dict(self):
+        return dict(self)
+
+    def foreign_dict(self, other):
+        return dict(other)
+`)
+
+	require.Equal(t, 3, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__getitem__", "as_dict", "keys"},
+		{"__iter__"},
+		{"foreign_dict"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_DictConversionUsesPairIteratorWithoutKeys(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class PairIterable:
+    def __iter__(self):
+        return iter(self.pairs)
+
+    def as_dict(self):
+        return dict(self)
+`)
+
+	require.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, [][]string{{"__iter__", "as_dict"}}, r.MethodGroups)
+}
+
 func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
 	t.Helper()
 	parsed, err := parser.New().Parse(context.Background(), []byte(source))

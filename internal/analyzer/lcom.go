@@ -105,8 +105,10 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 		MethodGroups: [][]string{},
 	}
 
+	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
+
 	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
-	collected := a.collectMethods(classNode, declaredFields)
+	collected := a.collectMethods(classNode, declaredFields, methodNames)
 	methods, methodCalls := collected.methods, collected.calls
 	result.TotalMethods = len(methods) + collected.excluded
 	result.ExcludedMethods = collected.excluded
@@ -115,7 +117,6 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	// constructor touches and ctypes-declared fields that no method accesses.
 	// A `self.<name>` reference to a method defined in the class body is a
 	// method, not instance state.
-	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
 	allVars := make(map[string]bool)
 	for _, vars := range methods {
 		for v := range vars {
@@ -183,7 +184,7 @@ type classMethods struct {
 }
 
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
-func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map[string]bool) classMethods {
+func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, methodNames map[string]bool) classMethods {
 	methods := make(map[string]map[string]bool)
 	methodNodes := make(map[string]*parser.Node)
 	calls := make(map[string]map[string]bool)
@@ -270,7 +271,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	// class's graph.
 	for name, node := range methodNodes {
 		methodCalls := calls[name]
-		a.extractMethodCalls(node, methodCalls)
+		a.extractMethodCalls(node, methodCalls, methodNames)
 		for name := range methodCalls {
 			if _, ok := methods[name]; !ok {
 				delete(methodCalls, name)
@@ -586,7 +587,7 @@ func hasDecoratorSuffix(name, suffix string) bool {
 }
 
 // extractMethodCalls finds explicit and protocol-dispatched sibling calls.
-func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool) {
+func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames map[string]bool) {
 	methodNode.WalkDeep(func(node *parser.Node) bool {
 		switch node.Type {
 		case parser.NodeSubscript:
@@ -620,8 +621,18 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[str
 				calls[callee.Name] = true
 			}
 			if callee.Type == parser.NodeName && len(node.Args) == 1 && isSelfName(node.Args[0]) {
-				if callee.Name == "iter" || callee.Name == "list" {
+				switch callee.Name {
+				case "iter", "list":
 					calls["__iter__"] = true
+				case "dict":
+					// dict(mapping) calls keys() and then __getitem__ for
+					// each key. Without keys(), it consumes an iterable of pairs.
+					if methodNames["keys"] {
+						calls["keys"] = true
+						calls["__getitem__"] = true
+					} else {
+						calls["__iter__"] = true
+					}
 				}
 			}
 		}
