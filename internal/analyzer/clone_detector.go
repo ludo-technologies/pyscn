@@ -84,6 +84,10 @@ type CodeFragment struct {
 	// isSingleStatementFragment. It pairs only as an identical clone.
 	singleStatement bool
 
+	// flatDispatchChain marks an if/elif chain of one-line branches, see
+	// isFlatDispatchChain. It never pairs as a Type-4 clone.
+	flatDispatchChain bool
+
 	// id is a detector-assigned identifier used for core/clone grouping.
 	id int
 	// core caches the core/clone projection of this fragment, populated by
@@ -173,6 +177,7 @@ func (cd *CloneDetector) newFragment(location *CodeLocation, astNode *parser.Nod
 		fragment.Size = cd.converter.CountNodes(astNode)
 	}
 	fragment.singleStatement = isSingleStatementFragment(astNode)
+	fragment.flatDispatchChain = isFlatDispatchChain(astNode)
 	return fragment
 }
 
@@ -777,6 +782,38 @@ func isSingleStatementFragment(node *parser.Node) bool {
 	return statements <= singleStatementMaxStatements && multiLine <= 1
 }
 
+// isFlatDispatchChain reports whether node is an if/elif chain in which every
+// branch, else included, is one one-line statement, such as a dispatch that
+// returns a different encoder per argument. Any two such chains of the same
+// length share a control flow graph whatever they dispatch on and to.
+func isFlatDispatchChain(node *parser.Node) bool {
+	if node.Type != parser.NodeIf {
+		return false
+	}
+	for branch := node; ; {
+		if !isOneLineStatement(branch.Body) {
+			return false
+		}
+		orelse := branch.Orelse
+		if len(orelse) == 0 {
+			return true
+		}
+		if len(orelse) == 1 && orelse[0].Type == parser.NodeElifClause {
+			branch = orelse[0]
+			continue
+		}
+		if len(orelse) == 1 && orelse[0].Type == parser.NodeElseClause {
+			orelse = orelse[0].Body
+		}
+		return isOneLineStatement(orelse)
+	}
+}
+
+// isOneLineStatement reports whether body is a single statement on one line.
+func isOneLineStatement(body []*parser.Node) bool {
+	return len(body) == 1 && body[0].Location.EndLine == body[0].Location.StartLine
+}
+
 // RetainIdenticalUndersizedFragments finalizes a fragment set gathered across
 // files. Fragments held past the size gate during extraction survive only when
 // an identical one was found elsewhere; the rest are discarded, leaving the
@@ -1318,6 +1355,12 @@ func (cd *CloneDetector) isSignificantClone(pair *ClonePair) bool {
 	// A single-statement fragment only matches another's shape, so it earns a
 	// report as an identical copy alone.
 	if (pair.Fragment1.singleStatement || pair.Fragment2.singleStatement) && pair.CloneType != Type1Clone {
+		return false
+	}
+
+	// Flat dispatch chains of equal length share a control flow graph on
+	// shape alone, so only a syntactic match between them is evidence.
+	if (pair.Fragment1.flatDispatchChain || pair.Fragment2.flatDispatchChain) && pair.CloneType == Type4Clone {
 		return false
 	}
 
