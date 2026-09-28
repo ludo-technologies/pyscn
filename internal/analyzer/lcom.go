@@ -590,6 +590,25 @@ func hasDecoratorSuffix(name, suffix string) bool {
 func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames map[string]bool) {
 	methodNode.WalkDeep(func(node *parser.Node) bool {
 		switch node.Type {
+		case parser.NodeCompare:
+			// The parser retains only one operator for a comparison chain.
+			// A single comparison has an unambiguous receiver and operator.
+			if isSelfName(node.Left) && len(node.Children) == 1 {
+				switch node.Op {
+				case "==":
+					calls["__eq__"] = true
+				case "!=":
+					calls["__ne__"] = true
+				case "<":
+					calls["__lt__"] = true
+				case "<=":
+					calls["__le__"] = true
+				case ">":
+					calls["__gt__"] = true
+				case ">=":
+					calls["__ge__"] = true
+				}
+			}
 		case parser.NodeSubscript:
 			if isSelfName(nodeValue(node)) {
 				switch subscriptContext(node) {

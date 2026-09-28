@@ -1506,6 +1506,40 @@ class PairIterable:
 	assert.Equal(t, [][]string{{"__iter__", "as_dict"}}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_ComparisonProtocolsRespectReceiver(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Comparisons:
+    def __eq__(self, other):
+        return self.equality_state == other
+
+    def __ne__(self, other):
+        return not self == other
+
+    def not_equal(self, other):
+        return self != other
+
+    def __lt__(self, other):
+        return self.order_state < other
+
+    def less(self, other):
+        return self < other
+
+    def foreign_left(self, other):
+        return other == self
+
+    def mixed_chain(self, other):
+        return self < other == 3
+`)
+
+	require.Equal(t, 4, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__eq__", "__ne__", "not_equal"},
+		{"__lt__", "less"},
+		{"foreign_left"},
+		{"mixed_chain"},
+	}, r.MethodGroups)
+}
+
 func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
 	t.Helper()
 	parsed, err := parser.New().Parse(context.Background(), []byte(source))
