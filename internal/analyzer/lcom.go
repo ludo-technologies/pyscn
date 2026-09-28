@@ -185,6 +185,7 @@ type classMethods struct {
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
 func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map[string]bool) classMethods {
 	methods := make(map[string]map[string]bool)
+	methodNodes := make(map[string]*parser.Node)
 	calls := make(map[string]map[string]bool)
 	excludedVars := make(map[string]bool)
 	excluded := 0
@@ -246,10 +247,9 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 			}
 		}
 		methods[node.Name] = vars
+		methodNodes[node.Name] = node
 
-		// Extract self.xxx() method calls
 		methodCalls := make(map[string]bool)
-		a.extractMethodCalls(node, methodCalls)
 
 		// Reclassify bare `self.<prop>` reads: a property access invokes the
 		// getter via the descriptor protocol, so it is a call edge to that
@@ -265,9 +265,12 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		calls[node.Name] = methodCalls
 	}
 
-	// Only participating methods can connect components. This also keeps
-	// protocol calls to inherited or excluded methods out of this class's graph.
-	for _, methodCalls := range calls {
+	// Resolve calls after participation is known. Only participating methods
+	// can connect components; inherited and excluded methods stay outside this
+	// class's graph.
+	for name, node := range methodNodes {
+		methodCalls := calls[name]
+		a.extractMethodCalls(node, methodCalls)
 		for name := range methodCalls {
 			if _, ok := methods[name]; !ok {
 				delete(methodCalls, name)
