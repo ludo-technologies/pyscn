@@ -1687,6 +1687,18 @@ class Iterable:
 `,
 			groups: [][]string{{"__iter__"}, {"consume"}},
 		},
+		{
+			name: "first comprehension iterable uses enclosing scope",
+			source: `
+class Iterable:
+    def __iter__(self):
+        return iter(self.items)
+
+    def consume(self):
+        return [item for list in [list(self)] for item in ()]
+`,
+			groups: [][]string{{"__iter__", "consume"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

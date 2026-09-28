@@ -747,11 +747,24 @@ func comprehensionBindsName(call, method *parser.Node, name string) bool {
 			if clause == nil || clause.Type != parser.NodeComprehension {
 				continue
 			}
+			// Each iterable is evaluated before its own target is bound.
+			if hasAncestorBefore(call, clause.Iter, scope) {
+				break
+			}
 			for _, target := range clause.Targets {
 				if bindingTargetContainsName(target, name) {
 					return true
 				}
 			}
+		}
+	}
+	return false
+}
+
+func hasAncestorBefore(node, ancestor, stop *parser.Node) bool {
+	for current := node; current != nil && current != stop; current = current.Parent {
+		if current == ancestor {
+			return true
 		}
 	}
 	return false
