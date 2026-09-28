@@ -72,6 +72,7 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 	classes := a.collectClasses(ast)
 	ctypesFields := a.collectCtypesFields(ast, classes)
 	imports := collectImportBindings(ast)
+	moduleBindings := boundProtocolBuiltins(ast)
 
 	var results []*LCOMResult
 	for _, classNode := range classes {
@@ -81,7 +82,7 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 		if imports.isStructuralClass(classNode) {
 			continue
 		}
-		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode])
+		result, err := a.analyzeClass(classNode, filePath, ctypesFields[classNode], moduleBindings)
 		if err != nil {
 			continue
 		}
@@ -92,7 +93,7 @@ func (a *LCOMAnalyzer) AnalyzeClasses(ast *parser.Node, filePath string) ([]*LCO
 }
 
 // analyzeClass computes LCOM4 for a single class using connected components
-func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, declaredFields map[string]bool) (*LCOMResult, error) {
+func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, declaredFields map[string]bool, moduleBindings map[string]bool) (*LCOMResult, error) {
 	if classNode.Type != parser.NodeClassDef {
 		return nil, fmt.Errorf("node is not a class definition")
 	}
@@ -108,7 +109,7 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
 
 	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
-	collected := a.collectMethods(classNode, declaredFields, methodNames)
+	collected := a.collectMethods(classNode, declaredFields, methodNames, moduleBindings)
 	methods, methodCalls := collected.methods, collected.calls
 	result.TotalMethods = len(methods) + collected.excluded
 	result.ExcludedMethods = collected.excluded
@@ -184,7 +185,7 @@ type classMethods struct {
 }
 
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
-func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, methodNames map[string]bool) classMethods {
+func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, methodNames, moduleBindings map[string]bool) classMethods {
 	methods := make(map[string]map[string]bool)
 	methodNodes := make(map[string]*parser.Node)
 	calls := make(map[string]map[string]bool)
@@ -271,7 +272,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, me
 	// class's graph.
 	for name, node := range methodNodes {
 		methodCalls := calls[name]
-		a.extractMethodCalls(node, methodCalls, methodNames)
+		a.extractMethodCalls(node, methodCalls, methodNames, moduleBindings)
 		for name := range methodCalls {
 			if _, ok := methods[name]; !ok {
 				delete(methodCalls, name)
@@ -587,8 +588,24 @@ func hasDecoratorSuffix(name, suffix string) bool {
 }
 
 // extractMethodCalls finds explicit and protocol-dispatched sibling calls.
-func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames map[string]bool) {
+func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames, moduleBindings map[string]bool) {
+	shadowedBuiltins := boundProtocolBuiltins(methodNode)
+	for name := range moduleBindings {
+		shadowedBuiltins[name] = true
+	}
+	for scope := methodNode.Parent; scope != nil; scope = scope.Parent {
+		if scope.Type != parser.NodeFunctionDef && scope.Type != parser.NodeAsyncFunctionDef {
+			continue // A class body is not an enclosing scope for its methods.
+		}
+		for name := range boundProtocolBuiltins(scope) {
+			shadowedBuiltins[name] = true
+		}
+	}
 	methodNode.WalkDeep(func(node *parser.Node) bool {
+		if node != methodNode && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef ||
+			node.Type == parser.NodeClassDef || node.Type == parser.NodeLambda) {
+			return false
+		}
 		switch node.Type {
 		case parser.NodeCompare:
 			// The parser retains only one operator for a comparison chain.
@@ -622,7 +639,8 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			if callee.Type == parser.NodeAttribute && a.isSelfAccess(callee) && callee.Name != "" {
 				calls[callee.Name] = true
 			}
-			if callee.Type == parser.NodeName && len(node.Args) == 1 && isSelfName(node.Args[0]) {
+			if callee.Type == parser.NodeName && !shadowedBuiltins[callee.Name] &&
+				len(node.Args) == 1 && isSelfName(node.Args[0]) {
 				switch callee.Name {
 				case "iter":
 					calls["__iter__"] = true
@@ -641,6 +659,87 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 		}
 		return true
 	})
+}
+
+// boundProtocolBuiltins records bindings that make an unqualified call to one
+// of these builtins ambiguous. Python class bodies do not enclose methods.
+func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
+	bound := make(map[string]bool)
+	bind := func(name string) {
+		if name == "iter" || name == "list" || name == "dict" {
+			bound[name] = true
+		}
+	}
+	var bindTarget func(*parser.Node)
+	bindTarget = func(target *parser.Node) {
+		if target == nil {
+			return
+		}
+		switch target.Type {
+		case parser.NodeName:
+			bind(target.Name)
+		case parser.NodeTuple, parser.NodeList, parser.NodeStarred:
+			for _, child := range parser.OrderedChildren(target, nil) {
+				bindTarget(child)
+			}
+		}
+	}
+	for _, arg := range scope.Args {
+		if arg != nil {
+			bind(arg.Name)
+		}
+	}
+	for _, stmt := range scope.Body {
+		if stmt == nil {
+			continue
+		}
+		stmt.WalkDeep(func(node *parser.Node) bool {
+			switch node.Type {
+			case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef, parser.NodeClassDef:
+				bind(node.Name)
+				return false
+			case parser.NodeLambda:
+				return false
+			case parser.NodeAssign, parser.NodeAnnAssign, parser.NodeAugAssign,
+				parser.NodeFor, parser.NodeAsyncFor, parser.NodeComprehension, parser.NodeDelete:
+				for _, target := range node.Targets {
+					bindTarget(target)
+				}
+			case parser.NodeNamedExpr:
+				if len(node.Children) > 0 {
+					bindTarget(node.Children[0])
+				}
+			case parser.NodeWithItem:
+				bind(node.Name)
+				bindTarget(node.Target)
+			case parser.NodeExceptHandler, parser.NodeMatchAs, parser.NodeMatchStar:
+				bind(node.Name)
+			case parser.NodeGlobal, parser.NodeNonlocal:
+				for _, name := range node.Names {
+					bind(name)
+				}
+			case parser.NodeImport, parser.NodeImportFrom:
+				aliased := make(map[string]bool)
+				for _, child := range node.Children {
+					if child != nil && child.Type == parser.NodeAlias {
+						if alias, ok := child.Value.(string); ok && alias != "" {
+							bind(alias)
+							aliased[child.Name] = true
+						}
+					}
+				}
+				for _, name := range node.Names {
+					if name == "*" {
+						bound["iter"], bound["list"], bound["dict"] = true, true, true
+					} else if !aliased[name] {
+						bind(importBindingName(name))
+					}
+				}
+			}
+			return true
+		})
+	}
+	return bound
 }
 
 func isSelfName(node *parser.Node) bool {

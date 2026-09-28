@@ -1572,6 +1572,91 @@ class SizedIterable:
 	assert.Equal(t, [][]string{{"__iter__", "__len__", "consume"}}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_ShadowedBuiltinsDoNotCreateProtocolEdges(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		groups [][]string
+	}{
+		{
+			name: "list parameter",
+			source: `
+class Iterable:
+    def __iter__(self):
+        return iter(self.items)
+
+    def consume(self, list):
+        return list(self)
+`,
+			groups: [][]string{{"__iter__"}, {"consume"}},
+		},
+		{
+			name: "iter local binding",
+			source: `
+class Iterable:
+    def __iter__(self):
+        return self.items
+
+    def consume(self):
+        iter = self.converter
+        return iter(self)
+`,
+			groups: [][]string{{"__iter__"}, {"consume"}},
+		},
+		{
+			name: "dict module binding",
+			source: `
+dict = lambda value: {}
+
+class Mapping:
+    def keys(self):
+        return self.keys_state
+
+    def __getitem__(self, key):
+        return self.items[key]
+
+    def convert(self):
+        return dict(self)
+`,
+			groups: [][]string{{"keys"}, {"__getitem__"}, {"convert"}},
+		},
+		{
+			name: "list imported into module",
+			source: `
+from other_module import list
+
+class Iterable:
+    def __iter__(self):
+        return self.items
+
+    def consume(self):
+        return list(self)
+`,
+			groups: [][]string{{"__iter__"}, {"consume"}},
+		},
+		{
+			name: "list captured from enclosing function",
+			source: `
+def factory(list):
+    class Iterable:
+        def __iter__(self):
+            return self.items
+
+        def consume(self):
+            return list(self)
+    return Iterable
+`,
+			groups: [][]string{{"__iter__"}, {"consume"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, tt.source)
+			assert.ElementsMatch(t, tt.groups, r.MethodGroups)
+		})
+	}
+}
+
 func TestLCOMAnalyzer_OrderedMappingProtocolRepro(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class OrderedDictLike:
