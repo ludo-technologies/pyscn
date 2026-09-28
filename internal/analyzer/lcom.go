@@ -639,7 +639,8 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			if callee.Type == parser.NodeAttribute && a.isSelfAccess(callee) && callee.Name != "" {
 				calls[callee.Name] = true
 			}
-			if callee.Type == parser.NodeName && !shadowedBuiltins[callee.Name] &&
+			if callee.Type == parser.NodeName && isProtocolBuiltin(callee.Name) &&
+				!shadowedBuiltins[callee.Name] &&
 				!comprehensionBindsName(node, methodNode, callee.Name) &&
 				len(node.Args) == 1 && isSelfName(node.Args[0]) {
 				switch callee.Name {
@@ -667,7 +668,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
 	bound := make(map[string]bool)
 	bind := func(name string) {
-		if name == "iter" || name == "list" || name == "dict" {
+		if isProtocolBuiltin(name) {
 			bound[name] = true
 		}
 	}
@@ -708,10 +709,6 @@ func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
 				bindTarget(node.Target)
 			case parser.NodeExceptHandler, parser.NodeMatchAs, parser.NodeMatchStar:
 				bind(node.Name)
-			case parser.NodeGlobal, parser.NodeNonlocal:
-				for _, name := range node.Names {
-					bind(name)
-				}
 			case parser.NodeImport, parser.NodeImportFrom:
 				aliased := make(map[string]bool)
 				for _, child := range node.Children {
@@ -734,6 +731,10 @@ func boundProtocolBuiltins(scope *parser.Node) map[string]bool {
 		})
 	}
 	return bound
+}
+
+func isProtocolBuiltin(name string) bool {
+	return name == "iter" || name == "list" || name == "dict"
 }
 
 func comprehensionBindsName(call, method *parser.Node, name string) bool {

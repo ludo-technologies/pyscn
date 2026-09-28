@@ -1663,6 +1663,19 @@ class Iterable:
 			groups: [][]string{{"__iter__", "consume"}},
 		},
 		{
+			name: "global declaration without module binding",
+			source: `
+class Iterable:
+    def __iter__(self):
+        return self.items
+
+    def consume(self):
+        global list
+        return list(self)
+`,
+			groups: [][]string{{"__iter__", "consume"}},
+		},
+		{
 			name: "comprehension target shadows inside comprehension",
 			source: `
 class Iterable:
