@@ -1540,6 +1540,47 @@ class Comparisons:
 	}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_OrderedMappingProtocolRepro(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class OrderedDictLike:
+    def __init__(self):
+        self.__map = {}
+
+    def __setitem__(self, key, value):
+        self.__map[key] = value
+
+    def __iter__(self):
+        return iter(self.__map)
+
+    def __getitem__(self, key):
+        return self.__map[key]
+
+    def keys(self):
+        return list(self)
+
+    def values(self):
+        return [self[key] for key in self]
+
+    def __eq__(self, other):
+        return dict(self) == dict(other)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def update(self, other):
+        for key in other:
+            self[key] = other[key]
+`)
+
+	require.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, 9, r.TotalMethods)
+	assert.Equal(t, 1, r.ExcludedMethods)
+	assert.Equal(t, 1, r.InstanceVariables)
+	assert.Equal(t, [][]string{{
+		"__eq__", "__getitem__", "__iter__", "__ne__", "__setitem__", "keys", "update", "values",
+	}}, r.MethodGroups)
+}
+
 func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
 	t.Helper()
 	parsed, err := parser.New().Parse(context.Background(), []byte(source))
