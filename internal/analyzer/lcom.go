@@ -586,6 +586,20 @@ func hasDecoratorSuffix(name, suffix string) bool {
 func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool) {
 	methodNode.WalkDeep(func(node *parser.Node) bool {
 		switch node.Type {
+		case parser.NodeSubscript:
+			if isSelfName(nodeValue(node)) {
+				switch subscriptContext(node) {
+				case subscriptRead:
+					calls["__getitem__"] = true
+				case subscriptWrite:
+					calls["__setitem__"] = true
+				case subscriptReadWrite:
+					calls["__getitem__"] = true
+					calls["__setitem__"] = true
+				case subscriptDelete:
+					calls["__delitem__"] = true
+				}
+			}
 		case parser.NodeFor, parser.NodeComprehension:
 			if isSelfName(node.Iter) {
 				calls["__iter__"] = true
@@ -614,6 +628,45 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[str
 
 func isSelfName(node *parser.Node) bool {
 	return node != nil && node.Type == parser.NodeName && node.Name == "self"
+}
+
+type subscriptAccess uint8
+
+const (
+	subscriptRead subscriptAccess = iota
+	subscriptWrite
+	subscriptReadWrite
+	subscriptDelete
+)
+
+// subscriptContext distinguishes the item protocol used by a subscript.
+// Tuple/list/starred targets keep their assignment context; a subscript in
+// another target's index is an ordinary read.
+func subscriptContext(node *parser.Node) subscriptAccess {
+	for current := node; current.Parent != nil; current = current.Parent {
+		parent := current.Parent
+		switch parent.Type {
+		case parser.NodeTuple, parser.NodeList, parser.NodeStarred:
+			continue
+		case parser.NodeAssign, parser.NodeAnnAssign, parser.NodeAugAssign,
+			parser.NodeDelete, parser.NodeFor, parser.NodeAsyncFor, parser.NodeComprehension:
+			for _, target := range parent.Targets {
+				if target != current {
+					continue
+				}
+				switch parent.Type {
+				case parser.NodeAugAssign:
+					return subscriptReadWrite
+				case parser.NodeDelete:
+					return subscriptDelete
+				default:
+					return subscriptWrite
+				}
+			}
+		}
+		return subscriptRead
+	}
+	return subscriptRead
 }
 
 // extractInstanceVars walks a method's AST to find all self.xxx attribute accesses

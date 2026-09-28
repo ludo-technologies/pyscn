@@ -1411,6 +1411,60 @@ class AsyncIterable:
 	}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_SubscriptProtocolsRespectAccessContext(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Mapping:
+    def __getitem__(self, key):
+        return self.read_store[key]
+
+    def __setitem__(self, key, value):
+        self.write_store[key] = value
+
+    def __delitem__(self, key):
+        del self.delete_store[key]
+
+    def read(self):
+        return self[0]
+
+    def write(self):
+        self[0] = 1
+
+    def remove(self):
+        del self[0]
+
+    def index_of_foreign_target(self, other):
+        other[self[0]] = 1
+
+    def foreign_write(self, other):
+        other[0] = 1
+`)
+
+	require.Equal(t, 4, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__getitem__", "index_of_foreign_target", "read"},
+		{"__setitem__", "write"},
+		{"__delitem__", "remove"},
+		{"foreign_write"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_AugmentedSubscriptReadsAndWrites(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Counter:
+    def __getitem__(self, key):
+        return self.read_store[key]
+
+    def __setitem__(self, key, value):
+        self.write_store[key] = value
+
+    def increment(self):
+        self[0] += 1
+`)
+
+	require.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, [][]string{{"__getitem__", "__setitem__", "increment"}}, r.MethodGroups)
+}
+
 func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
 	t.Helper()
 	parsed, err := parser.New().Parse(context.Background(), []byte(source))
