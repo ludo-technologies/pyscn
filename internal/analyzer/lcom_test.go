@@ -1358,3 +1358,65 @@ class C:
 	assert.Equal(t, 3, r.InstanceVariables, "self._a, self._b and self._callback; _setup and helper are methods")
 	assert.Equal(t, 1, r.LCOM4)
 }
+
+func TestLCOMAnalyzer_IterationProtocolConnectsMethods(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Iterable:
+    def __iter__(self):
+        return iter(self.items)
+
+    def via_list(self):
+        return list(self)
+
+    def via_iter(self):
+        return iter(self)
+
+    def via_loop(self):
+        for item in self:
+            return item
+
+    def via_comprehension(self):
+        return [item for item in self]
+
+    def unrelated(self, other):
+        return list(other)
+`)
+
+	require.Equal(t, 2, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__iter__", "via_comprehension", "via_iter", "via_list", "via_loop"},
+		{"unrelated"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_AsyncIterationProtocolConnectsMethods(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class AsyncIterable:
+    def __aiter__(self):
+        return self.stream
+
+    async def consume(self):
+        async for item in self:
+            return item
+
+    async def unrelated(self, other):
+        async for item in other:
+            return item
+`)
+
+	require.Equal(t, 2, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__aiter__", "consume"},
+		{"unrelated"},
+	}, r.MethodGroups)
+}
+
+func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
+	t.Helper()
+	parsed, err := parser.New().Parse(context.Background(), []byte(source))
+	require.NoError(t, err)
+	results, err := NewLCOMAnalyzer(nil).AnalyzeClasses(parsed.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	return results[0]
+}

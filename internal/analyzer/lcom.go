@@ -265,6 +265,16 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		calls[node.Name] = methodCalls
 	}
 
+	// Only participating methods can connect components. This also keeps
+	// protocol calls to inherited or excluded methods out of this class's graph.
+	for _, methodCalls := range calls {
+		for name := range methodCalls {
+			if _, ok := methods[name]; !ok {
+				delete(methodCalls, name)
+			}
+		}
+	}
+
 	return classMethods{
 		methods:      methods,
 		calls:        calls,
@@ -572,18 +582,38 @@ func hasDecoratorSuffix(name, suffix string) bool {
 	return len(name) > len(suffix) && name[len(name)-len(suffix):] == suffix
 }
 
-// extractMethodCalls walks a method's AST to find all self.xxx() method call targets
+// extractMethodCalls finds explicit and protocol-dispatched sibling calls.
 func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool) {
 	methodNode.WalkDeep(func(node *parser.Node) bool {
-		if node.Type == parser.NodeCall && node.Value != nil {
-			if attrNode, ok := node.Value.(*parser.Node); ok {
-				if attrNode.Type == parser.NodeAttribute && a.isSelfAccess(attrNode) && attrNode.Name != "" {
-					calls[attrNode.Name] = true
+		switch node.Type {
+		case parser.NodeFor, parser.NodeComprehension:
+			if isSelfName(node.Iter) {
+				calls["__iter__"] = true
+			}
+		case parser.NodeAsyncFor:
+			if isSelfName(node.Iter) {
+				calls["__aiter__"] = true
+			}
+		case parser.NodeCall:
+			callee := nodeValue(node)
+			if callee == nil {
+				break
+			}
+			if callee.Type == parser.NodeAttribute && a.isSelfAccess(callee) && callee.Name != "" {
+				calls[callee.Name] = true
+			}
+			if callee.Type == parser.NodeName && len(node.Args) == 1 && isSelfName(node.Args[0]) {
+				if callee.Name == "iter" || callee.Name == "list" {
+					calls["__iter__"] = true
 				}
 			}
 		}
 		return true
 	})
+}
+
+func isSelfName(node *parser.Node) bool {
+	return node != nil && node.Type == parser.NodeName && node.Name == "self"
 }
 
 // extractInstanceVars walks a method's AST to find all self.xxx attribute accesses
