@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	corelcom "github.com/ludo-technologies/polyscan/core/lcom"
@@ -1514,6 +1515,113 @@ class Comparisons:
 	}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_ProtocolOperationsRespectReceiver(t *testing.T) {
+	tests := []struct {
+		name, method, expression string
+	}{
+		{"length", "__len__", "len(self)"},
+		{"membership", "__contains__", "other in self"},
+		{"negated membership", "__contains__", "other not in self"},
+		{"inequality", "__ne__", "self != other"},
+		{"less than", "__lt__", "self < other"},
+		{"less or equal", "__le__", "self <= other"},
+		{"greater than", "__gt__", "self > other"},
+		{"greater or equal", "__ge__", "self >= other"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, `
+class Subject:
+    def `+tt.method+`(self, other=None):
+        return self.state
+
+    def check(self, other):
+        return `+tt.expression+`
+
+    def unrelated(self, other):
+        return `+strings.ReplaceAll(tt.expression, "self", "other")+`
+`)
+			assert.ElementsMatch(t, [][]string{{tt.method, "check"}, {"unrelated"}}, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_ProtocolFallbacksRespectPrecedence(t *testing.T) {
+	tests := []struct {
+		name, expression, methods string
+		groups                    [][]string
+	}{
+		{
+			name:       "inequality uses equality when no inequality override exists",
+			expression: "self != other",
+			methods: `
+    def __eq__(self, other):
+        return self.equality_state == other
+`,
+			groups: [][]string{{"__eq__", "check"}},
+		},
+		{
+			name:       "membership override precedes iteration",
+			expression: "other in self",
+			methods: `
+    def __contains__(self, other):
+        return other in self.members
+
+    def __iter__(self):
+        return iter(self.iter_state)
+`,
+			groups: [][]string{{"__contains__", "check"}, {"__iter__"}},
+		},
+		{
+			name:       "membership falls back to iteration",
+			expression: "other not in self",
+			methods: `
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def __getitem__(self, index):
+        return self.item_state[index]
+`,
+			groups: [][]string{{"__iter__", "check"}, {"__getitem__"}},
+		},
+		{
+			name:       "membership falls back to indexed access",
+			expression: "other in self",
+			methods: `
+    def __getitem__(self, index):
+        return self.item_state[index]
+`,
+			groups: [][]string{{"__getitem__", "check"}},
+		},
+		{
+			name:       "dict consumes pairs without a keys method",
+			expression: "dict(self)",
+			methods: `
+    def __iter__(self):
+        return iter(self.pairs)
+`,
+			groups: [][]string{{"__iter__", "check"}},
+		},
+		{
+			name:       "iteration falls back to indexed access",
+			expression: "list(self)",
+			methods: `
+    def __getitem__(self, index):
+        return self.item_state[index]
+`,
+			groups: [][]string{{"__getitem__", "check"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, "class Subject:\n"+tt.methods+`
+    def check(self, other):
+        return `+tt.expression+"\n")
+			assert.ElementsMatch(t, tt.groups, r.MethodGroups)
+		})
+	}
+}
+
 func TestLCOMAnalyzer_InheritedProtocolsDoNotCreateLocalEdges(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -1546,6 +1654,30 @@ class Derived(Base):
         return dict(self)
 `,
 			groups: [][]string{{"__iter__"}, {"__getitem__"}, {"as_dict"}},
+		},
+		{
+			name: "inherited membership prevents assumed iteration",
+			source: `
+class Derived(Base):
+    def __iter__(self):
+        return iter(self.items)
+
+    def has(self, item):
+        return item in self
+`,
+			groups: [][]string{{"__iter__"}, {"has"}},
+		},
+		{
+			name: "inherited inequality prevents assumed equality",
+			source: `
+class Derived(Base):
+    def __eq__(self, other):
+        return self.state == other
+
+    def differs(self, other):
+        return self != other
+`,
+			groups: [][]string{{"__eq__"}, {"differs"}},
 		},
 	}
 	for _, tt := range tests {

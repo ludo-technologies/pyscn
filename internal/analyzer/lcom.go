@@ -249,7 +249,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, me
 		methods[node.Name] = vars
 
 		methodCalls := make(map[string]bool)
-		a.extractMethodCalls(node, methodCalls, methodNames)
+		a.extractMethodCalls(node, methodCalls, methodNames, len(classNode.Bases) == 0)
 
 		// Reclassify bare `self.<prop>` reads: a property access invokes the
 		// getter via the descriptor protocol, so it is a call edge to that
@@ -572,10 +572,59 @@ func hasDecoratorSuffix(name, suffix string) bool {
 	return len(name) > len(suffix) && name[len(name)-len(suffix):] == suffix
 }
 
+// protocolDispatch describes direct calls and ordered fallback paths. Each
+// path starts with its entry method, followed by any methods that path calls.
+type protocolDispatch struct {
+	methods         []string
+	paths           [][]string
+	receiverOnRight bool
+}
+
+var lcomProtocolDispatch = map[string]protocolDispatch{
+	"len":  {methods: []string{"__len__"}},
+	"iter": {paths: [][]string{{"__iter__"}, {"__getitem__"}}},
+	"list": {methods: []string{"__len__"}, paths: [][]string{{"__iter__"}, {"__getitem__"}}},
+	"dict": {paths: [][]string{{"keys", "__getitem__"}, {"__iter__"}, {"__getitem__"}}},
+	"==":   {methods: []string{"__eq__"}},
+	"!=":   {paths: [][]string{{"__ne__"}, {"__eq__"}}},
+	"<":    {methods: []string{"__lt__"}},
+	"<=":   {methods: []string{"__le__"}},
+	">":    {methods: []string{"__gt__"}},
+	">=":   {methods: []string{"__ge__"}},
+	"in": {
+		paths:           [][]string{{"__contains__"}, {"__iter__"}, {"__getitem__"}},
+		receiverOnRight: true,
+	},
+	"not in": {
+		paths:           [][]string{{"__contains__"}, {"__iter__"}, {"__getitem__"}},
+		receiverOnRight: true,
+	},
+}
+
+func addProtocolCalls(calls, methodNames map[string]bool, operation string, allowFallback bool) {
+	rule := lcomProtocolDispatch[operation]
+	for _, name := range rule.methods {
+		calls[name] = true
+	}
+	for i, path := range rule.paths {
+		// An absent local entry method may be inherited. Without resolving
+		// bases, a subclass cannot establish that a fallback will be used.
+		if i > 0 && !allowFallback {
+			break
+		}
+		if methodNames[path[0]] {
+			for _, name := range path {
+				calls[name] = true
+			}
+			break
+		}
+	}
+}
+
 // extractMethodCalls finds explicit and protocol-dispatched sibling calls.
 // Builtin calls are recognized by name; resolving shadowed names is outside
 // this syntax-based cohesion analysis.
-func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames map[string]bool) {
+func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames map[string]bool, allowFallback bool) {
 	methodNode.WalkDeep(func(node *parser.Node) bool {
 		if node != methodNode && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef ||
 			node.Type == parser.NodeClassDef || node.Type == parser.NodeLambda) {
@@ -585,8 +634,14 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 		case parser.NodeCompare:
 			// The parser retains only one operator for a comparison chain.
 			// A single comparison has an unambiguous receiver and operator.
-			if isSelfName(node.Left) && len(node.Children) == 1 && node.Op == "==" {
-				calls["__eq__"] = true
+			if len(node.Children) == 1 {
+				receiver := node.Left
+				if lcomProtocolDispatch[node.Op].receiverOnRight {
+					receiver = node.Children[0]
+				}
+				if isSelfName(receiver) {
+					addProtocolCalls(calls, methodNames, node.Op, allowFallback)
+				}
 			}
 		case parser.NodeSubscript:
 			if isSelfName(nodeValue(node)) {
@@ -604,7 +659,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 		case parser.NodeFor, parser.NodeComprehension:
 			if isSelfName(node.Iter) {
-				calls["__iter__"] = true
+				addProtocolCalls(calls, methodNames, "iter", allowFallback)
 			}
 		case parser.NodeCall:
 			callee := nodeValue(node)
@@ -616,20 +671,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 			if callee.Type == parser.NodeName &&
 				len(node.Args) == 1 && isSelfName(node.Args[0]) {
-				switch callee.Name {
-				case "iter":
-					calls["__iter__"] = true
-				case "list":
-					calls["__iter__"] = true
-					calls["__len__"] = true
-				case "dict":
-					// dict(mapping) calls keys() and then __getitem__ for
-					// each key. Other conversion paths need more context.
-					if methodNames["keys"] {
-						calls["keys"] = true
-						calls["__getitem__"] = true
-					}
-				}
+				addProtocolCalls(calls, methodNames, callee.Name, allowFallback)
 			}
 		}
 		return true
