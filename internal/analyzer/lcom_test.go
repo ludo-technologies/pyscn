@@ -1688,6 +1688,49 @@ class Derived(Base):
 	}
 }
 
+func TestLCOMAnalyzer_DisabledProtocolsStopFallback(t *testing.T) {
+	tests := []struct {
+		name, disabled, method, expression string
+	}{
+		{"membership", "__contains__", "__iter__", "other in self"},
+		{"iteration", "__iter__", "__getitem__", "list(self)"},
+		{"inequality", "__ne__", "__eq__", "self != other"},
+		{"mapping", "keys", "__getitem__", "dict(self)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, `
+class Subject:
+    `+tt.disabled+` = None
+
+    def `+tt.method+`(self, other=None):
+        return self.state
+
+    def check(self, other):
+        return `+tt.expression+"\n")
+			assert.ElementsMatch(t, [][]string{{tt.method}, {"check"}}, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_ProtocolMethodReplacesDisabledBinding(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Container:
+    __contains__ = None
+
+    def __contains__(self, item):
+        return item in self.items
+
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def has(self, item):
+        return item in self
+`)
+
+	assert.ElementsMatch(t, [][]string{{"__contains__", "has"}, {"__iter__"}}, r.MethodGroups)
+}
+
 func TestLCOMAnalyzer_ListUsesDeclaredLength(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class SizedIterable:

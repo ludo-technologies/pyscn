@@ -108,7 +108,7 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
 
 	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
-	collected := a.collectMethods(classNode, declaredFields, methodNames)
+	collected := a.collectMethods(classNode, declaredFields)
 	methods, methodCalls := collected.methods, collected.calls
 	result.TotalMethods = len(methods) + collected.excluded
 	result.ExcludedMethods = collected.excluded
@@ -170,8 +170,8 @@ type classMethods struct {
 	// variables it accesses.
 	methods map[string]map[string]bool
 
-	// calls maps a participating method name to the sibling methods it calls
-	// (self.xxx() intra-class calls).
+	// calls holds explicit and protocol-inferred call candidates for each
+	// participating method. Core ignores callees outside the participating set.
 	calls map[string]map[string]bool
 
 	// excludedVars holds instance variables reached only by excluded methods,
@@ -184,7 +184,7 @@ type classMethods struct {
 }
 
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
-func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, methodNames map[string]bool) classMethods {
+func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map[string]bool) classMethods {
 	methods := make(map[string]map[string]bool)
 	calls := make(map[string]map[string]bool)
 	excludedVars := make(map[string]bool)
@@ -194,6 +194,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, me
 	// descriptor protocol, not a field access. Collect property names first so
 	// such reads can be recorded as call edges instead of instance variables.
 	propertyNames := a.collectPropertyNames(classNode)
+	protocolDefinitions := collectProtocolDefinitions(classNode)
 
 	for _, node := range classNode.Body {
 		if node == nil {
@@ -249,7 +250,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields, me
 		methods[node.Name] = vars
 
 		methodCalls := make(map[string]bool)
-		a.extractMethodCalls(node, methodCalls, methodNames, len(classNode.Bases) == 0)
+		a.extractMethodCalls(node, methodCalls, protocolDefinitions, len(classNode.Bases) == 0)
 
 		// Reclassify bare `self.<prop>` reads: a property access invokes the
 		// getter via the descriptor protocol, so it is a call edge to that
@@ -601,7 +602,32 @@ var lcomProtocolDispatch = map[string]protocolDispatch{
 	},
 }
 
-func addProtocolCalls(calls, methodNames map[string]bool, operation string, allowFallback bool) {
+// collectProtocolDefinitions preserves class-body definition order. An assigned
+// protocol name blocks fallback even when it has no analyzable method body.
+func collectProtocolDefinitions(classNode *parser.Node) map[string]*parser.Node {
+	definitions := make(map[string]*parser.Node)
+	for _, node := range classNode.Body {
+		if node == nil {
+			continue
+		}
+		switch node.Type {
+		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+			definitions[node.Name] = node
+		case parser.NodeAssign, parser.NodeAnnAssign:
+			if node.Value == nil {
+				continue // An annotation without a value does not bind the name.
+			}
+			for _, target := range node.Targets {
+				if target != nil && target.Type == parser.NodeName {
+					definitions[target.Name] = node
+				}
+			}
+		}
+	}
+	return definitions
+}
+
+func addProtocolCalls(calls map[string]bool, definitions map[string]*parser.Node, operation string, allowFallback bool) {
 	rule := lcomProtocolDispatch[operation]
 	for _, name := range rule.methods {
 		calls[name] = true
@@ -612,9 +638,11 @@ func addProtocolCalls(calls, methodNames map[string]bool, operation string, allo
 		if i > 0 && !allowFallback {
 			break
 		}
-		if methodNames[path[0]] {
-			for _, name := range path {
-				calls[name] = true
+		if definition, declared := definitions[path[0]]; declared {
+			if definition.Type == parser.NodeFunctionDef || definition.Type == parser.NodeAsyncFunctionDef {
+				for _, name := range path {
+					calls[name] = true
+				}
 			}
 			break
 		}
@@ -624,7 +652,7 @@ func addProtocolCalls(calls, methodNames map[string]bool, operation string, allo
 // extractMethodCalls finds explicit and protocol-dispatched sibling calls.
 // Builtin calls are recognized by name; resolving shadowed names is outside
 // this syntax-based cohesion analysis.
-func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, methodNames map[string]bool, allowFallback bool) {
+func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool, definitions map[string]*parser.Node, allowFallback bool) {
 	methodNode.WalkDeep(func(node *parser.Node) bool {
 		if node != methodNode && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef ||
 			node.Type == parser.NodeClassDef || node.Type == parser.NodeLambda) {
@@ -640,7 +668,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 					receiver = node.Children[0]
 				}
 				if isSelfName(receiver) {
-					addProtocolCalls(calls, methodNames, node.Op, allowFallback)
+					addProtocolCalls(calls, definitions, node.Op, allowFallback)
 				}
 			}
 		case parser.NodeSubscript:
@@ -659,7 +687,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 		case parser.NodeFor, parser.NodeComprehension:
 			if isSelfName(node.Iter) {
-				addProtocolCalls(calls, methodNames, "iter", allowFallback)
+				addProtocolCalls(calls, definitions, "iter", allowFallback)
 			}
 		case parser.NodeCall:
 			callee := nodeValue(node)
@@ -671,7 +699,7 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls, method
 			}
 			if callee.Type == parser.NodeName &&
 				len(node.Args) == 1 && isSelfName(node.Args[0]) {
-				addProtocolCalls(calls, methodNames, callee.Name, allowFallback)
+				addProtocolCalls(calls, definitions, callee.Name, allowFallback)
 			}
 		}
 		return true
