@@ -1731,6 +1731,38 @@ class Container:
 	assert.ElementsMatch(t, [][]string{{"__contains__", "has"}, {"__iter__"}}, r.MethodGroups)
 }
 
+func TestLCOMAnalyzer_AssignmentReplacesProtocolMethod(t *testing.T) {
+	tests := []struct {
+		name, method, expression, extraMethod string
+	}{
+		{"equality", "__eq__", "self == other", ""},
+		{"length", "__len__", "len(self)", ""},
+		{"list length", "__len__", "list(self)", ""},
+		{"mapping item", "__getitem__", "dict(self)", "keys"},
+		{"subscript", "__getitem__", "self[other]", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			source := `
+class Subject:
+    def ` + tt.method + `(self, other=None):
+        return self.state
+
+    ` + tt.method + ` = None
+
+    def check(self, other):
+        return ` + tt.expression + "\n"
+			checkGroup := []string{"check"}
+			if tt.extraMethod != "" {
+				source += "\n    def " + tt.extraMethod + "(self):\n        return self.keys_state\n"
+				checkGroup = append(checkGroup, tt.extraMethod)
+			}
+			r := analyzeLCOMClass(t, source)
+			assert.ElementsMatch(t, [][]string{{tt.method}, checkGroup}, r.MethodGroups)
+		})
+	}
+}
+
 func TestLCOMAnalyzer_ListUsesDeclaredLength(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class SizedIterable:

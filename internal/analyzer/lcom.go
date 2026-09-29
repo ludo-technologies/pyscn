@@ -629,9 +629,7 @@ func collectProtocolDefinitions(classNode *parser.Node) map[string]*parser.Node 
 
 func addProtocolCalls(calls map[string]bool, definitions map[string]*parser.Node, operation string, allowFallback bool) {
 	rule := lcomProtocolDispatch[operation]
-	for _, name := range rule.methods {
-		calls[name] = true
-	}
+	addProtocolMethods(calls, definitions, rule.methods...)
 	for i, path := range rule.paths {
 		// An absent local entry method may be inherited. Without resolving
 		// bases, a subclass cannot establish that a fallback will be used.
@@ -640,11 +638,18 @@ func addProtocolCalls(calls map[string]bool, definitions map[string]*parser.Node
 		}
 		if definition, declared := definitions[path[0]]; declared {
 			if definition.Type == parser.NodeFunctionDef || definition.Type == parser.NodeAsyncFunctionDef {
-				for _, name := range path {
-					calls[name] = true
-				}
+				addProtocolMethods(calls, definitions, path...)
 			}
 			break
+		}
+	}
+}
+
+func addProtocolMethods(calls map[string]bool, definitions map[string]*parser.Node, names ...string) {
+	for _, name := range names {
+		definition, declared := definitions[name]
+		if !declared || definition.Type == parser.NodeFunctionDef || definition.Type == parser.NodeAsyncFunctionDef {
+			calls[name] = true
 		}
 	}
 }
@@ -675,14 +680,13 @@ func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[str
 			if isSelfName(nodeValue(node)) {
 				switch subscriptContext(node) {
 				case subscriptRead:
-					calls["__getitem__"] = true
+					addProtocolMethods(calls, definitions, "__getitem__")
 				case subscriptWrite:
-					calls["__setitem__"] = true
+					addProtocolMethods(calls, definitions, "__setitem__")
 				case subscriptReadWrite:
-					calls["__getitem__"] = true
-					calls["__setitem__"] = true
+					addProtocolMethods(calls, definitions, "__getitem__", "__setitem__")
 				case subscriptDelete:
-					calls["__delitem__"] = true
+					addProtocolMethods(calls, definitions, "__delitem__")
 				}
 			}
 		case parser.NodeFor, parser.NodeComprehension:
