@@ -105,6 +105,8 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 		MethodGroups: [][]string{},
 	}
 
+	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
+
 	// Step 1: Collect methods, their instance variable accesses, and intra-class calls
 	collected := a.collectMethods(classNode, declaredFields)
 	methods, methodCalls := collected.methods, collected.calls
@@ -115,7 +117,6 @@ func (a *LCOMAnalyzer) analyzeClass(classNode *parser.Node, filePath string, dec
 	// constructor touches and ctypes-declared fields that no method accesses.
 	// A `self.<name>` reference to a method defined in the class body is a
 	// method, not instance state.
-	methodNames := a.collectMethodNames(classNode, func(*parser.Node) bool { return true })
 	allVars := make(map[string]bool)
 	for _, vars := range methods {
 		for v := range vars {
@@ -169,8 +170,8 @@ type classMethods struct {
 	// variables it accesses.
 	methods map[string]map[string]bool
 
-	// calls maps a participating method name to the sibling methods it calls
-	// (self.xxx() intra-class calls).
+	// calls holds explicit and protocol-inferred call candidates for each
+	// participating method. Core ignores callees outside the participating set.
 	calls map[string]map[string]bool
 
 	// excludedVars holds instance variables reached only by excluded methods,
@@ -193,6 +194,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	// descriptor protocol, not a field access. Collect property names first so
 	// such reads can be recorded as call edges instead of instance variables.
 	propertyNames := a.collectPropertyNames(classNode)
+	protocolDefinitions := collectProtocolDefinitions(classNode)
 
 	for _, node := range classNode.Body {
 		if node == nil {
@@ -247,9 +249,8 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		}
 		methods[node.Name] = vars
 
-		// Extract self.xxx() method calls
 		methodCalls := make(map[string]bool)
-		a.extractMethodCalls(node, methodCalls)
+		a.extractMethodCalls(node, methodCalls, protocolDefinitions, len(classNode.Bases) == 0)
 
 		// Reclassify bare `self.<prop>` reads: a property access invokes the
 		// getter via the descriptor protocol, so it is a call edge to that
@@ -572,18 +573,184 @@ func hasDecoratorSuffix(name, suffix string) bool {
 	return len(name) > len(suffix) && name[len(name)-len(suffix):] == suffix
 }
 
-// extractMethodCalls walks a method's AST to find all self.xxx() method call targets
-func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool) {
-	methodNode.WalkDeep(func(node *parser.Node) bool {
-		if node.Type == parser.NodeCall && node.Value != nil {
-			if attrNode, ok := node.Value.(*parser.Node); ok {
-				if attrNode.Type == parser.NodeAttribute && a.isSelfAccess(attrNode) && attrNode.Name != "" {
-					calls[attrNode.Name] = true
+// protocolDispatch describes direct calls and ordered fallback paths. Each
+// path starts with its entry method, followed by any methods that path calls.
+type protocolDispatch struct {
+	methods         []string
+	paths           [][]string
+	receiverOnRight bool
+}
+
+var lcomProtocolDispatch = map[string]protocolDispatch{
+	"len":  {methods: []string{"__len__"}},
+	"iter": {paths: [][]string{{"__iter__"}, {"__getitem__"}}},
+	"list": {methods: []string{"__len__"}, paths: [][]string{{"__iter__"}, {"__getitem__"}}},
+	"dict": {paths: [][]string{{"keys", "__getitem__"}, {"__iter__"}, {"__getitem__"}}},
+	"==":   {methods: []string{"__eq__"}},
+	"!=":   {paths: [][]string{{"__ne__"}, {"__eq__"}}},
+	"<":    {methods: []string{"__lt__"}},
+	"<=":   {methods: []string{"__le__"}},
+	">":    {methods: []string{"__gt__"}},
+	">=":   {methods: []string{"__ge__"}},
+	"in": {
+		paths:           [][]string{{"__contains__"}, {"__iter__"}, {"__getitem__"}},
+		receiverOnRight: true,
+	},
+	"not in": {
+		paths:           [][]string{{"__contains__"}, {"__iter__"}, {"__getitem__"}},
+		receiverOnRight: true,
+	},
+}
+
+// collectProtocolDefinitions preserves class-body definition order. An assigned
+// protocol name blocks fallback even when it has no analyzable method body.
+func collectProtocolDefinitions(classNode *parser.Node) map[string]*parser.Node {
+	definitions := make(map[string]*parser.Node)
+	for _, node := range classNode.Body {
+		if node == nil {
+			continue
+		}
+		switch node.Type {
+		case parser.NodeFunctionDef, parser.NodeAsyncFunctionDef:
+			definitions[node.Name] = node
+		case parser.NodeAssign, parser.NodeAnnAssign:
+			if node.Value == nil {
+				continue // An annotation without a value does not bind the name.
+			}
+			for _, target := range node.Targets {
+				if target != nil && target.Type == parser.NodeName {
+					definitions[target.Name] = node
 				}
+			}
+		}
+	}
+	return definitions
+}
+
+func addProtocolCalls(calls map[string]bool, definitions map[string]*parser.Node, operation string, allowFallback bool) {
+	rule := lcomProtocolDispatch[operation]
+	addProtocolMethods(calls, definitions, rule.methods...)
+	for i, path := range rule.paths {
+		// An absent local entry method may be inherited. Without resolving
+		// bases, a subclass cannot establish that a fallback will be used.
+		if i > 0 && !allowFallback {
+			break
+		}
+		if definition, declared := definitions[path[0]]; declared {
+			if definition.Type == parser.NodeFunctionDef || definition.Type == parser.NodeAsyncFunctionDef {
+				addProtocolMethods(calls, definitions, path...)
+			}
+			break
+		}
+	}
+}
+
+func addProtocolMethods(calls map[string]bool, definitions map[string]*parser.Node, names ...string) {
+	for _, name := range names {
+		definition, declared := definitions[name]
+		if !declared || definition.Type == parser.NodeFunctionDef || definition.Type == parser.NodeAsyncFunctionDef {
+			calls[name] = true
+		}
+	}
+}
+
+// extractMethodCalls finds explicit and protocol-dispatched sibling calls.
+// Builtin calls are recognized by name; resolving shadowed names is outside
+// this syntax-based cohesion analysis.
+func (a *LCOMAnalyzer) extractMethodCalls(methodNode *parser.Node, calls map[string]bool, definitions map[string]*parser.Node, allowFallback bool) {
+	methodNode.WalkDeep(func(node *parser.Node) bool {
+		if node != methodNode && (node.Type == parser.NodeFunctionDef || node.Type == parser.NodeAsyncFunctionDef ||
+			node.Type == parser.NodeClassDef || node.Type == parser.NodeLambda) {
+			return false
+		}
+		switch node.Type {
+		case parser.NodeCompare:
+			// The parser retains only one operator for a comparison chain.
+			// A single comparison has an unambiguous receiver and operator.
+			if len(node.Children) == 1 {
+				receiver := node.Left
+				if lcomProtocolDispatch[node.Op].receiverOnRight {
+					receiver = node.Children[0]
+				}
+				if isSelfName(receiver) {
+					addProtocolCalls(calls, definitions, node.Op, allowFallback)
+				}
+			}
+		case parser.NodeSubscript:
+			if isSelfName(nodeValue(node)) {
+				switch subscriptContext(node) {
+				case subscriptRead:
+					addProtocolMethods(calls, definitions, "__getitem__")
+				case subscriptWrite:
+					addProtocolMethods(calls, definitions, "__setitem__")
+				case subscriptReadWrite:
+					addProtocolMethods(calls, definitions, "__getitem__", "__setitem__")
+				case subscriptDelete:
+					addProtocolMethods(calls, definitions, "__delitem__")
+				}
+			}
+		case parser.NodeFor, parser.NodeComprehension:
+			if isSelfName(node.Iter) {
+				addProtocolCalls(calls, definitions, "iter", allowFallback)
+			}
+		case parser.NodeCall:
+			callee := nodeValue(node)
+			if callee == nil {
+				break
+			}
+			if callee.Type == parser.NodeAttribute && a.isSelfAccess(callee) && callee.Name != "" {
+				calls[callee.Name] = true
+			}
+			if callee.Type == parser.NodeName &&
+				len(node.Args) == 1 && isSelfName(node.Args[0]) {
+				addProtocolCalls(calls, definitions, callee.Name, allowFallback)
 			}
 		}
 		return true
 	})
+}
+
+func isSelfName(node *parser.Node) bool {
+	return node != nil && node.Type == parser.NodeName && node.Name == "self"
+}
+
+type subscriptAccess uint8
+
+const (
+	subscriptRead subscriptAccess = iota
+	subscriptWrite
+	subscriptReadWrite
+	subscriptDelete
+)
+
+// subscriptContext distinguishes the item protocol used by a subscript.
+// Tuple/list/starred targets keep their assignment context; a subscript in
+// another target's index is an ordinary read.
+func subscriptContext(node *parser.Node) subscriptAccess {
+	for current := node; current.Parent != nil; current = current.Parent {
+		parent := current.Parent
+		switch parent.Type {
+		case parser.NodeTuple, parser.NodeList, parser.NodeStarred:
+			continue
+		case parser.NodeAssign, parser.NodeAnnAssign, parser.NodeAugAssign,
+			parser.NodeDelete, parser.NodeFor, parser.NodeAsyncFor, parser.NodeComprehension:
+			for _, target := range parent.Targets {
+				if target != current {
+					continue
+				}
+				switch parent.Type {
+				case parser.NodeAugAssign:
+					return subscriptReadWrite
+				case parser.NodeDelete:
+					return subscriptDelete
+				default:
+					return subscriptWrite
+				}
+			}
+		}
+		return subscriptRead
+	}
+	return subscriptRead
 }
 
 // extractInstanceVars walks a method's AST to find all self.xxx attribute accesses

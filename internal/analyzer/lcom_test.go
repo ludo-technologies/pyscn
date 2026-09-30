@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	corelcom "github.com/ludo-technologies/polyscan/core/lcom"
@@ -1357,4 +1358,474 @@ class C:
 	r := results[0]
 	assert.Equal(t, 3, r.InstanceVariables, "self._a, self._b and self._callback; _setup and helper are methods")
 	assert.Equal(t, 1, r.LCOM4)
+}
+
+func TestLCOMAnalyzer_IterationProtocolConnectsMethods(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Iterable:
+    def __iter__(self):
+        return iter(self.items)
+
+    def via_list(self):
+        return list(self)
+
+    def via_iter(self):
+        return iter(self)
+
+    def via_loop(self):
+        for item in self:
+            return item
+
+    def via_comprehension(self):
+        return [item for item in self]
+
+    def unrelated(self, other):
+        return list(other)
+`)
+
+	require.Equal(t, 2, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__iter__", "via_comprehension", "via_iter", "via_list", "via_loop"},
+		{"unrelated"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_IterationPrefersDeclaredIterator(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Both:
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def __getitem__(self, index):
+        return self.item_state[index]
+
+    def consume(self):
+        return list(self)
+`)
+
+	require.Equal(t, 2, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__iter__", "consume"},
+		{"__getitem__"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_SubscriptProtocolsRespectAccessContext(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Mapping:
+    def __getitem__(self, key):
+        return self.read_store[key]
+
+    def __setitem__(self, key, value):
+        self.write_store[key] = value
+
+    def __delitem__(self, key):
+        del self.delete_store[key]
+
+    def read(self):
+        return self[0]
+
+    def write(self):
+        self[0] = 1
+
+    def remove(self):
+        del self[0]
+
+    def index_of_foreign_target(self, other):
+        other[self[0]] = 1
+
+    def foreign_write(self, other):
+        other[0] = 1
+`)
+
+	require.Equal(t, 4, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__getitem__", "index_of_foreign_target", "read"},
+		{"__setitem__", "write"},
+		{"__delitem__", "remove"},
+		{"foreign_write"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_AugmentedSubscriptReadsAndWrites(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Counter:
+    def __getitem__(self, key):
+        return self.read_store[key]
+
+    def __setitem__(self, key, value):
+        self.write_store[key] = value
+
+    def increment(self):
+        self[0] += 1
+`)
+
+	require.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, [][]string{{"__getitem__", "__setitem__", "increment"}}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_DictConversionUsesMappingProtocol(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Mapping:
+    def __iter__(self):
+        return iter(self.iter_store)
+
+    def __getitem__(self, key):
+        return self.item_store[key]
+
+    def keys(self):
+        return self.key_store
+
+    def as_dict(self):
+        return dict(self)
+
+    def foreign_dict(self, other):
+        return dict(other)
+`)
+
+	require.Equal(t, 3, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__getitem__", "as_dict", "keys"},
+		{"__iter__"},
+		{"foreign_dict"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_ComparisonProtocolsRespectReceiver(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Comparisons:
+    def __eq__(self, other):
+        return self.equality_state == other
+
+    def equal(self, other):
+        return self == other
+
+    def foreign_left(self, other):
+        return other == self
+
+    def mixed_chain(self, other):
+        return self < other == 3
+`)
+
+	require.Equal(t, 3, r.LCOM4)
+	assert.ElementsMatch(t, [][]string{
+		{"__eq__", "equal"},
+		{"foreign_left"},
+		{"mixed_chain"},
+	}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_ProtocolOperationsRespectReceiver(t *testing.T) {
+	tests := []struct {
+		name, method, expression string
+	}{
+		{"length", "__len__", "len(self)"},
+		{"membership", "__contains__", "other in self"},
+		{"negated membership", "__contains__", "other not in self"},
+		{"inequality", "__ne__", "self != other"},
+		{"less than", "__lt__", "self < other"},
+		{"less or equal", "__le__", "self <= other"},
+		{"greater than", "__gt__", "self > other"},
+		{"greater or equal", "__ge__", "self >= other"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, `
+class Subject:
+    def `+tt.method+`(self, other=None):
+        return self.state
+
+    def check(self, other):
+        return `+tt.expression+`
+
+    def unrelated(self, other):
+        return `+strings.ReplaceAll(tt.expression, "self", "other")+`
+`)
+			assert.ElementsMatch(t, [][]string{{tt.method, "check"}, {"unrelated"}}, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_ProtocolFallbacksRespectPrecedence(t *testing.T) {
+	tests := []struct {
+		name, expression, methods string
+		groups                    [][]string
+	}{
+		{
+			name:       "inequality uses equality when no inequality override exists",
+			expression: "self != other",
+			methods: `
+    def __eq__(self, other):
+        return self.equality_state == other
+`,
+			groups: [][]string{{"__eq__", "check"}},
+		},
+		{
+			name:       "membership override precedes iteration",
+			expression: "other in self",
+			methods: `
+    def __contains__(self, other):
+        return other in self.members
+
+    def __iter__(self):
+        return iter(self.iter_state)
+`,
+			groups: [][]string{{"__contains__", "check"}, {"__iter__"}},
+		},
+		{
+			name:       "membership falls back to iteration",
+			expression: "other not in self",
+			methods: `
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def __getitem__(self, index):
+        return self.item_state[index]
+`,
+			groups: [][]string{{"__iter__", "check"}, {"__getitem__"}},
+		},
+		{
+			name:       "membership falls back to indexed access",
+			expression: "other in self",
+			methods: `
+    def __getitem__(self, index):
+        return self.item_state[index]
+`,
+			groups: [][]string{{"__getitem__", "check"}},
+		},
+		{
+			name:       "dict consumes pairs without a keys method",
+			expression: "dict(self)",
+			methods: `
+    def __iter__(self):
+        return iter(self.pairs)
+`,
+			groups: [][]string{{"__iter__", "check"}},
+		},
+		{
+			name:       "iteration falls back to indexed access",
+			expression: "list(self)",
+			methods: `
+    def __getitem__(self, index):
+        return self.item_state[index]
+`,
+			groups: [][]string{{"__getitem__", "check"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, "class Subject:\n"+tt.methods+`
+    def check(self, other):
+        return `+tt.expression+"\n")
+			assert.ElementsMatch(t, tt.groups, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_InheritedProtocolsDoNotCreateLocalEdges(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		groups [][]string
+	}{
+		{
+			name: "inherited iterator prevents assumed item fallback",
+			source: `
+class Derived(Base):
+    def __getitem__(self, key):
+        return self.items[key]
+
+    def consume(self):
+        return list(self)
+`,
+			groups: [][]string{{"__getitem__"}, {"consume"}},
+		},
+		{
+			name: "inherited keys prevents assumed pair iteration",
+			source: `
+class Derived(Base):
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def __getitem__(self, key):
+        return self.item_state[key]
+
+    def as_dict(self):
+        return dict(self)
+`,
+			groups: [][]string{{"__iter__"}, {"__getitem__"}, {"as_dict"}},
+		},
+		{
+			name: "inherited membership prevents assumed iteration",
+			source: `
+class Derived(Base):
+    def __iter__(self):
+        return iter(self.items)
+
+    def has(self, item):
+        return item in self
+`,
+			groups: [][]string{{"__iter__"}, {"has"}},
+		},
+		{
+			name: "inherited inequality prevents assumed equality",
+			source: `
+class Derived(Base):
+    def __eq__(self, other):
+        return self.state == other
+
+    def differs(self, other):
+        return self != other
+`,
+			groups: [][]string{{"__eq__"}, {"differs"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, tt.source)
+			assert.ElementsMatch(t, tt.groups, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_DisabledProtocolsStopFallback(t *testing.T) {
+	tests := []struct {
+		name, disabled, method, expression string
+	}{
+		{"membership", "__contains__", "__iter__", "other in self"},
+		{"iteration", "__iter__", "__getitem__", "list(self)"},
+		{"inequality", "__ne__", "__eq__", "self != other"},
+		{"mapping", "keys", "__getitem__", "dict(self)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, `
+class Subject:
+    `+tt.disabled+` = None
+
+    def `+tt.method+`(self, other=None):
+        return self.state
+
+    def check(self, other):
+        return `+tt.expression+"\n")
+			assert.ElementsMatch(t, [][]string{{tt.method}, {"check"}}, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_ProtocolMethodReplacesDisabledBinding(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class Container:
+    __contains__ = None
+
+    def __contains__(self, item):
+        return item in self.items
+
+    def __iter__(self):
+        return iter(self.iter_state)
+
+    def has(self, item):
+        return item in self
+`)
+
+	assert.ElementsMatch(t, [][]string{{"__contains__", "has"}, {"__iter__"}}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_AssignmentReplacesProtocolMethod(t *testing.T) {
+	tests := []struct {
+		name, method, expression, extraMethod string
+	}{
+		{"equality", "__eq__", "self == other", ""},
+		{"length", "__len__", "len(self)", ""},
+		{"list length", "__len__", "list(self)", ""},
+		{"mapping item", "__getitem__", "dict(self)", "keys"},
+		{"subscript", "__getitem__", "self[other]", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			source := `
+class Subject:
+    def ` + tt.method + `(self, other=None):
+        return self.state
+
+    ` + tt.method + ` = None
+
+    def check(self, other):
+        return ` + tt.expression + "\n"
+			checkGroup := []string{"check"}
+			if tt.extraMethod != "" {
+				source += "\n    def " + tt.extraMethod + "(self):\n        return self.keys_state\n"
+				checkGroup = append(checkGroup, tt.extraMethod)
+			}
+			r := analyzeLCOMClass(t, source)
+			assert.ElementsMatch(t, [][]string{{tt.method}, checkGroup}, r.MethodGroups)
+		})
+	}
+}
+
+func TestLCOMAnalyzer_ListUsesDeclaredLength(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class SizedIterable:
+    def __iter__(self):
+        return iter(self.items)
+
+    def __len__(self):
+        return self.size
+
+    def consume(self):
+        return list(self)
+`)
+
+	assert.Equal(t, [][]string{{"__iter__", "__len__", "consume"}}, r.MethodGroups)
+}
+
+func TestLCOMAnalyzer_OrderedMappingProtocolRepro(t *testing.T) {
+	r := analyzeLCOMClass(t, `
+class OrderedDictLike:
+    def __init__(self):
+        self.__map = {}
+
+    def __setitem__(self, key, value):
+        self.__map[key] = value
+
+    def __iter__(self):
+        return iter(self.__map)
+
+    def __getitem__(self, key):
+        return self.__map[key]
+
+    def keys(self):
+        return list(self)
+
+    def values(self):
+        return [self[key] for key in self]
+
+    def __eq__(self, other):
+        return dict(self) == dict(other)
+
+    def __ne__(self, other):
+        return not self == other
+
+    def update(self, other):
+        for key in other:
+            self[key] = other[key]
+`)
+
+	require.Equal(t, 1, r.LCOM4)
+	assert.Equal(t, 9, r.TotalMethods)
+	assert.Equal(t, 1, r.ExcludedMethods)
+	assert.Equal(t, 1, r.InstanceVariables)
+	assert.Equal(t, [][]string{{
+		"__eq__", "__getitem__", "__iter__", "__ne__", "__setitem__", "keys", "update", "values",
+	}}, r.MethodGroups)
+}
+
+func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
+	t.Helper()
+	parsed, err := parser.New().Parse(context.Background(), []byte(source))
+	require.NoError(t, err)
+	results, err := NewLCOMAnalyzer(nil).AnalyzeClasses(parsed.AST, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	return results[0]
 }
