@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [1.32.2] - 2026-10-01
+
+### Fixed
+- Connect Python protocol dispatch in LCOM (#824)
+- Don't pair flat if/elif dispatch chains as Type-4 clones (#823)
+- Drop Type-4 pairs shadowed by much stronger syntactic matches (#821)
+- Derive the dead code unreachable reason from the CFG (#818)
+- Stop counting method references as instance variables in LCOM (#817)
+- Include the try header in unreachable try ranges (#812)
+- Penalize asymmetric call evidence in Type-4 clone detection (#806)
+
+### Changed
+- Report single-statement fragments only as identical clones (#820)
+- Exclude `examples`, `docs`, `demo` and `samples` directories by default (#816)
+- Measure clone `min_lines` in SLOC and lower the default to 8 (#813)
+
 ## [1.32.1] - 2026-09-20
 
 ### Added
