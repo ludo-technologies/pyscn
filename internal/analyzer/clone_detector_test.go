@@ -1691,3 +1691,113 @@ func TestDropShadowedSemanticPairs(t *testing.T) {
 		[]*ClonePair{bytesTwins, linesTwins, nearCounterpart, oneSideShadowed},
 		dropShadowedSemanticPairs(pairs))
 }
+
+func TestIsFlatDispatchChain(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   bool
+	}{
+		{
+			name: "one-line branches",
+			source: `if content is not None:
+    return encode_content(content)
+elif text is not None:
+    return encode_text(text)
+else:
+    return encode_json(json)
+`,
+			want: true,
+		},
+		{
+			name: "multi-line branch",
+			source: `if content is not None:
+    return encode_content(
+        content,
+    )
+elif text is not None:
+    return encode_text(text)
+`,
+			want: false,
+		},
+		{
+			name: "two-statement branch",
+			source: `if content is not None:
+    return encode_content(content)
+elif text is not None:
+    log(text)
+    return encode_text(text)
+`,
+			want: false,
+		},
+		{
+			name: "nested if in else",
+			source: `if content is not None:
+    return encode_content(content)
+else:
+    if text is not None:
+        return encode_text(text)
+`,
+			want: false,
+		},
+		{
+			name: "not an if",
+			source: `for item in items:
+    handle(item)
+`,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := parser.New().Parse(t.Context(), []byte(tt.source))
+			require.NoError(t, err)
+			require.NotEmpty(t, result.AST.Body)
+
+			assert.Equal(t, tt.want, isFlatDispatchChain(result.AST.Body[0]))
+		})
+	}
+}
+
+func TestCloneDetector_FlatDispatchChainsDoNotPairAsSemantic(t *testing.T) {
+	const encodeRequest = `def encode_request(content=None, data=None, files=None, json=None, boundary=None):
+    if data is not None and not isinstance(data, Mapping):
+        message = "Use 'content=<...>' to upload raw bytes/text content."
+        warnings.warn(message, DeprecationWarning, stacklevel=2)
+        return encode_content(data)
+
+    if content is not None:
+        return encode_content(content)
+    elif files:
+        return encode_multipart_data(data or {}, files, boundary)
+    elif data:
+        return encode_urlencoded_data(data)
+    elif json is not None:
+        return encode_json(json)
+    return {}, ByteStream(b"")
+`
+	const encodeResponse = `def encode_response(content=None, text=None, html=None, json=None):
+    if content is not None:
+        return encode_content(content)
+    elif text is not None:
+        return encode_text(text)
+    elif html is not None:
+        return encode_html(html)
+    elif json is not None:
+        return encode_json(json)
+    return {}, ByteStream(b"")
+`
+	config := DefaultCloneDetectorConfig()
+	config.EnableDFAAnalysis = true
+	detector := NewCloneDetector(config)
+	fragments := append(
+		extractAllFragments(t, detector, "a.py", encodeRequest),
+		extractAllFragments(t, detector, "b.py", encodeResponse)...,
+	)
+
+	for _, pair := range detector.DetectClones(fragments).Pairs {
+		assert.NotEqual(t, Type4Clone, pair.CloneType,
+			"lines %d and %d pair on shape alone", pair.Fragment1.Location.StartLine, pair.Fragment2.Location.StartLine)
+	}
+}

@@ -102,6 +102,11 @@ counterpart is then already reported, and the weak Type-4 match only links two
 code blocks that share a generic skeleton, such as the same decode-and-flush
 loop.
 
+An `if`/`elif` chain whose every branch is one one-line statement, such as a
+dispatch that returns a different encoder per argument, is never reported as
+Type-4. Two such chains of the same length share a control flow graph whatever
+they dispatch on, so only a Type-1 to Type-3 match between them counts.
+
 ### Algorithm
 
 | Key                 | Type   | Default    | Description |
