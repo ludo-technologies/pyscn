@@ -1,16 +1,16 @@
 module github.com/ludo-technologies/pyscn
 
-go 1.25.5
+go 1.26.0
 
 require (
-	github.com/bmatcuk/doublestar/v4 v4.10.0
-	github.com/mark3labs/mcp-go v0.58.0
+	github.com/bmatcuk/doublestar/v4 v4.10.2
+	github.com/mark3labs/mcp-go v1.1.1
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/schollz/progressbar/v3 v3.19.1
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/term v0.45.0
+	golang.org/x/term v0.46.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -30,6 +30,6 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
