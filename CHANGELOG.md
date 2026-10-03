@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [1.32.3] - 2026-10-03
+
+### Fixed
+- Make circular dependency detection match Python's import-time behavior (#830)
+
 ## [1.32.2] - 2026-10-01
 
 ### Fixed
