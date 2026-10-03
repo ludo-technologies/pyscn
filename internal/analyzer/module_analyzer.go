@@ -1271,30 +1271,8 @@ func (ma *ModuleAnalyzer) matchesExcludePatterns(relPath string) bool {
 
 // isStandardLibrary checks if a module is part of the Python standard library
 func (ma *ModuleAnalyzer) isStandardLibrary(moduleName string) bool {
-	// Common standard library modules
-	stdLibModules := map[string]bool{
-		"os": true, "sys": true, "re": true, "json": true, "datetime": true,
-		"collections": true, "itertools": true, "functools": true, "operator": true,
-		"math": true, "random": true, "string": true, "io": true, "pathlib": true,
-		"unittest": true, "logging": true, "argparse": true, "configparser": true,
-		"urllib": true, "http": true, "typing": true, "abc": true, "asyncio": true,
-		"contextlib": true, "dataclasses": true, "enum": true, "pickle": true,
-		"sqlite3": true, "csv": true, "xml": true, "html": true, "email": true,
-		"time": true, "socket": true, "subprocess": true, "multiprocessing": true,
-	}
-
-	// Check direct match
-	if stdLibModules[moduleName] {
-		return true
-	}
-
-	// Check root module for qualified names
-	if strings.Contains(moduleName, ".") {
-		rootModule := strings.Split(moduleName, ".")[0]
-		return stdLibModules[rootModule]
-	}
-
-	return false
+	rootModule, _, _ := strings.Cut(moduleName, ".")
+	return standardLibraryModules[rootModule]
 }
 
 // isInTypeCheckingBlock checks if a node is inside a TYPE_CHECKING conditional block
