@@ -29,6 +29,15 @@ def helper():
 async def async_helper():
     from foo.c import thing           # lazy: inside an async function body
     return thing
+
+if __name__ == "__main__":
+    from foo.d import demo            # lazy: runs only when executed as a script
+
+if "__main__" == __name__:
+    from foo.e import demo            # lazy: reversed comparison
+
+if __name__ != "__main__":
+    from foo.f import other           # runs on import -> not lazy
 `
 
 	tmpDir := t.TempDir()
@@ -68,6 +77,9 @@ async def async_helper():
 		"foo.a":       true,  // inside method
 		"import json": true,  // inside function
 		"foo.c":       true,  // inside async function
+		"foo.d":       true,  // inside __main__ guard
+		"foo.e":       true,  // inside reversed __main__ guard
+		"foo.f":       false, // runs on import
 	}
 
 	seen := map[string]bool{}

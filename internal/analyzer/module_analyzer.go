@@ -596,7 +596,7 @@ func countSourceLines(content []byte) int {
 
 func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 	isTypeChecking := ma.isInTypeCheckingBlock(node)
-	isLazy := ma.isInFunctionScope(node)
+	isLazy := ma.isInFunctionScope(node) || ma.isInMainGuard(node)
 
 	switch node.Type {
 	case parser.NodeImport:
@@ -1326,6 +1326,37 @@ func (ma *ModuleAnalyzer) isInFunctionScope(node *parser.Node) bool {
 		}
 	}
 	return false
+}
+
+// isInMainGuard reports whether the node is inside an
+// `if __name__ == "__main__":` block. Such imports run only when the file is
+// executed as a script, never when it is imported, so like function-body
+// imports they cannot create a load-time circular dependency.
+func (ma *ModuleAnalyzer) isInMainGuard(node *parser.Node) bool {
+	child := node
+	for current := node.Parent; current != nil; current = current.Parent {
+		if current.Type == parser.NodeIf && isMainGuardCondition(current.Test) && containsDirectNode(current.Body, child) {
+			return true
+		}
+		child = current
+	}
+	return false
+}
+
+func isMainGuardCondition(expr *parser.Node) bool {
+	if expr == nil || expr.Type != parser.NodeCompare || expr.Op != "==" || expr.Left == nil || len(expr.Children) != 1 {
+		return false
+	}
+	left, right := expr.Left, expr.Children[0]
+	return (isDunderName(left) && isMainLiteral(right)) || (isMainLiteral(left) && isDunderName(right))
+}
+
+func isDunderName(node *parser.Node) bool {
+	return node.Type == parser.NodeName && node.Name == "__name__"
+}
+
+func isMainLiteral(node *parser.Node) bool {
+	return node.Type == parser.NodeConstant && node.Value == "__main__"
 }
 
 func containsDirectNode(nodes []*parser.Node, target *parser.Node) bool {

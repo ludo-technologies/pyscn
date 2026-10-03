@@ -62,7 +62,7 @@ type DependencyEdge struct {
 	To         string             // Target module name
 	EdgeType   DependencyEdgeType // Type of dependency
 	ImportInfo *ImportInfo        // Details about the import
-	IsLazy     bool               // True if every import forming this edge is lazy (function/method-body)
+	IsLazy     bool               // True if every import forming this edge is lazy (function/method-body or __main__ guard)
 }
 
 // DependencyEdgeType represents the type of dependency relationship
@@ -84,7 +84,7 @@ type ImportInfo struct {
 	Level          int      // Level for relative imports (number of dots)
 	Line           int      // Line number where import occurs
 	IsTypeChecking bool     // True if import is inside a TYPE_CHECKING block
-	IsLazy         bool     // True if import is inside a function/method body (not executed at module load)
+	IsLazy         bool     // True if import is inside a function/method body or an `if __name__ == "__main__":` block (not executed at module load)
 }
 
 // DependencyGraph represents the complete module dependency graph
