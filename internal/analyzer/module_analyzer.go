@@ -379,9 +379,6 @@ func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph
 
 		edgeType := ma.dependencyEdgeType(imp)
 		for _, resolvedModule := range ma.importDependencyTargets(graph, imp, targetModule) {
-			if ma.shouldSkipPackageInitDependency(parsedModule.path, moduleName, resolvedModule) {
-				continue
-			}
 			if ma.shouldIncludeDependency(resolvedModule) {
 				graph.AddDependency(moduleName, resolvedModule, edgeType, imp)
 			}
@@ -538,10 +535,6 @@ func sortedModuleNames(moduleSet map[string]bool) []string {
 	return modules
 }
 
-func (ma *ModuleAnalyzer) shouldSkipPackageInitDependency(filePath, moduleName, targetModule string) bool {
-	return isPythonPackageInit(filePath) && strings.HasPrefix(targetModule, moduleName+".")
-}
-
 type moduleFacts struct {
 	imports            []*ImportInfo
 	functionCount      int
@@ -596,7 +589,7 @@ func countSourceLines(content []byte) int {
 
 func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {
 	isTypeChecking := ma.isInTypeCheckingBlock(node)
-	isLazy := ma.isInFunctionScope(node)
+	isLazy := ma.isInFunctionScope(node) || ma.isInMainGuard(node)
 
 	switch node.Type {
 	case parser.NodeImport:
@@ -1271,30 +1264,8 @@ func (ma *ModuleAnalyzer) matchesExcludePatterns(relPath string) bool {
 
 // isStandardLibrary checks if a module is part of the Python standard library
 func (ma *ModuleAnalyzer) isStandardLibrary(moduleName string) bool {
-	// Common standard library modules
-	stdLibModules := map[string]bool{
-		"os": true, "sys": true, "re": true, "json": true, "datetime": true,
-		"collections": true, "itertools": true, "functools": true, "operator": true,
-		"math": true, "random": true, "string": true, "io": true, "pathlib": true,
-		"unittest": true, "logging": true, "argparse": true, "configparser": true,
-		"urllib": true, "http": true, "typing": true, "abc": true, "asyncio": true,
-		"contextlib": true, "dataclasses": true, "enum": true, "pickle": true,
-		"sqlite3": true, "csv": true, "xml": true, "html": true, "email": true,
-		"time": true, "socket": true, "subprocess": true, "multiprocessing": true,
-	}
-
-	// Check direct match
-	if stdLibModules[moduleName] {
-		return true
-	}
-
-	// Check root module for qualified names
-	if strings.Contains(moduleName, ".") {
-		rootModule := strings.Split(moduleName, ".")[0]
-		return stdLibModules[rootModule]
-	}
-
-	return false
+	rootModule, _, _ := strings.Cut(moduleName, ".")
+	return standardLibraryModules[rootModule]
 }
 
 // isInTypeCheckingBlock checks if a node is inside a TYPE_CHECKING conditional block
@@ -1326,6 +1297,37 @@ func (ma *ModuleAnalyzer) isInFunctionScope(node *parser.Node) bool {
 		}
 	}
 	return false
+}
+
+// isInMainGuard reports whether the node is inside an
+// `if __name__ == "__main__":` block. Such imports run only when the file is
+// executed as a script, never when it is imported, so like function-body
+// imports they cannot create a load-time circular dependency.
+func (ma *ModuleAnalyzer) isInMainGuard(node *parser.Node) bool {
+	child := node
+	for current := node.Parent; current != nil; current = current.Parent {
+		if current.Type == parser.NodeIf && isMainGuardCondition(current.Test) && containsDirectNode(current.Body, child) {
+			return true
+		}
+		child = current
+	}
+	return false
+}
+
+func isMainGuardCondition(expr *parser.Node) bool {
+	if expr == nil || expr.Type != parser.NodeCompare || expr.Op != "==" || expr.Left == nil || len(expr.Children) != 1 {
+		return false
+	}
+	left, right := expr.Left, expr.Children[0]
+	return (isDunderName(left) && isMainLiteral(right)) || (isMainLiteral(left) && isDunderName(right))
+}
+
+func isDunderName(node *parser.Node) bool {
+	return node.Type == parser.NodeName && node.Name == "__name__"
+}
+
+func isMainLiteral(node *parser.Node) bool {
+	return node.Type == parser.NodeConstant && node.Value == "__main__"
 }
 
 func containsDirectNode(nodes []*parser.Node, target *parser.Node) bool {

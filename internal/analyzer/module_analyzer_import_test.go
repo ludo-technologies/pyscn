@@ -473,7 +473,10 @@ func TestModuleAnalyzerResolvesRelativeFromImportToSubmodule(t *testing.T) {
 	}
 }
 
-func TestModuleAnalyzerSkipsPackageInitSubmoduleImportDependency(t *testing.T) {
+// A package __init__ that imports its own submodule really does load it at
+// import time, so the edge must be kept: without it, a cycle that runs
+// through the package (pkg -> pkg.app -> pkg.utils -> pkg) goes unreported.
+func TestModuleAnalyzerKeepsPackageInitSubmoduleImportDependency(t *testing.T) {
 	dir := t.TempDir()
 
 	initFile := filepath.Join(dir, "pkg", "__init__.py")
@@ -505,8 +508,41 @@ func TestModuleAnalyzerSkipsPackageInitSubmoduleImportDependency(t *testing.T) {
 	if packageNode == nil {
 		t.Fatalf("expected pkg module in graph, got %v", graph.GetModuleNames())
 	}
-	if packageNode.Dependencies["pkg.submodule"] {
-		t.Fatalf("did not expect package init to depend on own submodule, got %v", packageNode.Dependencies)
+	if !packageNode.Dependencies["pkg.submodule"] {
+		t.Fatalf("expected package init to depend on own submodule, got %v", packageNode.Dependencies)
+	}
+}
+
+func TestModuleAnalyzerDetectsCycleThroughPackageInit(t *testing.T) {
+	dir := t.TempDir()
+
+	files := map[string]string{
+		filepath.Join(dir, "pkg", "__init__.py"): "__version__ = \"1.0\"\nfrom .app import App\n",
+		filepath.Join(dir, "pkg", "app.py"):      "from .utils import tag\n\nclass App:\n    pass\n",
+		filepath.Join(dir, "pkg", "utils.py"):    "import pkg\n\ndef tag():\n    return pkg.__version__\n",
+	}
+	for path, content := range files {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("failed to create directory for %s: %v", path, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("failed to write %s: %v", path, err)
+		}
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+	graph, err := analyzer.AnalyzeProject()
+	if err != nil {
+		t.Fatalf("AnalyzeProject failed: %v", err)
+	}
+
+	result := NewCircularDependencyDetector(graph).DetectCircularDependencies()
+	if result.TotalCycles != 1 || result.TotalModulesInCycles != 3 {
+		t.Fatalf("expected one cycle over pkg, pkg.app and pkg.utils, got %d cycles over %d modules: %+v",
+			result.TotalCycles, result.TotalModulesInCycles, result.CircularDependencies)
 	}
 }
 
@@ -679,49 +715,55 @@ func TestModuleAnalyzerEmptyIncludesStillCollectOnlyPythonModules(t *testing.T) 
 }
 
 func TestModuleAnalyzerDoesNotResolveStdlibImportToShadowingProjectModule(t *testing.T) {
-	dir := t.TempDir()
+	for _, stdlibName := range []string{"time", "types"} {
+		t.Run(stdlibName, func(t *testing.T) {
+			dir := t.TempDir()
 
-	shadowModule := filepath.Join(dir, "src", "mypkg", "time.py")
-	samePackageUser := filepath.Join(dir, "src", "mypkg", "widget.py")
-	otherPackageUser := filepath.Join(dir, "utils", "serve.py")
+			shadowModule := filepath.Join(dir, "src", "mypkg", stdlibName+".py")
+			samePackageUser := filepath.Join(dir, "src", "mypkg", "widget.py")
+			subpackageUser := filepath.Join(dir, "src", "mypkg", "_internal", "repr.py")
+			otherPackageUser := filepath.Join(dir, "utils", "serve.py")
+			users := []string{samePackageUser, subpackageUser, otherPackageUser}
 
-	for _, path := range []string{shadowModule, samePackageUser, otherPackageUser} {
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			t.Fatalf("failed to create directory for %s: %v", path, err)
-		}
-	}
-	if err := os.WriteFile(shadowModule, []byte(`"""Project-local time picker module."""`), 0o644); err != nil {
-		t.Fatalf("failed to write shadow module: %v", err)
-	}
-	// Python 3 absolute imports should treat this as stdlib time, not
-	// src.mypkg.time, even though a same-basename project module exists.
-	if err := os.WriteFile(samePackageUser, []byte("import time\n"), 0o644); err != nil {
-		t.Fatalf("failed to write same-package user: %v", err)
-	}
-	if err := os.WriteFile(otherPackageUser, []byte("import time\n"), 0o644); err != nil {
-		t.Fatalf("failed to write other-package user: %v", err)
-	}
+			for _, path := range append([]string{shadowModule}, users...) {
+				if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+					t.Fatalf("failed to create directory for %s: %v", path, err)
+				}
+			}
+			if err := os.WriteFile(shadowModule, []byte(`"""Project-local module named like a stdlib module."""`), 0o644); err != nil {
+				t.Fatalf("failed to write shadow module: %v", err)
+			}
+			// Python 3 absolute imports should treat this as the stdlib
+			// module, not src.mypkg.<name>, even though a same-basename
+			// project module exists in the importer's directory or its parent.
+			for _, path := range users {
+				if err := os.WriteFile(path, []byte("import "+stdlibName+"\n"), 0o644); err != nil {
+					t.Fatalf("failed to write %s: %v", path, err)
+				}
+			}
 
-	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
-	if err != nil {
-		t.Fatalf("failed to create analyzer: %v", err)
-	}
+			analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+			if err != nil {
+				t.Fatalf("failed to create analyzer: %v", err)
+			}
 
-	graph, err := analyzer.AnalyzeFiles([]string{samePackageUser, shadowModule, otherPackageUser})
-	if err != nil {
-		t.Fatalf("AnalyzeFiles failed: %v", err)
-	}
+			graph, err := analyzer.AnalyzeFiles(append([]string{shadowModule}, users...))
+			if err != nil {
+				t.Fatalf("AnalyzeFiles failed: %v", err)
+			}
 
-	shadowName := analyzer.filePathToModuleName(shadowModule)
-	for _, path := range []string{samePackageUser, otherPackageUser} {
-		moduleName := analyzer.filePathToModuleName(path)
-		node := graph.Nodes[moduleName]
-		if node == nil {
-			t.Fatalf("expected module %s in graph", moduleName)
-		}
-		if node.Dependencies[shadowName] {
-			t.Fatalf("did not expect %s to depend on stdlib-shadowing module %s; dependencies: %v", moduleName, shadowName, node.Dependencies)
-		}
+			shadowName := analyzer.filePathToModuleName(shadowModule)
+			for _, path := range users {
+				moduleName := analyzer.filePathToModuleName(path)
+				node := graph.Nodes[moduleName]
+				if node == nil {
+					t.Fatalf("expected module %s in graph", moduleName)
+				}
+				if node.Dependencies[shadowName] {
+					t.Fatalf("did not expect %s to depend on stdlib-shadowing module %s; dependencies: %v", moduleName, shadowName, node.Dependencies)
+				}
+			}
+		})
 	}
 }
 
