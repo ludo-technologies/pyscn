@@ -473,7 +473,10 @@ func TestModuleAnalyzerResolvesRelativeFromImportToSubmodule(t *testing.T) {
 	}
 }
 
-func TestModuleAnalyzerSkipsPackageInitSubmoduleImportDependency(t *testing.T) {
+// A package __init__ that imports its own submodule really does load it at
+// import time, so the edge must be kept: without it, a cycle that runs
+// through the package (pkg -> pkg.app -> pkg.utils -> pkg) goes unreported.
+func TestModuleAnalyzerKeepsPackageInitSubmoduleImportDependency(t *testing.T) {
 	dir := t.TempDir()
 
 	initFile := filepath.Join(dir, "pkg", "__init__.py")
@@ -505,8 +508,41 @@ func TestModuleAnalyzerSkipsPackageInitSubmoduleImportDependency(t *testing.T) {
 	if packageNode == nil {
 		t.Fatalf("expected pkg module in graph, got %v", graph.GetModuleNames())
 	}
-	if packageNode.Dependencies["pkg.submodule"] {
-		t.Fatalf("did not expect package init to depend on own submodule, got %v", packageNode.Dependencies)
+	if !packageNode.Dependencies["pkg.submodule"] {
+		t.Fatalf("expected package init to depend on own submodule, got %v", packageNode.Dependencies)
+	}
+}
+
+func TestModuleAnalyzerDetectsCycleThroughPackageInit(t *testing.T) {
+	dir := t.TempDir()
+
+	files := map[string]string{
+		filepath.Join(dir, "pkg", "__init__.py"): "__version__ = \"1.0\"\nfrom .app import App\n",
+		filepath.Join(dir, "pkg", "app.py"):      "from .utils import tag\n\nclass App:\n    pass\n",
+		filepath.Join(dir, "pkg", "utils.py"):    "import pkg\n\ndef tag():\n    return pkg.__version__\n",
+	}
+	for path, content := range files {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("failed to create directory for %s: %v", path, err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatalf("failed to write %s: %v", path, err)
+		}
+	}
+
+	analyzer, err := NewModuleAnalyzer(&ModuleAnalysisOptions{ProjectRoot: dir})
+	if err != nil {
+		t.Fatalf("failed to create analyzer: %v", err)
+	}
+	graph, err := analyzer.AnalyzeProject()
+	if err != nil {
+		t.Fatalf("AnalyzeProject failed: %v", err)
+	}
+
+	result := NewCircularDependencyDetector(graph).DetectCircularDependencies()
+	if result.TotalCycles != 1 || result.TotalModulesInCycles != 3 {
+		t.Fatalf("expected one cycle over pkg, pkg.app and pkg.utils, got %d cycles over %d modules: %+v",
+			result.TotalCycles, result.TotalModulesInCycles, result.CircularDependencies)
 	}
 }
 

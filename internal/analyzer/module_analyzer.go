@@ -379,9 +379,6 @@ func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph
 
 		edgeType := ma.dependencyEdgeType(imp)
 		for _, resolvedModule := range ma.importDependencyTargets(graph, imp, targetModule) {
-			if ma.shouldSkipPackageInitDependency(parsedModule.path, moduleName, resolvedModule) {
-				continue
-			}
 			if ma.shouldIncludeDependency(resolvedModule) {
 				graph.AddDependency(moduleName, resolvedModule, edgeType, imp)
 			}
@@ -536,10 +533,6 @@ func sortedModuleNames(moduleSet map[string]bool) []string {
 	}
 	sort.Strings(modules)
 	return modules
-}
-
-func (ma *ModuleAnalyzer) shouldSkipPackageInitDependency(filePath, moduleName, targetModule string) bool {
-	return isPythonPackageInit(filePath) && strings.HasPrefix(targetModule, moduleName+".")
 }
 
 type moduleFacts struct {
