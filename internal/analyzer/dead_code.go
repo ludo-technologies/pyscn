@@ -61,11 +61,15 @@ type DeadCodeFinding struct {
 	EndLine   int `json:"end_line"`
 
 	// Dead code details
-	BlockID     string         `json:"block_id"`
-	Code        string         `json:"code"`
-	Reason      DeadCodeReason `json:"reason"`
-	Severity    SeverityLevel  `json:"severity"`
-	Description string         `json:"description"`
+	// DeadRegionID is the block that opened the dead region this finding belongs
+	// to, or empty when the finding does not come from a classified region.
+	// Findings sharing a DeadRegionID describe one region and are merged.
+	DeadRegionID string         `json:"dead_region_id,omitempty"`
+	BlockID      string         `json:"block_id"`
+	Code         string         `json:"code"`
+	Reason       DeadCodeReason `json:"reason"`
+	Severity     SeverityLevel  `json:"severity"`
+	Description  string         `json:"description"`
 
 	// Context information
 	Context []string `json:"context,omitempty"`
@@ -141,7 +145,7 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 		result.ReachableRatio = float64(reachResult.ReachableCount) / float64(result.TotalBlocks)
 	}
 	coreResult := corecfg.DetectDeadCode(dcd.cfg, corecfg.DeadCodeConfig{Classifier: classifier})
-	regionReasons := deadRegionReasons(dcd.cfg, reachResult.Reachable)
+	regionReasons, regionSeeds := deadRegionReasons(dcd.cfg, reachResult.Reachable)
 
 	reportedBlocks := make(map[string]bool)
 	for _, coreFinding := range coreResult.Findings {
@@ -149,13 +153,19 @@ func (dcd *DeadCodeDetector) Detect() *DeadCodeResult {
 			continue
 		}
 		block := dcd.cfg.GetBlock(coreFinding.BlockID)
-		findings := dcd.analyzeCoreDeadBlock(block, coreFinding.Reason, regionReasons)
+		findings := dcd.analyzeCoreDeadBlock(block, coreFinding.Reason, regionReasons, regionSeeds)
 		result.Findings = append(result.Findings, findings...)
 		if len(findings) > 0 {
 			reportedBlocks[coreFinding.BlockID] = true
 			result.DeadBlocks++
 		}
 	}
+
+	// Collapse one dead region into a single finding first. A region can be split
+	// into several block-level findings by blank and comment lines, which the
+	// line-adjacency merge below treats as a gap even though nothing reachable
+	// separates the findings.
+	result.Findings = mergeFindingsByRegion(result.Findings, regionSeeds)
 
 	// Merge overlapping/contiguous findings that share a reason. A compound
 	// statement (e.g. `if`) spans its body, so the body's own block produces a
@@ -214,7 +224,7 @@ func DetectInFile(cfgs ControlFlowGraphs, filePath string) []*DeadCodeResult {
 	return results
 }
 
-func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason string, regionReasons map[string]DeadCodeReason) []*DeadCodeFinding {
+func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason string, regionReasons map[string]DeadCodeReason, regionSeeds map[string]string) []*DeadCodeFinding {
 	var findings []*DeadCodeFinding
 
 	if block == nil || len(block.Statements) == 0 {
@@ -275,6 +285,7 @@ func (dcd *DeadCodeDetector) analyzeCoreDeadBlock(block *BasicBlock, coreReason 
 		StartLine:    startLine,
 		EndLine:      endLine,
 		BlockID:      block.ID,
+		DeadRegionID: regionSeeds[block.ID],
 		Code:         dcd.getBlockCode(block),
 		Reason:       reason,
 		Severity:     severity,
@@ -504,7 +515,10 @@ var unreachableLabelReasons = map[string]DeadCodeReason{
 // dead region reports one reason however far it extends. Blocks are visited in
 // creation (source) order: a terminator inside an already dead region, whose
 // following block flows back into that region, does not override its reason.
-func deadRegionReasons(cfg *CFG, reachable map[string]bool) map[string]DeadCodeReason {
+//
+// The second return value is the seed block that opened each region, which
+// callers use to group findings belonging to the same region.
+func deadRegionReasons(cfg *CFG, reachable map[string]bool) (map[string]DeadCodeReason, map[string]string) {
 	blocks := slices.Collect(maps.Values(cfg.Blocks))
 	// Block IDs are "bb<N>" in creation order; comparing length first sorts N numerically.
 	slices.SortFunc(blocks, func(a, b *BasicBlock) int {
@@ -512,8 +526,9 @@ func deadRegionReasons(cfg *CFG, reachable map[string]bool) map[string]DeadCodeR
 	})
 
 	reasons := make(map[string]DeadCodeReason)
-	var mark func(block *BasicBlock, reason DeadCodeReason)
-	mark = func(block *BasicBlock, reason DeadCodeReason) {
+	seeds := make(map[string]string)
+	var mark func(block *BasicBlock, reason DeadCodeReason, seed string)
+	mark = func(block *BasicBlock, reason DeadCodeReason, seed string) {
 		if reachable[block.ID] {
 			return
 		}
@@ -521,18 +536,111 @@ func deadRegionReasons(cfg *CFG, reachable map[string]bool) map[string]DeadCodeR
 			return
 		}
 		reasons[block.ID] = reason
+		seeds[block.ID] = seed
 		for _, edge := range block.Successors {
-			mark(edge.To, reason)
+			mark(edge.To, reason, seed)
 		}
 	}
 	for _, block := range blocks {
 		// createBlock suffixes the label with "_<counter>".
 		label := block.Label[:max(strings.LastIndexByte(block.Label, '_'), 0)]
 		if reason, ok := unreachableLabelReasons[label]; ok {
-			mark(block, reason)
+			mark(block, reason, block.ID)
 		}
 	}
-	return reasons
+	return reasons, seeds
+}
+
+// mergeFindingsByRegion collapses every finding that belongs to the same dead
+// region into one finding. A region can be split across several block-level
+// findings by blank or comment lines, and those lines are not reachable code,
+// so line adjacency is the wrong test here: the region is the unit to report.
+//
+// Findings without a region (synthetic ones, and blocks the classifier never
+// placed in a region) are left untouched so their identity survives.
+//
+// Must run before mergeContiguousFindings, which merges by line adjacency and
+// would otherwise split the very ranges this combines.
+func mergeFindingsByRegion(findings []*DeadCodeFinding, regionSeeds map[string]string) []*DeadCodeFinding {
+	// Regions without a seed have no identity to group on; keep those findings
+	// separate.
+	if regionSeeds == nil {
+		return findings
+	}
+
+	grouped := make(map[string][]*DeadCodeFinding)
+	kept := make([]*DeadCodeFinding, 0, len(findings))
+	for _, finding := range findings {
+		if finding.DeadRegionID == "" {
+			kept = append(kept, finding)
+			continue
+		}
+		grouped[finding.DeadRegionID] = append(grouped[finding.DeadRegionID], finding)
+	}
+
+	// Grouping has to stay deterministic: findings arrive in block order, and
+	// that order is what the line-adjacency merge expects downstream.
+	slices.SortStableFunc(findings, func(a, b *DeadCodeFinding) int {
+		return cmp.Or(cmp.Compare(a.StartLine, b.StartLine), cmp.Compare(b.EndLine, a.EndLine))
+	})
+
+	out := make([]*DeadCodeFinding, 0, len(kept)+len(grouped))
+	out = append(out, kept...)
+	for _, group := range grouped {
+		if len(group) == 1 {
+			out = append(out, group[0])
+			continue
+		}
+		out = append(out, mergeRegionGroup(group))
+	}
+
+	return out
+}
+
+// mergeRegionGroup collapses one region's findings into a single finding that
+// spans them, keeping the widest sample, the highest severity and the union of
+// the code lines.
+func mergeRegionGroup(group []*DeadCodeFinding) *DeadCodeFinding {
+	result := group[0]
+	result.StartLine = min(group[0].StartLine, group[len(group)-1].StartLine)
+	result.EndLine = max(group[0].EndLine, group[len(group)-1].EndLine)
+
+	for _, finding := range group[1:] {
+		if finding.StartLine < result.StartLine {
+			result.StartLine = finding.StartLine
+		}
+		if finding.EndLine > result.EndLine {
+			result.EndLine = finding.EndLine
+		}
+		if finding.Severity > result.Severity {
+			result.Severity = finding.Severity
+			result.Description = finding.Description
+		}
+		result.Code = mergeCodeLines(result.Code, finding.Code)
+	}
+
+	return result
+}
+
+// mergeCodeLines joins the code of two adjacent block findings, dropping the
+// overlap. Without this the merged snippet repeats the line where the two
+// blocks meet. Kept local to the analyzer because the core merge helper only
+// sees the already-merged ranges.
+func mergeCodeLines(a, b string) string {
+	if a == "" {
+		return b
+	}
+	if b == "" {
+		return a
+	}
+	aLines := strings.Split(strings.TrimRight(a, "\n"), "\n")
+	bLines := strings.Split(strings.TrimRight(b, "\n"), "\n")
+	last := strings.TrimSpace(aLines[len(aLines)-1])
+	first := strings.TrimSpace(bLines[0])
+	if last == first {
+		aLines = aLines[:len(aLines)-1]
+	}
+	return strings.Join(append(aLines, bLines...), "\n")
 }
 
 // dropNestedFindings removes findings whose line range lies inside another

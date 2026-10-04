@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -960,6 +961,46 @@ func TestDetectInFileIncludesClassExecutionScopes(t *testing.T) {
 		assert.Equal(t, domain.AnalysisScopeClass, finding.ScopeKind)
 		assert.Equal(t, "Config", finding.FunctionName)
 	}
+}
+
+// A blank line or a comment between statements is not reachable code, so it must
+// not split one dead region into several findings.
+// https://github.com/ludo-technologies/pyscn/issues/819
+func TestDeadCodeRegionsSpanBlankAndCommentLines(t *testing.T) {
+	code := `def f(r):
+    return
+    for x in r:
+        r.c = x
+
+    # a comment inside the dead region
+    if r:
+        r.d = 1
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	cfg, ok := findCFG(cfgs, "f")
+	require.True(t, ok, "expected CFG for f")
+
+	result := DetectInFunction(cfg)
+
+	require.Len(t, result.Findings, 1, "one dead region must be reported once, got %v", findingRanges(result.Findings))
+	assert.Equal(t, ReasonUnreachableAfterReturn, result.Findings[0].Reason)
+	assert.Equal(t, 3, result.Findings[0].StartLine, "the region starts right after the return")
+	assert.Equal(t, 8, result.Findings[0].EndLine, "the region ends at the last dead statement")
+}
+
+func findingRanges(findings []*DeadCodeFinding) string {
+	parts := make([]string, 0, len(findings))
+	for _, finding := range findings {
+		parts = append(parts, fmt.Sprintf("%d-%d", finding.StartLine, finding.EndLine))
+	}
+	return strings.Join(parts, ", ")
 }
 
 func TestMergeContiguousFindings(t *testing.T) {
