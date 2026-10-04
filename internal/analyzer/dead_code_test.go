@@ -1284,3 +1284,68 @@ func TestIsOnlyNoOpStatements(t *testing.T) {
 	assert.False(t, isOnlyNoOpStatements(&BasicBlock{Statements: []any{semi, ret}}),
 		"block mixing separators and a real statement")
 }
+
+func TestDeadCodeRegionDoesNotSpanReachableBranch(t *testing.T) {
+	// A region is a graph notion, not a line range: the block holding `a = 1`
+	// and the merge block holding `b = 2` belong to the same region, yet the CFG
+	// routes around the reachable `else: return 2`. Grouping by region alone
+	// joined them and reported 4-7, swallowing the live arm. The gap is live
+	// code, so the region has to stop there.
+	code := `def f(x):
+    if x:
+        return 1
+        a = 1
+    else:
+        return 2
+    b = 2
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	cfg, ok := findCFG(cfgs, "f")
+	require.True(t, ok, "expected CFG for f")
+
+	result := DetectInFunction(cfg)
+
+	assert.Equal(t, "4-4, 7-7", findingRanges(result.Findings),
+		"the live else branch keeps the two dead statements separate")
+	for _, finding := range result.Findings {
+		assert.Equal(t, ReasonUnreachableAfterReturn, finding.Reason)
+	}
+}
+
+func TestDeadCodeRegionStillSpansLiveBlankAndCommentLines(t *testing.T) {
+	// The counterpart: the only thing between two blocks of one region is blank
+	// and comment lines, which carry no reachable statement. The gap is empty,
+	// so the region stays whole.
+	code := `def f(r):
+    return
+    for x in r:
+        r.c = x
+
+    # a comment inside the dead region
+    if r:
+        r.d = 1
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(code))
+	require.NoError(t, err)
+
+	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+	require.NoError(t, err)
+
+	cfg, ok := findCFG(cfgs, "f")
+	require.True(t, ok, "expected CFG for f")
+
+	result := DetectInFunction(cfg)
+
+	require.Len(t, result.Findings, 1, "one dead region must be reported once, got %v", findingRanges(result.Findings))
+	assert.Equal(t, 3, result.Findings[0].StartLine)
+	assert.Equal(t, 8, result.Findings[0].EndLine)
+}
