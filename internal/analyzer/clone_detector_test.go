@@ -1801,3 +1801,143 @@ func TestCloneDetector_FlatDispatchChainsDoNotPairAsSemantic(t *testing.T) {
 			"lines %d and %d pair on shape alone", pair.Fragment1.Location.StartLine, pair.Fragment2.Location.StartLine)
 	}
 }
+
+// Regression for #833: a pair promoted to its own two-member group by
+// appendUncoveredPairGroups used to skip the covered-group dedup that #518
+// introduced, so a nested window a stronger group already contains came back
+// as a group of its own. Here {base_matrix, outline, posterize:21-31} covers
+// the promoted pair {base_matrix, posterize:23-31}, because the with block at
+// posterize:23-31 sits inside the draw method at posterize:21-31.
+func TestCloneDetector_PromotedPairCoveredByStrongerGroupIsNotReportedTwice(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string, start, end int) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: start, EndLine: end}}
+	}
+	baseMatrix := fragment("base_matrix.py", 32, 41)
+	outline := fragment("outline.py", 24, 33)
+	draw := fragment("effects/posterize.py", 21, 31)
+	withBlock := fragment("effects/posterize.py", 23, 31)
+
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: baseMatrix, Fragment2: draw, Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: outline, Fragment2: draw, Similarity: 0.84, CloneType: Type3Clone},
+		{Fragment1: baseMatrix, Fragment2: outline, Similarity: 0.80, CloneType: Type3Clone},
+		{Fragment1: baseMatrix, Fragment2: withBlock, Similarity: 0.768, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(config.GroupingThreshold, 2)
+
+	require.Len(t, detector.cloneGroups, 1,
+		"the promoted pair sits inside a group that already reports it")
+	assert.Equal(t, []*CodeFragment{baseMatrix, draw, outline}, detector.cloneGroups[0].Fragments)
+
+	// The nested window describes no duplication the surviving group does not
+	// already report, so it must not be counted as a duplicated fragment
+	// either.
+	reportedPairs := make([]string, 0, len(detector.clonePairs))
+	for _, pair := range detector.clonePairs {
+		reportedPairs = append(reportedPairs,
+			fragmentLocationKey(pair.Fragment1)+" ~ "+fragmentLocationKey(pair.Fragment2))
+	}
+	assert.NotContains(t, reportedPairs, fragmentLocationKey(withBlock)+" ~ "+fragmentLocationKey(baseMatrix))
+	assert.NotContains(t, reportedPairs, fragmentLocationKey(baseMatrix)+" ~ "+fragmentLocationKey(withBlock))
+}
+
+// The dedup only withdraws promoted groups that a surviving group already
+// covers. A promoted pair whose fragments no group contains must keep both its
+// group and its pair, which is the whole point of appendUncoveredPairGroups.
+func TestCloneDetector_PromotedPairNoGroupCoversStillSurfaces(t *testing.T) {
+	config := DefaultCloneDetectorConfig()
+	config.GroupingThreshold = 0.70
+	detector := NewCloneDetector(config)
+
+	fragment := func(path string, start, end int) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: start, EndLine: end}}
+	}
+	hub := fragment("hub.py", 1, 10)
+	spokes := []*CodeFragment{
+		fragment("a.py", 1, 10),
+		fragment("b.py", 1, 10),
+		// A window no group member contains, so no covering group exists.
+		fragment("nested.py", 1, 5),
+	}
+	detector.clonePairs = []*ClonePair{
+		{Fragment1: hub, Fragment2: spokes[0], Similarity: 0.90, CloneType: Type3Clone},
+		{Fragment1: hub, Fragment2: spokes[1], Similarity: 0.82, CloneType: Type3Clone},
+		{Fragment1: hub, Fragment2: spokes[2], Similarity: 0.75, CloneType: Type3Clone},
+	}
+
+	detector.groupClones(config.GroupingThreshold, 2)
+
+	require.Len(t, detector.cloneGroups, 3, "both promoted pairs keep a group of their own")
+	assert.Equal(t, []*CodeFragment{spokes[0], hub}, detector.cloneGroups[0].Fragments)
+	assert.Equal(t, []*CodeFragment{hub, spokes[1]}, detector.cloneGroups[1].Fragments)
+	assert.Equal(t, []*CodeFragment{hub, spokes[2]}, detector.cloneGroups[2].Fragments)
+	for _, pair := range detector.clonePairs {
+		grouped := false
+		for _, group := range detector.cloneGroups {
+			if contains(group.Fragments, pair.Fragment1) && contains(group.Fragments, pair.Fragment2) {
+				grouped = true
+				break
+			}
+		}
+		assert.True(t, grouped, "pair %s~%s reached no group",
+			fragmentLocationKey(pair.Fragment1), fragmentLocationKey(pair.Fragment2))
+	}
+}
+
+func TestDedupeCoveredCreatedGroups(t *testing.T) {
+	fragment := func(id int, path string, start, end int) *CodeFragment {
+		f := &CodeFragment{Location: &CodeLocation{FilePath: path, StartLine: start, EndLine: end}}
+		f.id = id
+		return f
+	}
+	group := func(similarity float64, members ...*CodeFragment) *coreclone.ItemGroup[*CodeFragment] {
+		return &coreclone.ItemGroup[*CodeFragment]{Items: members, Similarity: similarity}
+	}
+
+	t.Run("withdraws a created group a surviving group already covers", func(t *testing.T) {
+		baseMatrix := fragment(0, "base_matrix.py", 32, 41)
+		draw := fragment(1, "effects/posterize.py", 21, 31)
+		outline := fragment(2, "outline.py", 24, 33)
+		withBlock := fragment(3, "effects/posterize.py", 23, 31)
+
+		existing := group(0.847, baseMatrix, draw, outline)
+		created := group(0.768, baseMatrix, withBlock)
+		pair := &coreclone.ItemPair[*CodeFragment]{Item1: baseMatrix, Item2: withBlock, Similarity: 0.768}
+
+		groups, superseded := dedupeCoveredCreatedGroups(
+			[]*coreclone.ItemGroup[*CodeFragment]{existing, created},
+			[]*coreclone.ItemGroup[*CodeFragment]{created},
+		)
+
+		assert.Equal(t, []*coreclone.ItemGroup[*CodeFragment]{existing}, groups)
+		assert.Equal(t, map[string]struct{}{
+			coreclone.PairKey(baseMatrix, withBlock): {},
+		}, superseded)
+		assert.Empty(t, coreclone.FilterSuppressedPairs([]*coreclone.ItemPair[*CodeFragment]{pair}, superseded),
+			"the superseded pair is dropped along with its group")
+	})
+
+	t.Run("never withdraws a group that existed before the pass", func(t *testing.T) {
+		outerA := fragment(0, "a.py", 1, 20)
+		outerB := fragment(1, "b.py", 1, 20)
+		innerA := fragment(2, "a.py", 3, 8)
+		innerB := fragment(3, "b.py", 3, 8)
+
+		// The dedup prefers the created outer windows, but they were detected
+		// after the existing group was already vetted.
+		existing := group(0.70, innerA, innerB)
+		created := group(0.90, outerA, outerB)
+
+		groups, superseded := dedupeCoveredCreatedGroups(
+			[]*coreclone.ItemGroup[*CodeFragment]{existing, created},
+			[]*coreclone.ItemGroup[*CodeFragment]{created},
+		)
+
+		assert.Equal(t, []*coreclone.ItemGroup[*CodeFragment]{existing, created}, groups)
+		assert.Empty(t, superseded)
+	})
+}

@@ -137,6 +137,11 @@ they dispatch on, so only a Type-1 to Type-3 match between them counts.
 | `grouping_threshold` | float  | `0.65`        | Minimum similarity for grouping. |
 | `k_core_k`           | int    | `2`           | k parameter for `k_core` mode. |
 
+Every mode except `k_core` keeps a fragment in at most one group, so a pair that
+no group covers is reported as a group of its own rather than dropped. Such a
+group is not reported when a stronger group already contains both of its
+windows, so a nested window is counted once instead of twice.
+
 ### Performance
 
 | Key               | Type | Default | Description |

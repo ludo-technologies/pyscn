@@ -1445,7 +1445,9 @@ func (cd *CloneDetector) groupClonesWithStrategy(strategy coreclone.GroupingStra
 	// k-core deliberately prunes fragments with fewer than k similar
 	// neighbours, so its excluded pairs must stay excluded.
 	if cd.cloneDetectorConfig.GroupingMode != GroupingModeKCore {
-		groups = appendUncoveredPairGroups(groups, corePairs, threshold)
+		var superseded map[string]struct{}
+		groups, superseded = appendUncoveredPairGroups(groups, corePairs, threshold)
+		corePairs = coreclone.FilterSuppressedPairs(corePairs, superseded)
 	}
 
 	cd.clonePairs = cd.clonePairs[:0]
@@ -1564,7 +1566,8 @@ func connectedFragmentComponents(items []*CodeFragment, adjacency map[[2]int]str
 }
 
 // appendUncoveredPairGroups adds a two-member group for every remaining pair
-// that no group already covers.
+// that no group already covers, and reports the pairs that the covered-group
+// dedup then superseded.
 //
 // The partitioning strategies (complete linkage, star, centroid) put a fragment
 // in at most one group, so a fragment that clones several others keeps only its
@@ -1575,7 +1578,7 @@ func appendUncoveredPairGroups(
 	groups []*coreclone.ItemGroup[*CodeFragment],
 	pairs []*coreclone.ItemPair[*CodeFragment],
 	threshold float64,
-) []*coreclone.ItemGroup[*CodeFragment] {
+) ([]*coreclone.ItemGroup[*CodeFragment], map[string]struct{}) {
 	// Index which groups hold each fragment. Materialising every member
 	// combination instead would cost O(n^2) for a group of n members, most of
 	// it recording pairs that were never detected.
@@ -1610,6 +1613,7 @@ func appendUncoveredPairGroups(
 		return false
 	}
 
+	created := make([]*coreclone.ItemGroup[*CodeFragment], 0, len(pairs))
 	for _, pair := range pairs {
 		if pair == nil || pair.Similarity < threshold {
 			continue
@@ -1623,15 +1627,94 @@ func appendUncoveredPairGroups(
 			members[0], members[1] = members[1], members[0]
 		}
 		index := len(groups)
-		groups = append(groups, &coreclone.ItemGroup[*CodeFragment]{
+		group := &coreclone.ItemGroup[*CodeFragment]{
 			Items:      members,
 			GroupType:  pair.PairType,
 			Similarity: pair.Similarity,
-		})
+		}
+		groups = append(groups, group)
+		created = append(created, group)
 		assign(members[0].id, index)
 		assign(members[1].id, index)
 	}
-	return groups
+	return dedupeCoveredCreatedGroups(groups, created)
+}
+
+// dedupeCoveredCreatedGroups re-applies the covered-group dedup to the groups
+// appendUncoveredPairGroups created, and returns the pairs that only such a
+// group described.
+//
+// A promoted group whose every member sits inside a member of a stronger group
+// reports the same lines twice: the outer group already contains both windows.
+// #518 removes exactly that redundancy, but the pass ran before these groups
+// existed, so without this re-run a nested window returns as a family of its
+// own and inflates duplicated_fragments.
+//
+// Groups that already existed are never withdrawn. This pass exists to surface
+// detected duplicates that would otherwise go unreported, so it may only add
+// groups, and a group is only ever taken back here when another surviving
+// group already reports both of its windows.
+func dedupeCoveredCreatedGroups(
+	groups []*coreclone.ItemGroup[*CodeFragment],
+	created []*coreclone.ItemGroup[*CodeFragment],
+) ([]*coreclone.ItemGroup[*CodeFragment], map[string]struct{}) {
+	if len(groups) < 2 || len(created) == 0 {
+		return groups, nil
+	}
+
+	result := coreclone.DedupeCoveredGroups(groups)
+	surviving := make(map[*coreclone.ItemGroup[*CodeFragment]]struct{}, len(result.Groups))
+	for _, group := range result.Groups {
+		surviving[group] = struct{}{}
+	}
+
+	isCreated := make(map[*coreclone.ItemGroup[*CodeFragment]]struct{}, len(created))
+	for _, group := range created {
+		isCreated[group] = struct{}{}
+	}
+
+	// Filtering in place preserves the input order, and every pre-existing
+	// group is kept even if the dedup suppressed it: only a created group may
+	// be taken back.
+	kept := groups[:0]
+	for _, group := range groups {
+		_, promoted := isCreated[group]
+		if _, ok := surviving[group]; !promoted || ok {
+			kept = append(kept, group)
+		}
+	}
+
+	// A superseded group takes its own pair with it, unless a surviving group
+	// still reports those two fragments together.
+	reported := make(map[string]struct{})
+	for _, group := range kept {
+		if group == nil {
+			continue
+		}
+		for first := 0; first < len(group.Items); first++ {
+			for second := first + 1; second < len(group.Items); second++ {
+				reported[coreclone.PairKey(group.Items[first], group.Items[second])] = struct{}{}
+			}
+		}
+	}
+	superseded := make(map[string]struct{})
+	for _, group := range created {
+		if _, ok := surviving[group]; ok {
+			continue
+		}
+		for first := 0; first < len(group.Items); first++ {
+			for second := first + 1; second < len(group.Items); second++ {
+				key := coreclone.PairKey(group.Items[first], group.Items[second])
+				if _, ok := reported[key]; !ok {
+					superseded[key] = struct{}{}
+				}
+			}
+		}
+	}
+	if len(superseded) == 0 {
+		return kept, nil
+	}
+	return kept, superseded
 }
 
 // isSameLocation checks if two locations refer to the same code
