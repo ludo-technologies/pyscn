@@ -1319,33 +1319,79 @@ func TestDeadCodeRegionDoesNotSpanReachableBranch(t *testing.T) {
 	}
 }
 
-func TestDeadCodeRegionStillSpansLiveBlankAndCommentLines(t *testing.T) {
-	// The counterpart: the only thing between two blocks of one region is blank
-	// and comment lines, which carry no reachable statement. The gap is empty,
-	// so the region stays whole.
-	code := `def f(r):
-    return
-    for x in r:
-        r.c = x
+// Reachable compound headers must not mark their nested dead bodies as live.
+func TestDeadCodeRegionsInsideReachableCompoundStatements(t *testing.T) {
+	for _, header := range []string{
+		"if r:",
+		"for x in r:",
+		"while r:",
+		"with r:",
+		"try:\n        pass\n    except Exception:",
+	} {
+		t.Run(header, func(t *testing.T) {
+			code := "def f(r):\n    " + header + `
+        return
+        for x in r:
+            r.c = x
 
-    # a comment inside the dead region
-    if r:
-        r.d = 1
+        # a comment inside the dead region
+        if r:
+            r.d = 1
 `
+			parseResult, err := parser.New().Parse(context.Background(), []byte(code))
+			require.NoError(t, err)
+			cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
+			require.NoError(t, err)
+			cfg, ok := findCFG(cfgs, "f")
+			require.True(t, ok, "expected CFG for f")
 
-	p := parser.New()
-	parseResult, err := p.Parse(context.Background(), []byte(code))
+			result := DetectInFunction(cfg)
+			require.Len(t, result.Findings, 1, "one nested dead region must be reported once, got %v", findingRanges(result.Findings))
+			assert.Equal(t, ReasonUnreachableAfterReturn, result.Findings[0].Reason)
+			headerLines := strings.Count(header, "\n")
+			assert.Equal(t, 4+headerLines, result.Findings[0].StartLine)
+			assert.Equal(t, 9+headerLines, result.Findings[0].EndLine)
+		})
+	}
+}
+
+func TestReachableStatementLines(t *testing.T) {
+	code := `def f(r):
+    if (
+        r
+    ):
+        return
+        a = 1
+
+        b = 2
+    else:
+        result = (
+            r
+        )
+    if False: return
+    if r:
+        pass
+    elif not r:
+        pass
+`
+	parseResult, err := parser.New().Parse(context.Background(), []byte(code))
 	require.NoError(t, err)
-
 	cfgs, err := NewCFGBuilder().BuildAll(parseResult.AST)
 	require.NoError(t, err)
-
 	cfg, ok := findCFG(cfgs, "f")
 	require.True(t, ok, "expected CFG for f")
 
-	result := DetectInFunction(cfg)
-
-	require.Len(t, result.Findings, 1, "one dead region must be reported once, got %v", findingRanges(result.Findings))
-	assert.Equal(t, 3, result.Findings[0].StartLine)
-	assert.Equal(t, 8, result.Findings[0].EndLine)
+	reachable := make(map[string]bool)
+	for id := range NewReachabilityAnalyzer(cfg).AnalyzeReachability().ReachableBlocks {
+		reachable[id] = true
+	}
+	// Converted elif headers may have no source range; they must not mark
+	// all preceding lines live when their body starts later in the file.
+	lines := reachableStatementLines(cfg, reachable)
+	for _, line := range []int{2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 17} {
+		assert.True(t, lines[line], "reachable header or statement on line %d", line)
+	}
+	for _, line := range []int{6, 7, 8} {
+		assert.False(t, lines[line], "dead body or gap on line %d", line)
+	}
 }

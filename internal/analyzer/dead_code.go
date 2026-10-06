@@ -523,8 +523,16 @@ func reachableStatementLines(cfg *CFG, reachable map[string]bool) map[int]bool {
 			continue
 		}
 		for _, value := range block.Statements {
-			location := mustPythonNode(value).Location
-			for line := location.StartLine; line <= location.EndLine; line++ {
+			node := mustPythonNode(value)
+			location := node.Location
+			endLine := location.EndLine
+			if len(node.Body) > 0 {
+				// Compound nodes include their entire body, but this block only
+				// executes the header. Body statements have their own CFG blocks.
+				// Keep multiline headers and headers with a same-line body live.
+				endLine = min(endLine, max(location.StartLine, node.Body[0].Location.StartLine-1))
+			}
+			for line := location.StartLine; line <= endLine; line++ {
 				lines[line] = true
 			}
 		}
@@ -609,11 +617,6 @@ func mergeFindingsByRegion(findings []*DeadCodeFinding, regionSeeds map[string]s
 // source permits: a reachable statement between two findings ends the run,
 // because the analyzer must keep reporting that statement's own range.
 func mergeRegionGroup(group []*DeadCodeFinding, liveLines map[int]bool) []*DeadCodeFinding {
-	if liveLines == nil {
-		// Without the reachable-line set there is no way to tell an empty gap from
-		// a live one, so merging would be a guess.
-		return group
-	}
 	// Block order is CFG order, not source order.
 	slices.SortStableFunc(group, func(a, b *DeadCodeFinding) int {
 		return cmp.Or(cmp.Compare(a.StartLine, b.StartLine), cmp.Compare(b.EndLine, a.EndLine))
