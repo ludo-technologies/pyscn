@@ -21,7 +21,7 @@ type LCOMResult struct {
 
 	// Method statistics
 	TotalMethods    int // All methods found in class
-	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod, constructors, implicit classmethods and empty-bodied methods excluded
+	ExcludedMethods int // @staticmethod/@classmethod/@abstractmethod, constructors, implicit classmethods, empty-bodied methods, and stateless methods excluded
 
 	// Instance variable count
 	InstanceVariables int // Distinct self.xxx variables
@@ -266,12 +266,60 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		calls[node.Name] = methodCalls
 	}
 
-	return classMethods{
+	collected := classMethods{
 		methods:      methods,
 		calls:        calls,
 		excludedVars: excludedVars,
 		excluded:     excluded,
 	}
+	excludeStatelessMethods(&collected)
+	return collected
+}
+
+// excludeStatelessMethods moves participating methods that touch no instance
+// state and share no call edge with another participating method out of the
+// graph. Such a method can only be its own component, so leaving it in
+// inflates LCOM4 without naming anything to split, the same reason abstract
+// methods stay out. The decision is made once against the full set: dropping
+// one method must not pull its former neighbors out with it. Self-recursion
+// and callees outside the participating set do not count, since core ignores
+// those edges. A bare `self` that expands to declared ctypes fields is already
+// in the variable set, so that method stays.
+func excludeStatelessMethods(collected *classMethods) {
+	var stateless []string
+	for name, vars := range collected.methods {
+		if len(vars) > 0 || methodConnectedByCall(collected.methods, collected.calls, name) {
+			continue
+		}
+		stateless = append(stateless, name)
+	}
+	for _, name := range stateless {
+		delete(collected.methods, name)
+		delete(collected.calls, name)
+		collected.excluded++
+	}
+}
+
+// methodConnectedByCall reports whether name calls, or is called by, a
+// different method that is still in the participating set.
+func methodConnectedByCall(methods map[string]map[string]bool, calls map[string]map[string]bool, name string) bool {
+	for callee := range calls[name] {
+		if callee == name {
+			continue
+		}
+		if _, ok := methods[callee]; ok {
+			return true
+		}
+	}
+	for caller, callees := range calls {
+		if caller == name || !callees[name] {
+			continue
+		}
+		if _, ok := methods[caller]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 // isImplicitClassMethod reports whether a dunder method is implicitly a

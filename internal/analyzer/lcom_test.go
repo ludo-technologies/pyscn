@@ -157,7 +157,7 @@ class MyEndpoint(ABC):
 			expectedCount:    1,
 			expectedLCOM:     map[string]int{"MyEndpoint": 1},
 			expectedRisk:     map[string]string{"MyEndpoint": "low"},
-			expectedExcluded: map[string]int{"MyEndpoint": 2},
+			expectedExcluded: map[string]int{"MyEndpoint": 3},
 		},
 		{
 			name: "dotted abstract methods excluded from LCOM4 grouping",
@@ -342,11 +342,29 @@ class Partial:
 			expectedExcluded: map[string]int{"Partial": 0},
 		},
 		{
-			name: "raising other exceptions is not an empty body",
+			name: "stateless raise of another exception is excluded",
 			pythonCode: `
 class Guard:
     def check(self):
         raise ValueError("bad")
+
+    def run(self):
+        return self.state
+
+    def reset(self):
+        self.state = None
+`,
+			expectedCount:    1,
+			expectedLCOM:     map[string]int{"Guard": 1},
+			expectedRisk:     map[string]string{"Guard": "low"},
+			expectedExcluded: map[string]int{"Guard": 1},
+		},
+		{
+			name: "raising other exceptions is not an empty body",
+			pythonCode: `
+class Guard:
+    def check(self):
+        raise ValueError(self.reason)
 
     def run(self):
         return self.state
@@ -438,7 +456,7 @@ class EmptyClass:
 			expectedRisk:  map[string]string{"EmptyClass": "low"},
 		},
 		{
-			name: "methods without self access form separate components",
+			name: "methods without self access are excluded from the graph",
 			pythonCode: `
 class NoSelfAccessClass:
     def method_a(self):
@@ -447,9 +465,10 @@ class NoSelfAccessClass:
     def method_b(self):
         return 99
 `,
-			expectedCount: 1,
-			expectedLCOM:  map[string]int{"NoSelfAccessClass": 2},
-			expectedRisk:  map[string]string{"NoSelfAccessClass": "low"},
+			expectedCount:    1,
+			expectedLCOM:     map[string]int{"NoSelfAccessClass": 1},
+			expectedRisk:     map[string]string{"NoSelfAccessClass": "low"},
+			expectedExcluded: map[string]int{"NoSelfAccessClass": 2},
 		},
 		{
 			name: "magic methods sharing self.value are cohesive",
@@ -931,9 +950,10 @@ Packet._fields_ = [
 
 	r := results[0]
 	assert.Equal(t, "Packet", r.ClassName)
-	assert.Equal(t, 2, r.LCOM4)
+	assert.Equal(t, 1, r.LCOM4)
 	assert.Equal(t, 2, r.InstanceVariables)
-	assert.Equal(t, [][]string{{"touches_state"}, {"utility"}}, r.MethodGroups)
+	assert.Equal(t, 1, r.ExcludedMethods, "utility touches no declared field")
+	assert.Equal(t, [][]string{{"touches_state"}}, r.MethodGroups)
 }
 
 func TestLCOMAnalyzer_CtypesUnionAndEndianBases(t *testing.T) {
@@ -1096,9 +1116,9 @@ class Point:
 		r := results[0]
 		assert.Equal(t, "Point", r.ClassName)
 		assert.Equal(t, 14, r.TotalMethods)
-		assert.Equal(t, 7, r.ExcludedMethods)
+		assert.Equal(t, 8, r.ExcludedMethods, "decorators, __init__, and stateless __len__")
 		assert.Equal(t, 3, r.InstanceVariables, "self.x, self.y, self.foo")
-		assert.Equal(t, 3, r.LCOM4)
+		assert.Equal(t, 2, r.LCOM4, "x/y methods and ignored; __len__ is stateless")
 	})
 
 	t.Run("HammettRunner", func(t *testing.T) {
@@ -1324,7 +1344,7 @@ class Probe:
 
 	r := results[0]
 	assert.Equal(t, 0, r.InstanceVariables, "the class stores no instance state")
-	assert.Equal(t, 1, r.ExcludedMethods, "__init__")
+	assert.Equal(t, 2, r.ExcludedMethods, "__init__ and the stateless property")
 }
 
 // TestLCOMAnalyzer_MethodReferencesAreNotVariables pins issue #678: a
@@ -1383,10 +1403,9 @@ class Iterable:
         return list(other)
 `)
 
-	require.Equal(t, 2, r.LCOM4)
+	require.Equal(t, 1, r.LCOM4)
 	assert.ElementsMatch(t, [][]string{
 		{"__iter__", "via_comprehension", "via_iter", "via_list", "via_loop"},
-		{"unrelated"},
 	}, r.MethodGroups)
 }
 
@@ -1438,12 +1457,11 @@ class Mapping:
         other[0] = 1
 `)
 
-	require.Equal(t, 4, r.LCOM4)
+	require.Equal(t, 3, r.LCOM4)
 	assert.ElementsMatch(t, [][]string{
 		{"__getitem__", "index_of_foreign_target", "read"},
 		{"__setitem__", "write"},
 		{"__delitem__", "remove"},
-		{"foreign_write"},
 	}, r.MethodGroups)
 }
 
@@ -1483,11 +1501,10 @@ class Mapping:
         return dict(other)
 `)
 
-	require.Equal(t, 3, r.LCOM4)
+	require.Equal(t, 2, r.LCOM4)
 	assert.ElementsMatch(t, [][]string{
 		{"__getitem__", "as_dict", "keys"},
 		{"__iter__"},
-		{"foreign_dict"},
 	}, r.MethodGroups)
 }
 
@@ -1507,11 +1524,9 @@ class Comparisons:
         return self < other == 3
 `)
 
-	require.Equal(t, 3, r.LCOM4)
+	require.Equal(t, 1, r.LCOM4)
 	assert.ElementsMatch(t, [][]string{
 		{"__eq__", "equal"},
-		{"foreign_left"},
-		{"mixed_chain"},
 	}, r.MethodGroups)
 }
 
@@ -1541,7 +1556,7 @@ class Subject:
     def unrelated(self, other):
         return `+strings.ReplaceAll(tt.expression, "self", "other")+`
 `)
-			assert.ElementsMatch(t, [][]string{{tt.method, "check"}, {"unrelated"}}, r.MethodGroups)
+			assert.ElementsMatch(t, [][]string{{tt.method, "check"}}, r.MethodGroups)
 		})
 	}
 }
@@ -1638,7 +1653,7 @@ class Derived(Base):
     def consume(self):
         return list(self)
 `,
-			groups: [][]string{{"__getitem__"}, {"consume"}},
+			groups: [][]string{{"__getitem__"}},
 		},
 		{
 			name: "inherited keys prevents assumed pair iteration",
@@ -1653,7 +1668,7 @@ class Derived(Base):
     def as_dict(self):
         return dict(self)
 `,
-			groups: [][]string{{"__iter__"}, {"__getitem__"}, {"as_dict"}},
+			groups: [][]string{{"__iter__"}, {"__getitem__"}},
 		},
 		{
 			name: "inherited membership prevents assumed iteration",
@@ -1665,7 +1680,7 @@ class Derived(Base):
     def has(self, item):
         return item in self
 `,
-			groups: [][]string{{"__iter__"}, {"has"}},
+			groups: [][]string{{"__iter__"}},
 		},
 		{
 			name: "inherited inequality prevents assumed equality",
@@ -1677,7 +1692,7 @@ class Derived(Base):
     def differs(self, other):
         return self != other
 `,
-			groups: [][]string{{"__eq__"}, {"differs"}},
+			groups: [][]string{{"__eq__"}},
 		},
 	}
 	for _, tt := range tests {
@@ -1708,7 +1723,7 @@ class Subject:
 
     def check(self, other):
         return `+tt.expression+"\n")
-			assert.ElementsMatch(t, [][]string{{tt.method}, {"check"}}, r.MethodGroups)
+			assert.ElementsMatch(t, [][]string{{tt.method}}, r.MethodGroups)
 		})
 	}
 }
@@ -1752,13 +1767,15 @@ class Subject:
 
     def check(self, other):
         return ` + tt.expression + "\n"
-			checkGroup := []string{"check"}
+			var groups [][]string
 			if tt.extraMethod != "" {
 				source += "\n    def " + tt.extraMethod + "(self):\n        return self.keys_state\n"
-				checkGroup = append(checkGroup, tt.extraMethod)
+				groups = [][]string{{tt.method}, {"check", tt.extraMethod}}
+			} else {
+				groups = [][]string{{tt.method}}
 			}
 			r := analyzeLCOMClass(t, source)
-			assert.ElementsMatch(t, [][]string{{tt.method}, checkGroup}, r.MethodGroups)
+			assert.ElementsMatch(t, groups, r.MethodGroups)
 		})
 	}
 }
@@ -1818,6 +1835,127 @@ class OrderedDictLike:
 	assert.Equal(t, [][]string{{
 		"__eq__", "__getitem__", "__iter__", "__ne__", "__setitem__", "keys", "update", "values",
 	}}, r.MethodGroups)
+}
+
+// TestLCOMAnalyzer_StatelessMethodsExcludedFromGraph pins
+// https://github.com/ludo-technologies/pyscn/issues/810. A method that touches
+// no instance state and is not connected to any other method by a call can
+// only be its own component, so it inflates LCOM4 without naming anything to
+// split. Those methods are left out of the graph the same way abstract methods
+// are.
+func TestLCOMAnalyzer_StatelessMethodsExcludedFromGraph(t *testing.T) {
+	t.Run("closure dunders in a nested class", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+def make_operator(name, module):
+    class OperatorImplementation:
+        def __call__(self, *args):
+            return f"{module}.{name}(...)"
+
+        def __repr__(self):
+            return f"{module}.{name}"
+
+        def __str__(self):
+            return f"{name}"
+
+    return OperatorImplementation()
+`)
+		assert.Equal(t, "OperatorImplementation", r.ClassName)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 3, r.TotalMethods)
+		assert.Equal(t, 3, r.ExcludedMethods)
+		assert.Equal(t, 0, r.InstanceVariables)
+		assert.Empty(t, r.MethodGroups)
+	})
+
+	t.Run("tzinfo overrides returning constants", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class UTC(tzinfo):
+    def utcoffset(self, dt):
+        return timedelta(0)
+
+    def dst(self, dt):
+        return timedelta(0)
+
+    def tzname(self, dt):
+        return "UTC"
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 3, r.TotalMethods)
+		assert.Equal(t, 3, r.ExcludedMethods)
+		assert.Equal(t, 0, r.InstanceVariables)
+		assert.Empty(t, r.MethodGroups)
+	})
+
+	t.Run("operator dunder passing self to a free function", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Sequence:
+    def __add__(self, other):
+        return chain(self, other)
+
+    def append(self, item):
+        self.items.append(item)
+
+    def extend(self, items):
+        self.items.extend(items)
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 3, r.TotalMethods)
+		assert.Equal(t, 1, r.ExcludedMethods)
+		assert.Equal(t, 1, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"append", "extend"}}, r.MethodGroups)
+	})
+
+	t.Run("stateless helper called by a stateful method stays in the graph", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Viewer:
+    def _fmt(self):
+        return "x"
+
+    def show(self):
+        return self._fmt() + self.name
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 2, r.TotalMethods)
+		assert.Equal(t, 0, r.ExcludedMethods)
+		assert.Equal(t, [][]string{{"_fmt", "show"}}, r.MethodGroups)
+	})
+
+	t.Run("stateless method that calls a sibling stays in the graph", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Label:
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return self.name
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 2, r.TotalMethods)
+		assert.Equal(t, 0, r.ExcludedMethods)
+		assert.Equal(t, [][]string{{"__repr__", "__str__"}}, r.MethodGroups)
+	})
+
+	t.Run("disjoint state stays split when a stateless method is excluded", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Split:
+    def read_a(self):
+        return self.a
+
+    def write_a(self, v):
+        self.a = v
+
+    def read_b(self):
+        return self.b
+
+    def label(self):
+        return "split"
+`)
+		assert.Equal(t, 2, r.LCOM4)
+		assert.Equal(t, 4, r.TotalMethods)
+		assert.Equal(t, 1, r.ExcludedMethods)
+		assert.Equal(t, 2, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"read_a", "write_a"}, {"read_b"}}, r.MethodGroups)
+	})
 }
 
 func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
