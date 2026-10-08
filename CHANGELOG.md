@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.32.4] - 2026-10-08
+
+### Fixed
+- Leave isolated stateless methods out of LCOM4 (#836)
+- Dedup the pair groups created for uncovered clone pairs (#835)
+- Keep one dead code region as one finding (#834)
+
 ## [1.32.3] - 2026-10-03
 
 ### Fixed
