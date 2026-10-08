@@ -22,7 +22,7 @@ Vous développez avec Cursor, Claude ou ChatGPT ? pyscn garde le code généré 
 
 **Suivez chaque semaine la santé de votre code avec Polyscan.**<br>
 Surveillance automatique de la complexité, des doublons et du code mort, avec les changements livrés dans une issue GitHub.<br>
-[Activer le suivi hebdomadaire →](https://codescan.dev/pyscn-bot) · Gratuit pour les dépôts publics
+[Activer le suivi hebdomadaire →](https://github.com/apps/polyscan-app/installations/new) · Gratuit pour les dépôts publics
 
 </div>
 

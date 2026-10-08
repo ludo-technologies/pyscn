@@ -22,7 +22,7 @@ Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析に
 
 **コード品質の変化を、Polyscan で毎週チェック。**<br>
 複雑度・重複コード・デッドコードを自動解析し、前回からの変化を GitHub Issue でお知らせします。<br>
-[毎週の自動チェックを始める →](https://codescan.dev/pyscn-bot) · 公開リポジトリは無料
+[毎週の自動チェックを始める →](https://github.com/apps/polyscan-app/installations/new) · 公開リポジトリは無料
 
 </div>
 

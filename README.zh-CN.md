@@ -22,7 +22,7 @@
 
 **用 Polyscan 每周跟踪代码库的健康状况。**<br>
 自动分析复杂度、重复代码和死代码，并通过 GitHub Issue 报告与上次相比的变化。<br>
-[开始每周自动检查 →](https://codescan.dev/pyscn-bot) · 公开仓库免费
+[开始每周自动检查 →](https://github.com/apps/polyscan-app/installations/new) · 公开仓库免费
 
 </div>
 
