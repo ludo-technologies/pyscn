@@ -20,7 +20,7 @@ Building with Cursor, Claude, or ChatGPT? pyscn keeps AI-generated code maintain
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-<a href="https://codescan.dev/pyscn-bot"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
+<a href="https://github.com/apps/polyscan-app/installations/new"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 </div>
 
@@ -58,7 +58,7 @@ pyscn looks at your code from five angles:
 
 [Polyscan App](https://codescan.dev/pyscn-bot) files a weekly audit report as a GitHub Issue. Free for public repositories.
 
-<a href="https://codescan.dev/pyscn-bot"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
+<a href="https://github.com/apps/polyscan-app/installations/new"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 ## AI Agent Integration
 
