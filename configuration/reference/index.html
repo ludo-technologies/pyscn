@@ -4259,6 +4259,10 @@ they dispatch on, so only a Type-1 to Type-3 match between them counts.</p>
 </tr>
 </tbody>
 </table>
+<p>Every mode except <code>k_core</code> keeps a fragment in at most one group, so a pair that
+no group covers is reported as a group of its own rather than dropped. Such a
+group is not reported when a stronger group already contains both of its
+windows, so a nested window is counted once instead of twice.</p>
 <h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
