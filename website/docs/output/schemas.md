@@ -627,7 +627,7 @@ Mirrors `domain.LCOMResponse`.
 | -------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lcom4`              | integer                          | Connected components in the method-variable graph.                                                                                                    |
 | `total_methods`      | integer                          | All methods in the class.                                                                                                                             |
-| `excluded_methods`   | integer                          | Methods excluded from the LCOM4 graph (`@classmethod`, `@staticmethod`, `@abstractmethod`, and constructors: `__init__`, `__new__`, `__post_init__`). |
+| `excluded_methods`   | integer                          | Methods excluded from the LCOM4 graph (`@classmethod`, `@staticmethod`, `@abstractmethod`, constructors `__init__`, `__new__`, `__post_init__`, and methods that touch no instance state and have no call connection to another method). |
 | `instance_variables` | integer                          | Distinct `self.x` variables accessed.                                                                                                                 |
 | `method_groups`      | array of array of string \| null | Method names grouped by connected component.                                                                                                          |
 

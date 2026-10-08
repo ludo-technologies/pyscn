@@ -12,6 +12,8 @@ Methods decorated with `@staticmethod`, `@classmethod`, or `@abstractmethod` do 
 
 Constructors (`__init__`, `__new__`, and the dataclass `__post_init__` hook) are excluded too. A constructor typically initializes every attribute of the class, so keeping it in the graph links all of the responsibility clusters it sets up and collapses `LCOM4` to `1` for almost any class. The attributes it introduces still count toward `instance_variables`.
 
+Methods that touch no instance state and are not connected to any other method by a call are left out of the graph too. They cannot be split from anything, so counting them would only inflate `LCOM4`.
+
 In plain terms: *this class is doing unrelated jobs — split it, or make it a module of functions.*
 
 ## Why is this a problem?
