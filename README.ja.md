@@ -20,9 +20,7 @@ Cursor、Claude、ChatGPT で開発していますか？pyscn は構造解析に
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-**コード品質の変化を、Polyscan で毎週チェック。**<br>
-複雑度・重複コード・デッドコードを自動解析し、前回からの変化を GitHub Issue でお知らせします。<br>
-[毎週の自動チェックを始める →](https://github.com/apps/polyscan-app/installations/new) · 公開リポジトリは無料
+<a href="https://github.com/apps/polyscan-app/installations/select_target"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 </div>
 
@@ -53,7 +51,21 @@ pyscn はコードを 5 つの視点で分析します:
 
 **100,000 行/秒以上** • Go + tree-sitter で構築
 
-*他の言語も扱っていますか？pyscn は [polyscan](https://github.com/ludo-technologies/polyscan) の一部です。JavaScript/TypeScript ほかの言語向けのアナライザーもあります。*
+## 他の言語
+
+pyscn は [polyscan](https://github.com/ludo-technologies/polyscan) の Python 向けアナライザーです。JavaScript、TypeScript、Go、Rust、C++ は次のコマンドで解析できます。
+
+```bash
+npx polyscan analyze .
+```
+
+同じ5つの観点、同じ 0-100 のスコアで、1つの HTML レポートにまとまります。
+
+## GitHub 版 Polyscan
+
+[Polyscan App](https://github.com/apps/polyscan-app/installations/select_target) は週次の監査レポートを GitHub Issue として作成します。公開リポジトリは無料です。
+
+<a href="https://github.com/apps/polyscan-app/installations/select_target"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 ## AI エージェント連携
 

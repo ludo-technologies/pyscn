@@ -20,9 +20,7 @@ Vous développez avec Cursor, Claude ou ChatGPT ? pyscn garde le code généré 
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-**Suivez chaque semaine la santé de votre code avec Polyscan.**<br>
-Surveillance automatique de la complexité, des doublons et du code mort, avec les changements livrés dans une issue GitHub.<br>
-[Activer le suivi hebdomadaire →](https://github.com/apps/polyscan-app/installations/new) · Gratuit pour les dépôts publics
+<a href="https://github.com/apps/polyscan-app/installations/select_target"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 </div>
 
@@ -53,7 +51,21 @@ pyscn analyse votre code sous cinq angles :
 
 **100 000+ lignes/s** • Construit avec Go + tree-sitter
 
-*Vous travaillez avec d'autres langages ? pyscn fait partie de [polyscan](https://github.com/ludo-technologies/polyscan), des analyseurs de qualité de code pour JavaScript/TypeScript et plus encore.*
+## Autres langages
+
+pyscn est l'analyseur Python de [polyscan](https://github.com/ludo-technologies/polyscan). Pour JavaScript, TypeScript, Go, Rust et C++, lancez :
+
+```bash
+npx polyscan analyze .
+```
+
+Les mêmes cinq angles, le même score de 0 à 100, un seul rapport HTML.
+
+## Polyscan pour GitHub
+
+[Polyscan App](https://github.com/apps/polyscan-app/installations/select_target) publie chaque semaine un rapport d'audit sous forme d'issue GitHub. Gratuit pour les dépôts publics.
+
+<a href="https://github.com/apps/polyscan-app/installations/select_target"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 ## Intégration avec les agents IA
 

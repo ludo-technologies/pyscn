@@ -20,9 +20,7 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/ludo-technologies/pyscn?style=flat-square&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/github/license/ludo-technologies/pyscn?style=flat-square)](LICENSE)
 
-**用 Polyscan 每周跟踪代码库的健康状况。**<br>
-自动分析复杂度、重复代码和死代码，并通过 GitHub Issue 报告与上次相比的变化。<br>
-[开始每周自动检查 →](https://github.com/apps/polyscan-app/installations/new) · 公开仓库免费
+<a href="https://github.com/apps/polyscan-app/installations/select_target"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 </div>
 
@@ -53,7 +51,21 @@ pyscn 从五个角度分析你的代码：
 
 **100,000+ 行/秒** • 基于 Go + tree-sitter 构建
 
-*使用其他语言？pyscn 是 [polyscan](https://github.com/ludo-technologies/polyscan) 的一部分，提供 JavaScript/TypeScript 等语言的代码质量分析器。*
+## 其他语言
+
+pyscn 是 [polyscan](https://github.com/ludo-technologies/polyscan) 中的 Python 分析器。JavaScript、TypeScript、Go、Rust 和 C++ 请运行：
+
+```bash
+npx polyscan analyze .
+```
+
+同样的五个维度，同样的 0-100 评分，汇总到一份 HTML 报告。
+
+## GitHub 版 Polyscan
+
+[Polyscan App](https://github.com/apps/polyscan-app/installations/select_target) 每周以 GitHub Issue 的形式提交审计报告。公开仓库免费。
+
+<a href="https://github.com/apps/polyscan-app/installations/select_target"><img alt="Install Polyscan App for free" src="https://img.shields.io/badge/Polyscan_App-Install_for_free-2ea44f?style=for-the-badge&logo=github&logoColor=white" height="44"></a>
 
 ## AI 智能体集成
 
