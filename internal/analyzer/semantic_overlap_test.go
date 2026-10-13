@@ -80,7 +80,9 @@ func TestSemanticOperationWeight(t *testing.T) {
 		{"disjoint call-free operators", []string{"binop:+"}, []string{"compare:>"}, 0.5},
 		{"no evidence", nil, nil, 1},
 		{"one empty side with calls", nil, []string{"call:normalize"}, 0.5},
-		{"one empty side without calls", nil, []string{"binop:+"}, 1},
+		{"one empty side without calls", nil, []string{"binop:+"}, 0.5},
+		{"call-free guards ignore comparison spelling", []string{"unary:not"}, []string{"compare:=="}, 1},
+		{"call-free arithmetic overlap", []string{"binop:+", "binop:*"}, []string{"binop:+", "binop:>>"}, 0.5 + 0.5/3},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -138,6 +140,28 @@ func TestSemanticEvidence_CallFreeBitScan(t *testing.T) {
     if scan_bits(n >> 1, width, bitmask):
         return False
     return True
+`},
+		{"call-free loop with unrelated arithmetic", `def convergents(terms):
+    n0, d0 = 0, 1
+    n1, d1 = 1, 0
+    for q in terms:
+        n = q * n1 + n0
+        d = q * d1 + d0
+        if n == d:
+            n0 = d0
+        n0, d0 = n1, d1
+        n1, d1 = n, d
+    return n1
+`},
+		{"loop-free code with the same arithmetic", `def check_chunks(n, width, bitmask):
+    _n = n >> width
+    setbits = _n & bitmask
+    if (((1 << width) - 1) & _n) == 0:
+        setbits |= 1
+    _n >>= width
+    if setbits >= 2:
+        return False
+    return setbits + _n == 0
 `},
 	}
 	for _, tt := range tests {

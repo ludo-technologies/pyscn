@@ -92,6 +92,12 @@ func (s *SemanticSimilarityAnalyzer) ComputeSimilarity(f1, f2 *CodeFragment) flo
 		return 0.0
 	}
 
+	// A loop and loop-free code cannot share a CFG shape, however close the
+	// remaining counts are.
+	if (cfgFeatures1.LoopEdgeCount > 0) != (cfgFeatures2.LoopEdgeCount > 0) {
+		return 0.0
+	}
+
 	// Compare CFG features to compute similarity
 	cfgSimilarity := s.compareCFGFeatures(cfgFeatures1, cfgFeatures2)
 
@@ -131,44 +137,47 @@ func (s *SemanticSimilarityAnalyzer) applySemanticEvidence(baseSimilarity float6
 }
 
 // semanticOperationWeight prevents a single incidental shared operation from
-// making otherwise unrelated call vocabularies look equivalent. Jaccard overlap
-// gives full weight only to matching vocabularies; disjoint operations halve the
-// score, below the default Type-4 threshold even for identical CFGs.
+// making otherwise unrelated operation vocabularies look equivalent. Jaccard
+// overlap gives full weight only to matching vocabularies; disjoint operations
+// halve the score, below the default Type-4 threshold even for identical CFGs.
+// Calls are compared when either side makes any; call-free fragments fall back
+// to arithmetic operators. Comparisons and boolean tests are left out because
+// equivalent guards are routinely spelled differently (`not xs` vs `len(xs) == 0`).
 func semanticOperationWeight(first, second coresemantic.SemanticSignals) float64 {
-	callSignals := func(signals map[string]struct{}) map[string]struct{} {
-		calls := make(map[string]struct{})
+	filter := func(signals map[string]struct{}, prefixes ...string) map[string]struct{} {
+		matched := make(map[string]struct{})
 		for signal := range signals {
-			if strings.HasPrefix(signal, "call:") || strings.HasPrefix(signal, "method:") {
-				calls[signal] = struct{}{}
+			for _, prefix := range prefixes {
+				if strings.HasPrefix(signal, prefix) {
+					matched[signal] = struct{}{}
+				}
 			}
 		}
-		return calls
+		return matched
 	}
-	left, right := callSignals(first.StrongSignals), callSignals(second.StrongSignals)
+	left := filter(first.StrongSignals, "call:", "method:")
+	right := filter(second.StrongSignals, "call:", "method:")
 	// A call-free fragment also has zero overlap with a nonempty call vocabulary.
 	// Shared operators must not erase that mismatch.
 	if len(left) > 0 || len(right) > 0 {
-		shared := 0
-		for signal := range left {
-			if _, ok := right[signal]; ok {
-				shared++
-			}
-		}
-		overlap := float64(shared) / float64(len(left)+len(right)-shared)
-		return 0.5 + 0.5*overlap
+		return overlapWeight(left, right)
 	}
+	left, right = filter(first.StrongSignals, "binop:"), filter(second.StrongSignals, "binop:")
+	if len(left) > 0 || len(right) > 0 {
+		return overlapWeight(left, right)
+	}
+	return 1
+}
 
-	// Retain operator evidence when both implementations are call-free,
-	// rather than treating them as empty evidence.
-	if len(first.StrongSignals) == 0 || len(second.StrongSignals) == 0 {
-		return 1
-	}
-	for signal := range first.StrongSignals {
-		if _, ok := second.StrongSignals[signal]; ok {
-			return 1
+func overlapWeight(left, right map[string]struct{}) float64 {
+	shared := 0
+	for signal := range left {
+		if _, ok := right[signal]; ok {
+			shared++
 		}
 	}
-	return 0.5
+	overlap := float64(shared) / float64(len(left)+len(right)-shared)
+	return 0.5 + 0.5*overlap
 }
 
 func extractSemanticSignals(node *parser.Node) coresemantic.SemanticSignals {
