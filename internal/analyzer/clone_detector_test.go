@@ -1718,6 +1718,38 @@ func TestLimitAndSortClonePairsBreaksTiesByLocation(t *testing.T) {
 	}
 }
 
+// At the pair cap, the exhaustive per-worker heap must keep the same pair as
+// LSH, which sorts all pairs first: ties go to the earliest location.
+func TestCloneDetector_PairCapKeepsSameTiedPairWithAndWithoutLSH(t *testing.T) {
+	const source = `def process(items):
+    total = 0
+    for item in items:
+        if item > 0:
+            total += item
+        else:
+            total -= item
+    return total
+`
+	detect := func(useLSH bool) [2]string {
+		config := DefaultCloneDetectorConfig()
+		config.MaxClonePairs = 1
+		config.MaxGoroutines = 1
+		config.UseLSH = useLSH
+		detector := NewCloneDetector(config)
+		var fragments []*CodeFragment
+		for _, file := range []string{"C.py", "B.py", "A.py"} {
+			fragments = append(fragments, extractAllFragments(t, detector, file, source)...)
+		}
+		result := detector.DetectClonesWithLSH(t.Context(), fragments)
+		require.Len(t, result.Pairs, 1)
+		first, second := orderedPairFragments(result.Pairs[0])
+		return [2]string{first.Location.FilePath, second.Location.FilePath}
+	}
+
+	assert.Equal(t, [2]string{"A.py", "B.py"}, detect(false))
+	assert.Equal(t, [2]string{"A.py", "B.py"}, detect(true))
+}
+
 func TestIsFlatDispatchChain(t *testing.T) {
 	tests := []struct {
 		name   string

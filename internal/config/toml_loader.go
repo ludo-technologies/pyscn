@@ -249,12 +249,12 @@ type ClonesConfig struct {
 	KCoreK            int     `toml:"k_core_k"`
 
 	// LSH (flat structure with lsh_ prefix)
-	LSHEnabled             string  `toml:"lsh_enabled"`
-	LSHAutoThreshold       int     `toml:"lsh_auto_threshold"`
-	LSHSimilarityThreshold float64 `toml:"lsh_similarity_threshold"`
-	LSHBands               int     `toml:"lsh_bands"`
-	LSHRows                int     `toml:"lsh_rows"`
-	LSHHashes              int     `toml:"lsh_hashes"`
+	LSHEnabled             string   `toml:"lsh_enabled"`
+	LSHAutoThreshold       int      `toml:"lsh_auto_threshold"`
+	LSHSimilarityThreshold *float64 `toml:"lsh_similarity_threshold"` // pointer so an explicit 0 disables the floor
+	LSHBands               int      `toml:"lsh_bands"`
+	LSHRows                int      `toml:"lsh_rows"`
+	LSHHashes              int      `toml:"lsh_hashes"`
 
 	// Performance
 	MaxMemoryMB    int   `toml:"max_memory_mb"`

@@ -1027,10 +1027,7 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 	for _, pairs := range verified {
 		cd.clonePairs = append(cd.clonePairs, pairs...)
 	}
-	cd.clonePairs = dropShadowedSemanticPairs(cd.clonePairs)
-
-	// Finalize results
-	cd.limitAndSortClonePairs(cd.cloneDetectorConfig.MaxClonePairs)
+	cd.finalizeClonePairs()
 
 	// Grouping
 	thr := cd.cloneDetectorConfig.GroupingThreshold
@@ -1127,25 +1124,33 @@ func (cd *CloneDetector) detectClonePairsWithContext(ctx context.Context) {
 		return
 	}
 
-	maxPairs := cd.cloneDetectorConfig.MaxClonePairs
-	if maxPairs <= 0 {
-		maxPairs = 10000
-	}
-
-	cd.detectClonePairsParallel(ctx, maxPairs)
-	cd.clonePairs = dropShadowedSemanticPairs(cd.clonePairs)
-
-	// Sort and limit final results
-	cd.limitAndSortClonePairs(maxPairs)
+	cd.detectClonePairsParallel(ctx, cd.maxClonePairs())
+	cd.finalizeClonePairs()
 }
 
-// clonePairMinHeap is a min-heap on Similarity: the root is the worst retained
-// pair, so a better candidate can replace it in O(log n). Used to keep the
-// best maxPairs candidates per worker with bounded memory.
+// maxClonePairs returns the configured pair cap, defaulting to 10000.
+func (cd *CloneDetector) maxClonePairs() int {
+	if cd.cloneDetectorConfig.MaxClonePairs <= 0 {
+		return 10000
+	}
+	return cd.cloneDetectorConfig.MaxClonePairs
+}
+
+// finalizeClonePairs keeps the best maxClonePairs pairs, then drops shadowed
+// semantic pairs. The exhaustive and LSH paths both end here, so at the cap
+// they keep the same pairs.
+func (cd *CloneDetector) finalizeClonePairs() {
+	cd.limitAndSortClonePairs(cd.maxClonePairs())
+	cd.clonePairs = dropShadowedSemanticPairs(cd.clonePairs)
+}
+
+// clonePairMinHeap is a min-heap under clonePairBetter: the root is the worst
+// retained pair, so a better candidate can replace it in O(log n). Used to
+// keep the best maxPairs candidates per worker with bounded memory.
 type clonePairMinHeap []*ClonePair
 
 func (h clonePairMinHeap) Len() int           { return len(h) }
-func (h clonePairMinHeap) Less(i, j int) bool { return h[i].Similarity < h[j].Similarity }
+func (h clonePairMinHeap) Less(i, j int) bool { return clonePairBetter(h[j], h[i]) }
 func (h clonePairMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h *clonePairMinHeap) Push(x any)        { *h = append(*h, x.(*ClonePair)) }
 func (h *clonePairMinHeap) Pop() any {
@@ -1180,7 +1185,7 @@ func (cd *CloneDetector) detectClonePairsParallel(ctx context.Context, maxPairs 
 			}
 			if h.Len() < maxPairs {
 				heap.Push(h, pair)
-			} else if pair.Similarity > (*h)[0].Similarity {
+			} else if clonePairBetter(pair, (*h)[0]) {
 				(*h)[0] = pair
 				heap.Fix(h, 0)
 			}
@@ -1790,26 +1795,29 @@ func dropShadowedSemanticPairs(pairs []*ClonePair) []*ClonePair {
 
 // limitAndSortClonePairs ensures final results are sorted and limited
 func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
-	// Sort clone pairs by similarity (descending), breaking ties by location.
-	// Grouping depends on pair order, so the order must not depend on how
-	// workers or LSH candidates happened to produce the pairs.
 	sort.Slice(cd.clonePairs, func(i, j int) bool {
-		left, right := cd.clonePairs[i], cd.clonePairs[j]
-		if left.Similarity != right.Similarity {
-			return left.Similarity > right.Similarity
-		}
-		leftFirst, leftSecond := orderedPairFragments(left)
-		rightFirst, rightSecond := orderedPairFragments(right)
-		if leftFirst != rightFirst {
-			return fragmentLocationLess(leftFirst, rightFirst)
-		}
-		return fragmentLocationLess(leftSecond, rightSecond)
+		return clonePairBetter(cd.clonePairs[i], cd.clonePairs[j])
 	})
 
 	// Limit the number of pairs to prevent memory issues
 	if len(cd.clonePairs) > maxPairs {
 		cd.clonePairs = cd.clonePairs[:maxPairs]
 	}
+}
+
+// clonePairBetter orders pairs by similarity (descending), breaking ties by
+// location. Grouping and the pair cap depend on this order, so it must not
+// depend on how workers or LSH candidates happened to produce the pairs.
+func clonePairBetter(left, right *ClonePair) bool {
+	if left.Similarity != right.Similarity {
+		return left.Similarity > right.Similarity
+	}
+	leftFirst, leftSecond := orderedPairFragments(left)
+	rightFirst, rightSecond := orderedPairFragments(right)
+	if leftFirst != rightFirst {
+		return fragmentLocationLess(leftFirst, rightFirst)
+	}
+	return fragmentLocationLess(leftSecond, rightSecond)
 }
 
 // orderedPairFragments returns a pair's fragments in location order.

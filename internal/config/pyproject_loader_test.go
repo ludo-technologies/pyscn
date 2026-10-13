@@ -92,6 +92,35 @@ min_nodes = 20
 	}
 }
 
+// An explicit lsh_similarity_threshold = 0 disables the feature Jaccard floor,
+// so it must not fall back to the default like an unset key does.
+func TestLoadLSHSimilarityThresholdFromPyprojectToml(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    float64
+	}{
+		{"unset", "[tool.pyscn.clones]\nmin_lines = 10\n", 0.50},
+		{"explicit zero", "[tool.pyscn.clones]\nlsh_similarity_threshold = 0.0\n", 0},
+		{"explicit value", "[tool.pyscn.clones]\nlsh_similarity_threshold = 0.7\n", 0.7},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(tempDir, "pyproject.toml"), []byte(tt.content), 0644); err != nil {
+				t.Fatalf("Failed to write config file: %v", err)
+			}
+			config, err := LoadPyprojectConfig(tempDir)
+			if err != nil {
+				t.Fatalf("Failed to load config: %v", err)
+			}
+			if config.LSH.SimilarityThreshold != tt.want {
+				t.Errorf("Expected lsh_similarity_threshold %v, got %v", tt.want, config.LSH.SimilarityThreshold)
+			}
+		})
+	}
+}
+
 func TestLoadArchitectureLayersAndRulesFromPyprojectToml(t *testing.T) {
 	tempDir := t.TempDir()
 
