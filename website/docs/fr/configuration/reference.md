@@ -94,9 +94,9 @@ Détection de clones (l'analyseur le plus configurable).
 | -------------------------- | -------------- | -------- | --- |
 | `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | Active LSH (`auto` = en fonction du nombre de fragments ou du nombre estimé de paires). |
 | `lsh_auto_threshold`       | int            | `500`    | Seuil de fragments pour l'activation automatique ; auto s'active aussi au-delà de 10 000 paires estimées. |
-| `lsh_similarity_threshold` | float          | `0.50`   | Pré-filtre des candidats LSH. |
-| `lsh_bands`                | int            | `32`     | Bandes LSH. |
-| `lsh_rows`                 | int            | `4`      | Lignes par bande. |
+| `lsh_similarity_threshold` | float          | `0.50`   | Jaccard minimal des caractéristiques AST pour une paire de clones. S'applique avec ou sans LSH. |
+| `lsh_bands`                | int            | `42`     | Bandes LSH. |
+| `lsh_rows`                 | int            | `3`      | Lignes par bande. |
 | `lsh_hashes`               | int            | `128`    | Nombre de fonctions de hachage. |
 
 ### Regroupement

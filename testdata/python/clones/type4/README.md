@@ -27,6 +27,10 @@ pyscn analyze testdata/python/clones/type4/
 Functions with matching semantics should be detected as Type-4 clones,
 even though their syntax differs significantly.
 
+The Find Maximum pairs are the exception. They share too few AST features
+to pass the feature Jaccard floor (`lsh_similarity_threshold`), which keeps
+results the same with and without LSH, so they are not reported.
+
 ## DFA Features That Help Detection
 
 - **Def-Use Chain Patterns**: Similar variable definition and usage patterns

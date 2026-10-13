@@ -1692,6 +1692,32 @@ func TestDropShadowedSemanticPairs(t *testing.T) {
 		dropShadowedSemanticPairs(pairs))
 }
 
+// Grouping depends on pair order, so ties in similarity must be broken by
+// location rather than by the order workers produced the pairs.
+func TestLimitAndSortClonePairsBreaksTiesByLocation(t *testing.T) {
+	fragment := func(line int) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: "a.py", StartLine: line, EndLine: line + 5}}
+	}
+	a, b, c := fragment(1), fragment(10), fragment(20)
+	pair := func(f1, f2 *CodeFragment, similarity float64) *ClonePair {
+		return &ClonePair{Fragment1: f1, Fragment2: f2, Similarity: similarity}
+	}
+	best := pair(b, c, 0.9)
+	tieAC := pair(c, a, 0.8)
+	tieBC := pair(b, c, 0.8)
+	tieAB := pair(b, a, 0.8)
+	want := []*ClonePair{best, tieAB, tieAC, tieBC}
+
+	for _, input := range [][]*ClonePair{
+		{tieBC, tieAC, best, tieAB},
+		{tieAB, best, tieBC, tieAC},
+	} {
+		cd := &CloneDetector{clonePairs: input}
+		cd.limitAndSortClonePairs(10)
+		assert.Equal(t, want, cd.clonePairs)
+	}
+}
+
 func TestIsFlatDispatchChain(t *testing.T) {
 	tests := []struct {
 		name   string

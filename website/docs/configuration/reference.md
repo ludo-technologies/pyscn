@@ -124,9 +124,9 @@ they dispatch on, so only a Type-1 to Type-3 match between them counts.
 | -------------------------- | -------------- | -------- | --- |
 | `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | Enable LSH (`auto` = based on fragment count or estimated pair count). |
 | `lsh_auto_threshold`       | int            | `500`    | Fragment count threshold for auto-enable; auto also enables above 10,000 estimated pairs. |
-| `lsh_similarity_threshold` | float          | `0.50`   | LSH candidate pre-filter. |
-| `lsh_bands`                | int            | `32`     | LSH bands. |
-| `lsh_rows`                 | int            | `4`      | Rows per band. |
+| `lsh_similarity_threshold` | float          | `0.50`   | Minimum AST feature Jaccard for a clone pair. Applies with and without LSH. |
+| `lsh_bands`                | int            | `42`     | LSH bands. |
+| `lsh_rows`                 | int            | `3`      | Rows per band. |
 | `lsh_hashes`               | int            | `128`    | Hash function count. |
 
 ### Grouping

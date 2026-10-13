@@ -20,6 +20,13 @@ var callAsymmetricType4Pairs = [][2]string{
 	{"filter_transform_a.py::count_matching", "filter_transform_b.py::count_matching"},
 }
 
+// These genuine equivalents share too few AST features to pass the feature
+// Jaccard floor that keeps exhaustive and LSH detection consistent (#832).
+var belowFeatureFloorType4Pairs = [][2]string{
+	{"find_max_a.py::find_maximum", "find_max_b.py::find_maximum"},
+	{"find_max_a.py::find_min_max", "find_max_b.py::find_min_max"},
+}
+
 func TestType4CloneDetection(t *testing.T) {
 	config := DefaultCloneDetectorConfig()
 	config.EnableDFAAnalysis = true
@@ -41,8 +48,6 @@ func TestType4CloneDetection(t *testing.T) {
 	}
 
 	expectedPairs := [][2]string{
-		{"find_max_a.py::find_maximum", "find_max_b.py::find_maximum"},
-		{"find_max_a.py::find_min_max", "find_max_b.py::find_min_max"},
 		{"filter_transform_a.py::filter_and_double", "filter_transform_b.py::filter_and_double"},
 		{"filter_transform_a.py::process_data", "filter_transform_b.py::process_data"},
 	}
@@ -57,6 +62,10 @@ func TestType4CloneDetection(t *testing.T) {
 		if pair := pairByID[type4PairID(equivalent[0], equivalent[1])]; pair != nil {
 			assert.NotEqual(t, Type4Clone, pair.CloneType)
 		}
+	}
+
+	for _, equivalent := range belowFeatureFloorType4Pairs {
+		assert.Nil(t, pairByID[type4PairID(equivalent[0], equivalent[1])], "pair below the feature floor reported: %s <-> %s", equivalent[0], equivalent[1])
 	}
 
 	negativePairs := [][2]string{
@@ -86,6 +95,34 @@ func TestType4CloneDetection(t *testing.T) {
 		assert.NotEqual(t, Type4Clone, pair.CloneType,
 			"field converters with disjoint spec keys must not be Type-4 clones")
 	}
+}
+
+// Issue #832: LSH is an acceleration and must not change which clones are
+// found. The fixture holds Type-2 and Type-4 pairs on both sides of the
+// feature Jaccard floor.
+func TestCloneDetection_LSHMatchesExhaustive(t *testing.T) {
+	detect := func(useLSH bool) map[string]CloneType {
+		config := DefaultCloneDetectorConfig()
+		config.EnableDFAAnalysis = true
+		config.MinLines = 4
+		config.MinNodes = 10
+		config.Type4Threshold = 0.70
+		config.UseLSH = useLSH
+
+		detector := NewCloneDetector(config)
+		fragments, _ := loadType4FunctionFragments(t, detector)
+		result := detector.DetectClonesWithLSH(context.Background(), fragments)
+
+		pairs := make(map[string]CloneType, len(result.Pairs))
+		for _, pair := range result.Pairs {
+			pairs[type4PairID(pair.Fragment1.Location.String(), pair.Fragment2.Location.String())] = pair.CloneType
+		}
+		return pairs
+	}
+
+	exhaustive := detect(false)
+	require.NotEmpty(t, exhaustive)
+	assert.Equal(t, exhaustive, detect(true))
 }
 
 func loadType4FunctionFragments(t *testing.T, detector *CloneDetector) ([]*CodeFragment, map[string]*CodeFragment) {

@@ -307,9 +307,9 @@ type CloneDetectorConfig struct {
 
 	// LSH Configuration (optional, opt-in)
 	UseLSH                 bool    // Enable LSH acceleration
-	LSHSimilarityThreshold float64 // Candidate threshold using MinHash similarity
-	LSHBands               int     // Number of LSH bands (default: 32)
-	LSHRows                int     // Rows per band (default: 4)
+	LSHSimilarityThreshold float64 // Minimum AST-feature Jaccard for any pair, with or without LSH
+	LSHBands               int     // Number of LSH bands (default: 42)
+	LSHRows                int     // Rows per band (default: 3)
 	LSHMinHashCount        int     // Number of MinHash functions (default: 128)
 	LSHMaxCandidates       int     // Maximum candidates returned per LSH query
 
@@ -352,10 +352,10 @@ func DefaultCloneDetectorConfig() *CloneDetectorConfig {
 
 		// LSH defaults (opt-in)
 		UseLSH:                 false,
-		LSHSimilarityThreshold: 0.50,
-		LSHBands:               32,
-		LSHRows:                4,
-		LSHMinHashCount:        128,
+		LSHSimilarityThreshold: domain.DefaultLSHSimilarityThreshold,
+		LSHBands:               domain.DefaultLSHBands,
+		LSHRows:                domain.DefaultLSHRows,
+		LSHMinHashCount:        domain.DefaultLSHHashes,
 		LSHMaxCandidates:       defaultLSHMaxCandidates,
 
 		// Multi-dimensional classification defaults (opt-in)
@@ -461,7 +461,7 @@ func NewCloneDetector(config *CloneDetectorConfig) *CloneDetector {
 		Type1Threshold: config.Type1Threshold, Type2Threshold: config.Type2Threshold,
 		Type3Threshold: config.Type3Threshold, Type4Threshold: config.Type4Threshold,
 		EnableType1: true, EnableType2: true, EnableType3: true, EnableType4: true,
-		JaccardPreFilterThreshold: 0.10,
+		JaccardPreFilterThreshold: config.LSHSimilarityThreshold,
 	}, textualAnalyzer, coreclone.NewSyntacticSimilarityAnalyzerWithExtractor(
 		newPythonCloneFeatureExtractor().WithOptions(3, 4, true, false)))
 
@@ -936,14 +936,11 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 		sig *corelsh.MinHashSignature
 	}
 	records := make([]fragRec, 0, len(cd.fragments))
-	sigByIndex := make(map[int]*corelsh.MinHashSignature, len(cd.fragments))
 	for i, f := range cd.fragments {
 		if f == nil || f.TreeNode == nil {
 			continue
 		}
-		sig := hasher.ComputeSignature(f.Features)
-		records = append(records, fragRec{idx: i, sig: sig})
-		sigByIndex[i] = sig
+		records = append(records, fragRec{idx: i, sig: hasher.ComputeSignature(f.Features)})
 	}
 
 	// Edge case: if signatures cannot be built, fallback
@@ -957,18 +954,12 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 		_ = lsh.AddFragment(r.idx, r.sig)
 	}
 
-	// Stage 3: Candidate generation + APTED verification
-	// Use MinHash similarity to filter before expensive APTED
-	minhashThreshold := cd.cloneDetectorConfig.LSHSimilarityThreshold
-	if minhashThreshold < 0 {
-		minhashThreshold = 0
-	} else if minhashThreshold > 1 {
-		minhashThreshold = 1
-	}
-
-	// Stream deduplicated candidate pairs that survive the cheap pre-filters
-	// to a pool of workers for the expensive APTED verification. Streaming
-	// keeps memory bounded: the full candidate list is never materialized.
+	// Stage 3: Candidate generation + verification. Stream deduplicated
+	// candidate pairs to a pool of workers; compareFragments applies the same
+	// exact feature Jaccard floor as the exhaustive path. The MinHash estimate
+	// is not used as a filter because its noise would drop pairs that the
+	// exhaustive path keeps. Streaming keeps memory bounded: the full
+	// candidate list is never materialized.
 	type candidatePair struct{ a, b int }
 	seenPairs := make(map[[2]int]struct{})
 
@@ -1021,12 +1012,6 @@ func (cd *CloneDetector) DetectClonesWithLSH(ctx context.Context, fragments []*C
 			f1 := cd.fragments[a]
 			f2 := cd.fragments[b]
 			if cd.isOverlappingLocation(f1.Location, f2.Location) {
-				continue
-			}
-
-			// MinHash similarity pre-filter
-			est := hasher.EstimateJaccardSimilarity(sigByIndex[a], sigByIndex[b])
-			if est < minhashThreshold {
 				continue
 			}
 
@@ -1214,9 +1199,15 @@ func (cd *CloneDetector) detectClonePairsParallel(ctx context.Context, maxPairs 
 }
 
 // compareFragments compares two fragments and returns a clone pair if similar.
-// Uses a Jaccard pre-filter on pre-computed features to minimize expensive APTED calls.
+// Pairs below the feature Jaccard floor are rejected before any APTED call.
 func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *ClonePair {
 	if fragment1.TreeNode == nil || fragment2.TreeNode == nil {
+		return nil
+	}
+
+	// Feature Jaccard floor, shared by the exhaustive and LSH paths so that
+	// LSH only changes which pairs are compared, not which pairs can match.
+	if !cd.pairClassifier.PassesJaccardPreFilter(fragment1.coreFragment(), fragment2.coreFragment()) {
 		return nil
 	}
 
@@ -1226,13 +1217,6 @@ func (cd *CloneDetector) compareFragments(fragment1, fragment2 *CodeFragment) *C
 
 	// Early filtering check
 	if !coreclone.ShouldCompareFragments(fragment1.coreFragment(), fragment2.coreFragment()) {
-		return nil
-	}
-
-	// Jaccard pre-filter: reject clear non-clones before expensive APTED/classifier work.
-	// Only used for rejection — all non-rejected pairs proceed to APTED-based classification
-	// for accurate clone typing and distance computation.
-	if !cd.pairClassifier.PassesJaccardPreFilter(fragment1.coreFragment(), fragment2.coreFragment()) {
 		return nil
 	}
 
@@ -1806,15 +1790,34 @@ func dropShadowedSemanticPairs(pairs []*ClonePair) []*ClonePair {
 
 // limitAndSortClonePairs ensures final results are sorted and limited
 func (cd *CloneDetector) limitAndSortClonePairs(maxPairs int) {
-	// Sort clone pairs by similarity (descending)
+	// Sort clone pairs by similarity (descending), breaking ties by location.
+	// Grouping depends on pair order, so the order must not depend on how
+	// workers or LSH candidates happened to produce the pairs.
 	sort.Slice(cd.clonePairs, func(i, j int) bool {
-		return cd.clonePairs[i].Similarity > cd.clonePairs[j].Similarity
+		left, right := cd.clonePairs[i], cd.clonePairs[j]
+		if left.Similarity != right.Similarity {
+			return left.Similarity > right.Similarity
+		}
+		leftFirst, leftSecond := orderedPairFragments(left)
+		rightFirst, rightSecond := orderedPairFragments(right)
+		if leftFirst != rightFirst {
+			return fragmentLocationLess(leftFirst, rightFirst)
+		}
+		return fragmentLocationLess(leftSecond, rightSecond)
 	})
 
 	// Limit the number of pairs to prevent memory issues
 	if len(cd.clonePairs) > maxPairs {
 		cd.clonePairs = cd.clonePairs[:maxPairs]
 	}
+}
+
+// orderedPairFragments returns a pair's fragments in location order.
+func orderedPairFragments(pair *ClonePair) (*CodeFragment, *CodeFragment) {
+	if fragmentLocationLess(pair.Fragment2, pair.Fragment1) {
+		return pair.Fragment2, pair.Fragment1
+	}
+	return pair.Fragment1, pair.Fragment2
 }
 
 // Helper functions

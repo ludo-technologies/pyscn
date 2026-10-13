@@ -287,14 +287,17 @@ const (
 	// to make exact pairwise APTED comparisons too expensive.
 	DefaultLSHAutoPairThreshold = 10000
 
-	// DefaultLSHSimilarityThreshold is the minimum similarity for LSH candidate filtering.
+	// DefaultLSHSimilarityThreshold is the minimum AST-feature Jaccard for a clone pair, with or without LSH.
 	DefaultLSHSimilarityThreshold = 0.50
 
-	// DefaultLSHBands is the number of bands in the LSH algorithm.
-	DefaultLSHBands = 32
+	// DefaultLSHBands and DefaultLSHRows split the MinHash signature into
+	// bands. Three rows per band make pairs at the default Jaccard floor (0.50)
+	// LSH candidates with ~99.6% probability, so LSH keeps the clones the
+	// exhaustive path finds. Four rows gave only ~87%.
+	DefaultLSHBands = 42
 
 	// DefaultLSHRows is the number of rows per band in the LSH algorithm.
-	DefaultLSHRows = 4
+	DefaultLSHRows = 3
 
 	// DefaultLSHHashes is the total number of hash functions used.
 	DefaultLSHHashes = 128
