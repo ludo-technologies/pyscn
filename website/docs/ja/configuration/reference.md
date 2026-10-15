@@ -94,9 +94,9 @@
 | -------------------------- | -------------- | -------- | --- |
 | `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | LSH を有効にします（`auto` = フラグメント数または推定ペア数に基づく）。 |
 | `lsh_auto_threshold`       | int            | `500`    | 自動有効化のフラグメント数閾値。推定ペア数が 10,000 を超える場合も自動有効化されます。 |
-| `lsh_similarity_threshold` | float          | `0.50`   | LSH 候補のプレフィルター。 |
-| `lsh_bands`                | int            | `32`     | LSH バンド数。 |
-| `lsh_rows`                 | int            | `4`      | バンドあたりの行数。 |
+| `lsh_similarity_threshold` | float          | `0.50`   | クローンペアに必要な AST 特徴量 Jaccard の下限。LSH の有無にかかわらず適用。 |
+| `lsh_bands`                | int            | `42`     | LSH バンド数。 |
+| `lsh_rows`                 | int            | `3`      | バンドあたりの行数。 |
 | `lsh_hashes`               | int            | `128`    | ハッシュ関数の数。 |
 
 ### グルーピング

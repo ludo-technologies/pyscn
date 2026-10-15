@@ -94,9 +94,9 @@
 | -------------------------- | -------------- | -------- | --- |
 | `lsh_enabled`              | `true\|false\|"auto"` | `"auto"` | 启用 LSH（`auto` = 根据片段数量或估算配对数量决定）。 |
 | `lsh_auto_threshold`       | int            | `500`    | 自动启用的片段数量阈值；估算配对数量超过 10,000 时也会自动启用。 |
-| `lsh_similarity_threshold` | float          | `0.50`   | LSH 候选预过滤阈值。 |
-| `lsh_bands`                | int            | `32`     | LSH 分段数。 |
-| `lsh_rows`                 | int            | `4`      | 每段的行数。 |
+| `lsh_similarity_threshold` | float          | `0.50`   | 克隆对所需的 AST 特征 Jaccard 下限。无论是否启用 LSH 都适用。 |
+| `lsh_bands`                | int            | `42`     | LSH 分段数。 |
+| `lsh_rows`                 | int            | `3`      | 每段的行数。 |
 | `lsh_hashes`               | int            | `128`    | 哈希函数数量。 |
 
 ### 分组

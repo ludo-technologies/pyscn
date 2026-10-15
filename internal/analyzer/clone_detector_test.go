@@ -1692,6 +1692,64 @@ func TestDropShadowedSemanticPairs(t *testing.T) {
 		dropShadowedSemanticPairs(pairs))
 }
 
+// Grouping depends on pair order, so ties in similarity must be broken by
+// location rather than by the order workers produced the pairs.
+func TestLimitAndSortClonePairsBreaksTiesByLocation(t *testing.T) {
+	fragment := func(line int) *CodeFragment {
+		return &CodeFragment{Location: &CodeLocation{FilePath: "a.py", StartLine: line, EndLine: line + 5}}
+	}
+	a, b, c := fragment(1), fragment(10), fragment(20)
+	pair := func(f1, f2 *CodeFragment, similarity float64) *ClonePair {
+		return &ClonePair{Fragment1: f1, Fragment2: f2, Similarity: similarity}
+	}
+	best := pair(b, c, 0.9)
+	tieAC := pair(c, a, 0.8)
+	tieBC := pair(b, c, 0.8)
+	tieAB := pair(b, a, 0.8)
+	want := []*ClonePair{best, tieAB, tieAC, tieBC}
+
+	for _, input := range [][]*ClonePair{
+		{tieBC, tieAC, best, tieAB},
+		{tieAB, best, tieBC, tieAC},
+	} {
+		cd := &CloneDetector{clonePairs: input}
+		cd.limitAndSortClonePairs(10)
+		assert.Equal(t, want, cd.clonePairs)
+	}
+}
+
+// At the pair cap, the exhaustive per-worker heap must keep the same pair as
+// LSH, which sorts all pairs first: ties go to the earliest location.
+func TestCloneDetector_PairCapKeepsSameTiedPairWithAndWithoutLSH(t *testing.T) {
+	const source = `def process(items):
+    total = 0
+    for item in items:
+        if item > 0:
+            total += item
+        else:
+            total -= item
+    return total
+`
+	detect := func(useLSH bool) [2]string {
+		config := DefaultCloneDetectorConfig()
+		config.MaxClonePairs = 1
+		config.MaxGoroutines = 1
+		config.UseLSH = useLSH
+		detector := NewCloneDetector(config)
+		var fragments []*CodeFragment
+		for _, file := range []string{"C.py", "B.py", "A.py"} {
+			fragments = append(fragments, extractAllFragments(t, detector, file, source)...)
+		}
+		result := detector.DetectClonesWithLSH(t.Context(), fragments)
+		require.Len(t, result.Pairs, 1)
+		first, second := orderedPairFragments(result.Pairs[0])
+		return [2]string{first.Location.FilePath, second.Location.FilePath}
+	}
+
+	assert.Equal(t, [2]string{"A.py", "B.py"}, detect(false))
+	assert.Equal(t, [2]string{"A.py", "B.py"}, detect(true))
+}
+
 func TestIsFlatDispatchChain(t *testing.T) {
 	tests := []struct {
 		name   string

@@ -298,6 +298,10 @@ func (req *CloneRequest) Validate() error {
 		return NewValidationError("similarity_threshold must be between 0.0 and 1.0")
 	}
 
+	if req.LSHSimilarityThreshold < 0.0 || req.LSHSimilarityThreshold > 1.0 {
+		return NewValidationError("lsh_similarity_threshold must be between 0.0 and 1.0")
+	}
+
 	if req.MaxEditDistance < 0.0 {
 		return NewValidationError("max_edit_distance must be >= 0.0")
 	}
@@ -387,10 +391,10 @@ func DefaultCloneRequest() *CloneRequest {
 		// LSH defaults (auto-enable based on fragment count)
 		LSHEnabled:             "auto",
 		LSHAutoThreshold:       500,
-		LSHSimilarityThreshold: 0.50,
-		LSHBands:               32,
-		LSHRows:                4,
-		LSHHashes:              128,
+		LSHSimilarityThreshold: DefaultLSHSimilarityThreshold,
+		LSHBands:               DefaultLSHBands,
+		LSHRows:                DefaultLSHRows,
+		LSHHashes:              DefaultLSHHashes,
 	}
 }
 

@@ -212,8 +212,8 @@ func mergeClonesSection(defaults *PyscnConfig, clones *ClonesConfig) {
 	if clones.LSHAutoThreshold > 0 {
 		defaults.LSH.AutoThreshold = clones.LSHAutoThreshold
 	}
-	if clones.LSHSimilarityThreshold > 0 {
-		defaults.LSH.SimilarityThreshold = clones.LSHSimilarityThreshold
+	if clones.LSHSimilarityThreshold != nil {
+		defaults.LSH.SimilarityThreshold = *clones.LSHSimilarityThreshold
 	}
 	if clones.LSHBands > 0 {
 		defaults.LSH.Bands = clones.LSHBands

@@ -32,9 +32,9 @@ flowchart TD
     C --> D{Fragment Count >= LSH Threshold?}
     D -->|Yes| E[LSH Candidate Generation]
     D -->|No| F[Exhaustive Pairwise Comparison]
-    E --> G[MinHash Pre-filter]
+    E --> G[Feature Jaccard Floor]
+    F --> G
     G --> H[APTED Verification]
-    F --> H
     H --> I{Multi-dimensional Classification Enabled?}
     I -->|Yes| J[Cascading Classifier]
     I -->|No| K[Single-metric Classification]
@@ -77,6 +77,7 @@ AST nodes from the parser are converted into ordered labeled trees (`apted.TreeN
 For each candidate pair of fragments, the detector applies early filtering and then computes similarity.
 
 **Early filtering** rejects pairs where:
+- The exact Jaccard similarity of the two fragments' AST feature sets is below `LSHSimilarityThreshold` (default 0.50). This floor applies with and without LSH, so LSH changes only which pairs are compared, not which pairs can match. Type-4 pairs with very different syntax can fall below it.
 - Both fragments overlap in the same file (same or overlapping line ranges).
 - Size difference exceeds 50% of the average size.
 - Line count difference exceeds 50% of either fragment's line count.
@@ -297,7 +298,7 @@ flowchart TD
     B --> C[MinHash Signatures]
     C --> D[LSH Banding]
     D --> E[Candidate Pairs]
-    E --> F[MinHash Pre-filter]
+    E --> F[Feature Jaccard Floor]
     F --> G[APTED Verification]
     G --> H[Confirmed Clone Pairs]
 ```
@@ -327,9 +328,9 @@ The `LSHIndex` partitions each signature into bands and hashes each band to a bu
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `LSHBands` | 32 | Number of bands |
-| `LSHRows` | 4 | Rows per band |
-| `LSHMinHashCount` | 128 | Total hash functions (= bands * rows) |
+| `LSHBands` | 42 | Number of bands |
+| `LSHRows` | 3 | Rows per band |
+| `LSHMinHashCount` | 128 | Total hash functions (bands * rows of them are used) |
 
 For each band, the corresponding rows of the signature are hashed together (FNV-64a) to produce a bucket key. Two fragments are candidates if they share at least one bucket.
 
@@ -339,11 +340,11 @@ The probability that two fragments with true Jaccard similarity `s` become candi
 P(candidate) = 1 - (1 - s^r)^b
 ```
 
-where `r` = rows per band and `b` = number of bands. With the defaults (r=4, b=32), fragments with Jaccard similarity 0.5 have approximately 99.8% chance of being candidates, while those with similarity 0.1 have only 0.1% chance.
+where `r` = rows per band and `b` = number of bands. With the defaults (r=3, b=42), fragments with Jaccard similarity 0.5 (the default floor) have approximately 99.6% chance of being candidates, while those with similarity 0.1 have about 4% chance. The defaults are chosen for high recall at the floor, so LSH finds nearly the same clones as the exhaustive path. If you raise `LSHSimilarityThreshold`, you can raise `LSHRows` for fewer candidates.
 
 ### Stage 4: Verification
 
-Candidate pairs are filtered by estimated MinHash similarity (`LSHSimilarityThreshold`, default 0.50) before expensive APTED verification.
+Candidate pairs go through the same comparison as the exhaustive path, including the exact feature Jaccard floor (`LSHSimilarityThreshold`, default 0.50). The MinHash estimate is not used as a filter, because its sampling error would drop pairs that the exhaustive path keeps.
 
 ### Automatic Activation
 
@@ -425,7 +426,7 @@ All thresholds are defined in `domain/defaults.go`:
 | `DefaultSemanticMinCyclomaticComplexity` | 2 | Minimum CFG cyclomatic complexity V(G) for Type-4 eligibility |
 | `DefaultCloneSimilarityThreshold` | 0.65 | General minimum for reporting (aligned with Type-4) |
 | `DefaultCloneGroupingThreshold` | 0.65 | Minimum for group membership (= Type-4 threshold) |
-| `DefaultLSHSimilarityThreshold` | 0.50 | MinHash pre-filter for LSH candidates |
+| `DefaultLSHSimilarityThreshold` | 0.50 | Minimum AST feature Jaccard for any clone pair, with or without LSH |
 
 ### Similarity Calculation
 
@@ -509,9 +510,9 @@ All clone detection parameters can be set via CLI flags, config files (`.pyscn.t
 |-----------|---------|-------------|
 | LSHEnabled | `"auto"` | LSH mode: `"auto"`, `"true"`, `"false"` |
 | LSHAutoThreshold | 500 | Fragment count to auto-enable LSH |
-| LSHSimilarityThreshold | 0.50 | MinHash pre-filter threshold |
-| LSHBands | 32 | Number of LSH bands |
-| LSHRows | 4 | Rows per band |
+| LSHSimilarityThreshold | 0.50 | Minimum AST feature Jaccard for any clone pair |
+| LSHBands | 42 | Number of LSH bands |
+| LSHRows | 3 | Rows per band |
 | LSHMinHashCount | 128 | Total MinHash functions |
 
 ### Grouping Parameters
