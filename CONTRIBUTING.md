@@ -47,6 +47,9 @@ cd pyscn
 # Add upstream remote
 git remote add upstream https://github.com/ludo-technologies/pyscn.git
 
+# Install Go, golangci-lint and uv (optional, requires https://mise.jdx.dev)
+mise install
+
 # Install dependencies
 go mod download
 
