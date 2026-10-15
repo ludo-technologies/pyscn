@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.32.5] - 2026-10-16
+
+### Fixed
+- Count comprehensions wherever they appear in McCabe complexity (#848)
+- Make LSH a pure speedup for clone detection (#842)
+- Separate loop shapes and call-free operators in Type-4 clone detection (#841)
+
 ## [1.32.4] - 2026-10-08
 
 ### Fixed
