@@ -48,6 +48,15 @@ const (
 	LabelMatchEval    = "match_eval"
 	LabelMatchCase    = "match_case"
 	LabelMatchMerge   = "match_merge"
+
+	// Comprehension labels. Each for clause yields a comp_header decision and
+	// each if filter a comp_filter decision.
+	LabelCompInit   = "comp_init"
+	LabelCompHeader = "comp_header"
+	LabelCompBody   = "comp_body"
+	LabelCompFilter = "comp_filter"
+	LabelCompAppend = "comp_append"
+	LabelCompExit   = "comp_exit"
 )
 
 // loopContext tracks the context of a loop for break/continue handling
@@ -1322,14 +1331,14 @@ func (b *CFGBuilder) processComprehension(node *parser.Node) {
 	//                 \-> exit
 
 	// Create initialization block (creates result container)
-	initBlock := b.createBlock("comp_init")
+	initBlock := b.createBlock(LabelCompInit)
 	b.cfg.ConnectBlocks(b.currentBlock, initBlock, EdgeNormal)
 
 	// Add the comprehension node to init block for result container creation
 	initBlock.AddStatement(node)
 
 	// Create exit block (returns completed result)
-	exitBlock := b.createBlock("comp_exit")
+	exitBlock := b.createBlock(LabelCompExit)
 
 	// Keep track of the current processing block
 	currentProcessBlock := initBlock
@@ -1339,7 +1348,7 @@ func (b *CFGBuilder) processComprehension(node *parser.Node) {
 	for _, child := range node.Children {
 		if child.Type == parser.NodeComprehension {
 			// Create loop header block for this iterator
-			headerBlock := b.createBlock("comp_header")
+			headerBlock := b.createBlock(LabelCompHeader)
 			b.cfg.ConnectBlocks(currentProcessBlock, headerBlock, EdgeNormal)
 
 			// Add iterator evaluation to header
@@ -1348,7 +1357,7 @@ func (b *CFGBuilder) processComprehension(node *parser.Node) {
 			}
 
 			// Create body block for element processing
-			bodyBlock := b.createBlock("comp_body")
+			bodyBlock := b.createBlock(LabelCompBody)
 
 			// Connect header to body (has more elements)
 			b.cfg.ConnectBlocks(headerBlock, bodyBlock, EdgeCondTrue)
@@ -1356,14 +1365,14 @@ func (b *CFGBuilder) processComprehension(node *parser.Node) {
 			// Check if there's a filter condition
 			if child.Test != nil {
 				// Create filter block
-				filterBlock := b.createBlock("comp_filter")
+				filterBlock := b.createBlock(LabelCompFilter)
 				b.cfg.ConnectBlocks(bodyBlock, filterBlock, EdgeNormal)
 
 				// Add filter test
 				filterBlock.AddStatement(child.Test)
 
 				// Create append block for when filter passes
-				appendBlock := b.createBlock("comp_append")
+				appendBlock := b.createBlock(LabelCompAppend)
 				b.cfg.ConnectBlocks(filterBlock, appendBlock, EdgeCondTrue)
 
 				// Filter false goes back to loop header (skip this element)
@@ -1387,7 +1396,7 @@ func (b *CFGBuilder) processComprehension(node *parser.Node) {
 				}
 
 				// Create append block
-				appendBlock := b.createBlock("comp_append")
+				appendBlock := b.createBlock(LabelCompAppend)
 				b.cfg.ConnectBlocks(bodyBlock, appendBlock, EdgeNormal)
 
 				// Loop back to header
@@ -1411,6 +1420,12 @@ func (b *CFGBuilder) processComprehension(node *parser.Node) {
 
 	// Continue with exit block
 	b.currentBlock = exitBlock
+}
+
+// blockBaseLabel returns the label createBlock was given, without the
+// "_<counter>" suffix it appends.
+func blockBaseLabel(block *BasicBlock) string {
+	return block.Label[:max(strings.LastIndexByte(block.Label, '_'), 0)]
 }
 
 // createBlock creates a new basic block

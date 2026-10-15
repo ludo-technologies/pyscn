@@ -573,9 +573,7 @@ func deadRegionReasons(cfg *CFG, reachable map[string]bool) (map[string]DeadCode
 		}
 	}
 	for _, block := range blocks {
-		// createBlock suffixes the label with "_<counter>".
-		label := block.Label[:max(strings.LastIndexByte(block.Label, '_'), 0)]
-		if reason, ok := unreachableLabelReasons[label]; ok {
+		if reason, ok := unreachableLabelReasons[blockBaseLabel(block)]; ok {
 			mark(block, reason, block.ID)
 		}
 	}

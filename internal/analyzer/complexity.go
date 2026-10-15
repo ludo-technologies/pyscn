@@ -89,14 +89,14 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	}
 
 	coreResult, reachableBlocks := computeCoreComplexity(cfg)
-	conditionalDecisions := countConditionalDecisionBlocks(reachableBlocks)
+	conditionalDecisions, comprehensionDecisions := countConditionalDecisionBlocks(reachableBlocks)
 
 	// Primary method: count decision points + 1
 	// This is more reliable for CFGs with entry/exit nodes
 	sourceNode := cfgSourceNode(cfg)
 	astMetrics, hasASTMetrics := calculateASTComplexityMetrics(sourceNode)
 	reportedMetrics := resolveCoreComplexityMetrics(coreResult, conditionalDecisions, astMetrics, hasASTMetrics)
-	decisionPoints := countCoreDecisionPoints(conditionalDecisions, reportedMetrics, hasASTMetrics)
+	decisionPoints := countCoreDecisionPoints(conditionalDecisions, comprehensionDecisions, reportedMetrics, hasASTMetrics)
 	complexity := decisionPoints + 1
 
 	// Ensure minimum complexity of 1 for any execution scope.
@@ -153,17 +153,21 @@ func computeCoreComplexity(graph *CFG) (*corecfg.ComplexityResult, map[string]*B
 	return result, reachableBlocks
 }
 
-func countConditionalDecisionBlocks(blocks map[string]*BasicBlock) int {
-	count := 0
+// countConditionalDecisionBlocks counts blocks that branch on a condition, and
+// separately how many of them model a comprehension clause.
+func countConditionalDecisionBlocks(blocks map[string]*BasicBlock) (decisions, comprehensionDecisions int) {
 	for _, block := range blocks {
 		for _, edge := range block.Successors {
 			if edge.Type == EdgeCondTrue || edge.Type == EdgeCondFalse {
-				count++
+				decisions++
+				if label := blockBaseLabel(block); label == LabelCompHeader || label == LabelCompFilter {
+					comprehensionDecisions++
+				}
 				break
 			}
 		}
 	}
-	return count
+	return decisions, comprehensionDecisions
 }
 
 func resolveCoreComplexityMetrics(
@@ -182,9 +186,11 @@ func resolveCoreComplexityMetrics(
 	}
 }
 
-func countCoreDecisionPoints(conditionalDecisions int, metrics astComplexityMetrics, hasASTMetrics bool) int {
+func countCoreDecisionPoints(conditionalDecisions, comprehensionDecisions int, metrics astComplexityMetrics, hasASTMetrics bool) int {
 	if hasASTMetrics {
-		conditionalDecisions -= metrics.MatchStatements
+		// The CFG models only comprehensions that are the direct value of a
+		// statement, so the AST count replaces its comprehension decisions.
+		conditionalDecisions += metrics.ComprehensionDecisions - comprehensionDecisions - metrics.MatchStatements
 		if conditionalDecisions < 0 {
 			conditionalDecisions = 0
 		}
@@ -217,6 +223,9 @@ type astComplexityMetrics struct {
 	ExceptionHandlers   int
 	MatchStatements     int
 	SwitchCases         int
+	// ComprehensionDecisions counts each for clause and if filter of every
+	// comprehension in the scope, wherever it appears.
+	ComprehensionDecisions int
 }
 
 func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {
@@ -252,6 +261,11 @@ func collectASTStatementMetrics(node *parser.Node, metrics *astComplexityMetrics
 		metrics.ExceptionHandlers++
 	case parser.NodeMatchCase:
 		metrics.SwitchCases++
+	case parser.NodeComprehension:
+		metrics.ComprehensionDecisions++
+		if node.Test != nil {
+			metrics.ComprehensionDecisions++
+		}
 	}
 
 	for _, child := range node.GetChildren() {

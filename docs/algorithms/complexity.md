@@ -241,7 +241,7 @@ The following table maps Python syntax to how it affects the complexity count:
 | `continue` | `EdgeContinue` to loop header | 0 (terminates path, not a decision) |
 | `return` | `EdgeReturn` to function exit | 0 (terminates path) |
 | `raise` | `EdgeException` to handlers/exit | 0 (terminates path) |
-| Comprehension (`[x for ...]`) | Implicit loop in CFG with `EdgeCondTrue`/`EdgeCondFalse` | +1 per `for` clause; +1 per `if` filter |
+| Comprehension (`[x for ...]`) | Implicit loop in CFG only when it is the direct value of a statement | +1 per `for` clause; +1 per `if` filter, counted from the AST wherever it appears (call arguments, loop iterables, conditions, nested comprehensions, lambda bodies) |
 
 **Note**: Boolean operators (`and`/`or`) introduce short-circuit evaluation in Python, but the current implementation does not model them as separate CFG branches. This is a deliberate simplification; the complexity impact of short-circuit operators is typically modest and adding CFG branches for them would inflate scores beyond standard McCabe values.
 

@@ -855,6 +855,25 @@ func TestComprehensionIteratorAndTargetFields(t *testing.T) {
 	}
 }
 
+func TestCallWithBareGeneratorArgument(t *testing.T) {
+	result, err := New().Parse(context.Background(), []byte("any(x for x in xs if x)\n"))
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	calls := result.AST.FindByType(NodeCall)
+	if len(calls) != 1 {
+		t.Fatalf("Expected 1 call, got %d", len(calls))
+	}
+	args := calls[0].Args
+	if len(args) != 1 || args[0].Type != NodeGeneratorExp {
+		t.Fatalf("Args = %v, want a single GeneratorExp", args)
+	}
+	if comps := args[0].FindByType(NodeComprehension); len(comps) != 1 || comps[0].Test == nil {
+		t.Fatalf("Expected 1 filtered comprehension clause, got %v", comps)
+	}
+}
+
 func collectNameLeaves(n *Node) []string {
 	var out []string
 	n.WalkDeep(func(child *Node) bool {
