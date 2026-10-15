@@ -1,0 +1,4 @@
+[tools]
+go = "1.25"
+golangci-lint = "2"
+uv = "latest"
