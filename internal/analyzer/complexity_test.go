@@ -522,6 +522,34 @@ func TestCalculateComplexity_MatchCasesReplaceSingleCFGDecision(t *testing.T) {
 	}
 }
 
+func TestCalculateComplexity_ComprehensionsCountWherePlaced(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   int
+	}{
+		{"direct", "def f(xs):\n    return [x for x in xs if x]\n", 3},
+		{"wrapped", "def f(xs):\n    return len([x for x in xs if x])\n", 3},
+		{"argument", "def f(xs):\n    print({x for x in xs if x})\n", 3},
+		{"generator argument", "def f(xs):\n    return any(x for x in xs if x)\n", 3},
+		{"loop iterable", "def f(xs):\n    for y in [x for x in xs if x]:\n        print(y)\n", 4},
+		{"condition", "def f(xs):\n    if [x for x in xs if x]:\n        return 1\n    return 0\n", 4},
+		{"nested", "def f(rows):\n    return [[c for c in r if c] for r in rows]\n", 4},
+		{"multiple for clauses", "def f(rows):\n    return {c: r for r in rows for c in r if c}\n", 4},
+		{"lambda body", "def f(xs):\n    g = lambda: [x for x in xs if x]\n    return g\n", 3},
+		{"explicit loop", "def f(xs):\n    out = []\n    for x in xs:\n        if x:\n            out.append(x)\n    return out\n", 3},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := calculateFunctionComplexityForSource(t, tt.source, "f")
+			if res.Complexity != tt.want {
+				t.Fatalf("Complexity = %d, want %d", res.Complexity, tt.want)
+			}
+		})
+	}
+}
+
 func calculateFunctionComplexityForSource(t *testing.T, source, functionName string) *ComplexityResult {
 	t.Helper()
 

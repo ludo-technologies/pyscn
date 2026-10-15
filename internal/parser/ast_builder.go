@@ -1072,7 +1072,12 @@ func (b *ASTBuilder) buildCall(tsNode *sitter.Node) *Node {
 	}
 
 	if arguments := b.getChildByFieldName(tsNode, "arguments"); arguments != nil {
-		node.Args, node.Keywords = b.buildCallArguments(arguments)
+		if arguments.Type() == "generator_expression" {
+			// f(x for x in xs): the generator is the whole argument list.
+			node.Args = []*Node{b.buildNode(arguments)}
+		} else {
+			node.Args, node.Keywords = b.buildCallArguments(arguments)
+		}
 	}
 
 	return node
