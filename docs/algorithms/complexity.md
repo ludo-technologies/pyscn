@@ -234,6 +234,7 @@ The following table maps Python syntax to how it affects the complexity count:
 | `while` | `EdgeCondTrue` + `EdgeCondFalse` + `EdgeLoop` | +1 (loop condition) |
 | `except` clause | `EdgeException` from try block | +1 per handler |
 | `match` / `case` | `EdgeCondTrue` per case | +1 per case (via switchCases counter) |
+| Conditional expression (`a if c else b`) | Not modeled in CFG | +1 each, counted from the AST wherever it appears (return values, assignments, call arguments, nested conditional expressions, lambda bodies) |
 | `and` / `or` | Not directly modeled in CFG | Not counted (short-circuit not modeled) |
 | `try` / `finally` | Normal + exception flow edges | 0 (structural, not a decision) |
 | `with` | Normal + exception flow | 0 (structural) |
