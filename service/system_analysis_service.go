@@ -1577,8 +1577,11 @@ func (s *SystemAnalysisServiceImpl) extractModuleMetrics(graph *analyzer.Depende
 			metrics.Distance = analyzerMetrics.Distance
 			metrics.AbstractClassCount = analyzerMetrics.AbstractClassCount
 
-			// Determine risk level based on distance
-			if analyzerMetrics.Distance > 0.7 {
+			// Determine risk level based on distance; it is undefined for
+			// isolated modules, so they stay low risk.
+			if analyzer.IsIsolatedModule(analyzerMetrics) {
+				metrics.RiskLevel = domain.RiskLevelLow
+			} else if analyzerMetrics.Distance > 0.7 {
 				metrics.RiskLevel = domain.RiskLevelHigh
 			} else if analyzerMetrics.Distance > 0.4 {
 				metrics.RiskLevel = domain.RiskLevelMedium
