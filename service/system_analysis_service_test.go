@@ -518,7 +518,8 @@ func TestExtractModuleMetrics(t *testing.T) {
 				// Add high-risk analyzer metrics
 				graph.ModuleMetrics = make(map[string]*analyzer.ModuleMetrics)
 				graph.ModuleMetrics["risky.module"] = &analyzer.ModuleMetrics{
-					Distance: 0.8, // High distance from main sequence
+					AfferentCoupling: 3,
+					Distance:         0.8, // High distance from main sequence
 				}
 
 				return service, graph
