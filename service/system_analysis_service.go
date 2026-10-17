@@ -682,7 +682,9 @@ func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[stri
 	uniqueLayers := make(map[string]bool)
 
 	for layer, targets := range layerCoupling {
-		uniqueLayers[layer] = true
+		if layer != unknownLayer {
+			uniqueLayers[layer] = true
+		}
 		total, intra := 0, 0
 		for to, cnt := range targets {
 			total += cnt
@@ -695,7 +697,7 @@ func (s *SystemAnalysisServiceImpl) calculateLayerMetrics(layerCoupling map[stri
 		} else {
 			layerCohesion[layer] = 1.0
 		}
-		if layerCohesion[layer] < 0.5 {
+		if layer != unknownLayer && layerCohesion[layer] < 0.5 {
 			problematic = append(problematic, layer)
 		}
 	}
@@ -789,6 +791,10 @@ type compiledPattern struct {
 	specificity int // number of dots in original pattern; higher = more specific
 }
 
+// unknownLayer is the bucket for modules that match no layer. It is not a
+// layer itself, so it is excluded from layer metrics.
+const unknownLayer = "unknown"
+
 type modulePatternMatch struct {
 	matched       bool
 	isPrefix      bool
@@ -860,7 +866,7 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 	compiled := s.compileLayerPatterns(rules.Layers)
 	for module := range graph.Nodes {
 		if s.isTestModule(module) {
-			out[module] = "unknown"
+			out[module] = unknownLayer
 			continue
 		}
 		// Strip the first matching neutral prefix before layer matching
@@ -873,13 +879,39 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 		}
 		out[module] = s.findLayerForModule(stripped, compiled)
 		if out[module] == "" {
-			out[module] = "unknown"
+			out[module] = unknownLayer
 		}
 	}
 	return out
 }
 
+// layerMatch is a pattern match of a module against a layer.
+type layerMatch struct {
+	layer       string
+	pattern     string
+	specificity int
+	isPrefix    bool // true = prefix match (higher priority)
+	boundary    int
+	matchPos    int // byte offset where the pattern matched in the module
+}
+
+// matchedPackage returns the module path up to and including the segment the
+// pattern matched, e.g. "pkg.api" for pattern "api" in "pkg.api.server".
+func (m layerMatch) matchedPackage(module string) string {
+	end := min(m.matchPos+len(strings.TrimRight(m.pattern, "*.")), len(module))
+	if dot := strings.IndexByte(module[end:], '.'); dot >= 0 {
+		return module[:end+dot]
+	}
+	return module
+}
+
 // findLayerForModule returns the most specific matching layer for a module.
+func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
+	return s.bestLayerMatch(module, compiled).layer
+}
+
+// bestLayerMatch returns the most specific layer match for a module, or the
+// zero layerMatch when no pattern matches.
 // Tie-breaking priority:
 //  1. Higher specificity (more dots in pattern) wins
 //  2. Prefix match wins over suffix match (among equal specificity)
@@ -887,21 +919,12 @@ func (s *SystemAnalysisServiceImpl) buildModuleLayerMap(graph *analyzer.Dependen
 //  4. Earlier match position wins (leftmost segment carries more context)
 //  5. Longer pattern string wins
 //  6. Alphabetical layer name for determinism
-func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled map[string][]compiledPattern) string {
-	type match struct {
-		layer       string
-		pattern     string
-		specificity int
-		isPrefix    bool // true = prefix match (higher priority)
-		boundary    int
-		matchPos    int // byte offset where the pattern matched in the module
-	}
-
-	var matches []match
+func (s *SystemAnalysisServiceImpl) bestLayerMatch(module string, compiled map[string][]compiledPattern) layerMatch {
+	var matches []layerMatch
 	for layer, patterns := range compiled {
 		for _, cp := range patterns {
 			if m := cp.matchModule(module); m.matched {
-				matches = append(matches, match{
+				matches = append(matches, layerMatch{
 					layer:       layer,
 					pattern:     cp.original,
 					specificity: cp.specificity,
@@ -914,7 +937,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 	}
 
 	if len(matches) == 0 {
-		return ""
+		return layerMatch{}
 	}
 
 	// Sort matches by priority: specificity > prefix > boundary strength > match position > pattern length > layer name
@@ -948,7 +971,7 @@ func (s *SystemAnalysisServiceImpl) findLayerForModule(module string, compiled m
 		return a.layer < b.layer
 	})
 
-	return matches[0].layer
+	return matches[0]
 }
 
 // compileModulePatterns converts simple glob-like patterns to a compiledPattern
@@ -1040,38 +1063,42 @@ func (s *SystemAnalysisServiceImpl) autoDetectArchitecture(graph *analyzer.Depen
 	}
 	compiled := s.compileLayerPatterns(domainLayers)
 
-	// Detect which modules belong to which layer
-	moduleToLayer := make(map[string]string)
-	layerModules := make(map[string][]string)
-
+	// Map each layer to the packages whose matched segment named it. Only the
+	// path up to the matched segment is used, so one keyword-named module
+	// never claims its whole root package (#847).
+	layerPackages := make(map[string]map[string]bool)
 	for module := range graph.Nodes {
 		if s.isTestModule(module) {
 			continue
 		}
-		layer := s.findLayerForModule(module, compiled)
-		if layer != "" {
-			moduleToLayer[module] = layer
-			layerModules[layer] = append(layerModules[layer], module)
+		m := s.bestLayerMatch(module, compiled)
+		if m.layer == "" {
+			continue
 		}
+		if layerPackages[m.layer] == nil {
+			layerPackages[m.layer] = make(map[string]bool)
+		}
+		layerPackages[m.layer][m.matchedPackage(module)] = true
 	}
 
 	// If no standard patterns found, return nil
-	if len(layerModules) == 0 {
+	if len(layerPackages) == 0 {
 		return nil
 	}
 
 	// Build layers configuration
-	layers := make([]domain.Layer, 0)
-	for layerName, modules := range layerModules {
-		// Extract unique package prefixes from modules
-		packagePrefixes := s.extractPackagePrefixes(modules)
-		if len(packagePrefixes) > 0 {
-			layers = append(layers, domain.Layer{
-				Name:        layerName,
-				Description: fmt.Sprintf("Auto-detected %s layer", layerName),
-				Packages:    packagePrefixes,
-			})
+	layers := make([]domain.Layer, 0, len(layerPackages))
+	for layerName, packageSet := range layerPackages {
+		packages := make([]string, 0, len(packageSet))
+		for pkg := range packageSet {
+			packages = append(packages, pkg)
 		}
+		sort.Strings(packages)
+		layers = append(layers, domain.Layer{
+			Name:        layerName,
+			Description: fmt.Sprintf("Auto-detected %s layer", layerName),
+			Packages:    packages,
+		})
 	}
 
 	// Convert config.LayerRule to domain.LayerRule
@@ -1244,73 +1271,9 @@ func (s *SystemAnalysisServiceImpl) isTestModule(module string) bool {
 	return false
 }
 
-// isArchitecturalComponent checks if a module part represents an architectural component
-func (s *SystemAnalysisServiceImpl) isArchitecturalComponent(part string) bool {
-	architecturalKeywords := []string{
-		// Presentation layer
-		"api", "apis", "views", "view", "controllers", "controller", "routes", "route",
-		"handlers", "handler", "ui", "web", "rest", "graphql", "endpoints", "endpoint",
-		"routers", "router",
-		// Application layer
-		"services", "service", "use_cases", "usecase", "usecases", "workflows", "workflow",
-		"commands", "queries",
-		// Domain layer
-		"models", "model", "entities", "entity", "domain", "domains", "core", "business",
-		"aggregates", "valueobjects", "schemas", "schema",
-		// Infrastructure layer
-		"db", "database", "repositories", "repository", "repo", "external", "adapters",
-		"adapter", "persistence", "storage", "cache", "clients", "client",
-		// Other common architectural components
-		"utils", "util", "helpers", "helper", "common", "shared", "lib", "libs",
-	}
-
-	lowerPart := strings.ToLower(part)
-	for _, keyword := range architecturalKeywords {
-		if lowerPart == keyword || strings.HasPrefix(lowerPart, keyword) {
-			return true
-		}
-	}
-	return false
-}
-
-// extractPackagePrefixes extracts common package prefixes from module names
-func (s *SystemAnalysisServiceImpl) extractPackagePrefixes(modules []string) []string {
-	prefixMap := make(map[string]bool)
-
-	for _, module := range modules {
-		// For auto-detection, use more specific prefixes to avoid conflicts
-		// e.g., "app.api.v1.admin" should produce "app.api" not just "app"
-		parts := strings.Split(module, ".")
-
-		if len(parts) >= 2 {
-			// Check if the second part is a meaningful architectural component
-			secondPart := strings.ToLower(parts[1])
-			if s.isArchitecturalComponent(secondPart) {
-				// Use first two parts as prefix (e.g., "app.api")
-				prefixMap[parts[0]+"."+parts[1]] = true
-			} else {
-				// Use just the first part only if it's not too generic
-				// Avoid using "app" alone if there are more specific prefixes
-				prefixMap[parts[0]] = true
-			}
-		} else if len(parts) > 0 {
-			prefixMap[parts[0]] = true
-		}
-	}
-
-	// Convert map to slice and sort for deterministic results
-	prefixes := make([]string, 0, len(prefixMap))
-	for prefix := range prefixMap {
-		prefixes = append(prefixes, prefix)
-	}
-	sort.Strings(prefixes)
-
-	return prefixes
-}
-
 // evaluateLayerEdge evaluates a single dependency edge against rules and returns a violation if any.
 func (s *SystemAnalysisServiceImpl) evaluateLayerEdge(rules *domain.ArchitectureRules, fromModule, toModule, fromLayer, toLayer string) *domain.ArchitectureViolation {
-	if fromLayer == "unknown" || toLayer == "unknown" {
+	if fromLayer == unknownLayer || toLayer == unknownLayer {
 		if rules.StrictMode {
 			return &domain.ArchitectureViolation{
 				Type:        domain.ViolationTypeLayer,
