@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -153,7 +154,7 @@ func TestAutoDetectArchitecture(t *testing.T) {
 	assert.Contains(t, layerPackages["presentation"], "app.api")
 	assert.Contains(t, layerPackages["application"], "app.services")
 	assert.Contains(t, layerPackages["domain"], "app.domain")
-	assert.Contains(t, layerPackages["infrastructure"], "app")
+	assert.Contains(t, layerPackages["infrastructure"], "app.infrastructure.db")
 
 	// Auto-detection should return nil when no layer patterns match
 	graph = analyzer.NewDependencyGraph("/project")
@@ -224,6 +225,56 @@ func TestAutoDetectArchitecture_FlatUnderscoreModules(t *testing.T) {
 	assert.Contains(t, layerPackages["presentation"], "api_v1")
 	assert.Contains(t, layerPackages["application"], "user_service")
 	assert.Contains(t, layerPackages["infrastructure"], "user_repository")
+}
+
+func TestAutoDetectArchitecture_KeywordModuleDoesNotLabelRootPackage(t *testing.T) {
+	// Regression test for #847: an underscore-boundary match such as "make_ui"
+	// must not widen the layer to the whole root package.
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/project")
+
+	graph.AddModule("pkg.engine.make_ui", "/project/pkg/engine/make_ui.py")
+	graph.AddModule("pkg.engine.battle", "/project/pkg/engine/battle.py")
+
+	rules := service.autoDetectArchitecture(graph)
+	require.NotNil(t, rules)
+	require.Len(t, rules.Layers, 1)
+	assert.Equal(t, "presentation", rules.Layers[0].Name)
+	assert.Equal(t, []string{"pkg.engine.make_ui"}, rules.Layers[0].Packages)
+
+	moduleToLayer := service.buildModuleLayerMap(graph, rules)
+	assert.Equal(t, "unknown", moduleToLayer["pkg.engine.battle"])
+}
+
+func TestAnalyzeArchitecture_AutoDetectNoFalseLayerViolation(t *testing.T) {
+	// Regression test for #847: "core_loop" must not widen the domain layer to
+	// "pkg" and turn an unrelated import into a layer error.
+	graph := analyzer.NewDependencyGraph("/project")
+	graph.AddModule("pkg", "/project/pkg/__init__.py")
+	graph.AddModule("pkg.game", "/project/pkg/game/__init__.py")
+	graph.AddModule("pkg.api", "/project/pkg/api/__init__.py")
+	graph.AddModule("pkg.game.core_loop", "/project/pkg/game/core_loop.py")
+	graph.AddModule("pkg.api.server", "/project/pkg/api/server.py")
+	graph.AddModule("pkg.game.launcher", "/project/pkg/game/launcher.py")
+	graph.AddDependency("pkg.game.launcher", "pkg.api.server", analyzer.DependencyEdgeImport, nil)
+
+	result, err := NewSystemAnalysisService().analyzeArchitectureGraph(context.Background(), graph, domain.SystemAnalysisRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, result.LayerAnalysis)
+	assert.Empty(t, result.LayerAnalysis.LayerViolations)
+	assert.Equal(t, 1.0, result.ComplianceScore)
+}
+
+func TestCalculateLayerMetrics_IgnoresUnknownLayer(t *testing.T) {
+	service := NewSystemAnalysisService()
+	layerCoupling := map[string]map[string]int{
+		"presentation": {"presentation": 5},
+		"unknown":      {"presentation": 3, "unknown": 1},
+	}
+
+	_, problematic, layersAnalyzed := service.calculateLayerMetrics(layerCoupling)
+	assert.Empty(t, problematic)
+	assert.Equal(t, 1, layersAnalyzed)
 }
 
 func TestDependencyMatrix(t *testing.T) {

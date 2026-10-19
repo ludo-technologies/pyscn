@@ -194,6 +194,9 @@ func countCoreDecisionPoints(conditionalDecisions, comprehensionDecisions int, m
 		if conditionalDecisions < 0 {
 			conditionalDecisions = 0
 		}
+		// The CFG never branches on a conditional expression, so each one
+		// is a decision only the AST sees.
+		conditionalDecisions += metrics.ConditionalExpressions
 	}
 	return conditionalDecisions + metrics.ExceptionHandlers + metrics.SwitchCases
 }
@@ -226,6 +229,9 @@ type astComplexityMetrics struct {
 	// ComprehensionDecisions counts each for clause and if filter of every
 	// comprehension in the scope, wherever it appears.
 	ComprehensionDecisions int
+	// ConditionalExpressions counts each `a if c else b` in the scope,
+	// wherever it appears.
+	ConditionalExpressions int
 }
 
 func calculateASTComplexityMetrics(root *parser.Node) (astComplexityMetrics, bool) {
@@ -266,6 +272,8 @@ func collectASTStatementMetrics(node *parser.Node, metrics *astComplexityMetrics
 		if node.Test != nil {
 			metrics.ComprehensionDecisions++
 		}
+	case parser.NodeIfExp:
+		metrics.ConditionalExpressions++
 	}
 
 	for _, child := range node.GetChildren() {
