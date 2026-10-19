@@ -550,6 +550,33 @@ func TestCalculateComplexity_ComprehensionsCountWherePlaced(t *testing.T) {
 	}
 }
 
+func TestCalculateComplexity_ConditionalExpressionsCountWherePlaced(t *testing.T) {
+	tests := []struct {
+		name   string
+		source string
+		want   int
+	}{
+		{"if statement", "def f(v):\n    if v:\n        return 1\n    return 2\n", 2},
+		{"return value", "def f(v):\n    return 1 if v else 2\n", 2},
+		{"assignment", "def f(v):\n    x = 1 if v else 2\n    return x\n", 2},
+		{"call arguments", "def f(a, b, c):\n    print(1 if a else 2, 3 if b else 4, 5 if c else 6)\n", 4},
+		{"nested", "def f(a, b):\n    return (1 if b else 2) if a else 3\n", 3},
+		{"condition", "def f(a, b):\n    if (1 if a else b):\n        return 1\n    return 0\n", 3},
+		{"comprehension element", "def f(xs):\n    return [1 if x else 0 for x in xs]\n", 3},
+		{"lambda body", "def f(v):\n    g = lambda y: 1 if y else 2\n    return g(v)\n", 2},
+		{"nested function", "def f(v):\n    def g(y):\n        return 1 if y else 2\n    return g(v)\n", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := calculateFunctionComplexityForSource(t, tt.source, "f")
+			if res.Complexity != tt.want {
+				t.Fatalf("Complexity = %d, want %d", res.Complexity, tt.want)
+			}
+		})
+	}
+}
+
 func calculateFunctionComplexityForSource(t *testing.T, source, functionName string) *ComplexityResult {
 	t.Helper()
 
