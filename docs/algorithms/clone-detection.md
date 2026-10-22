@@ -463,13 +463,14 @@ A clone pair is reported only if all of these conditions are met:
 
 ### Impact on Health Score
 
-In the unified `analyze` command, clone duplication contributes up to 20 penalty points to the overall health score. The penalty formula is:
+In the unified `analyze` command, clone duplication is the percentage of analyzed source lines covered by scored clone fragments. Overlapping fragments count each line once. Duplication contributes up to 20 penalty points to the overall health score:
 
 ```
-penalty = min(20, max(0, (duplicationPercentage - 1) / 7 * 20))
+duplicationPercentage = distinctDuplicatedLines / linesAnalyzed * 100
+penalty = min(20, round(duplicationPercentage / 60 * 20))
 ```
 
-This means duplication starts penalizing at 1% and reaches the maximum penalty at 8%.
+The penalty reaches its maximum at 60% duplication. Similarity output filters do not change the score.
 
 ## Configuration Reference
 

@@ -12,6 +12,8 @@ This specification defines the exact shape of JSON, YAML, and CSV output produce
 
 Consumers MUST ignore unknown fields. Breaking changes to the `pyscn analyze` report increment its top-level `schema_version` and are listed as **BREAKING** in the [CHANGELOG](https://github.com/ludo-technologies/pyscn/blob/main/CHANGELOG.md). They are not restricted to major version bumps — the snake_case key rename described below shipped in the 1.30.0 minor release — so pin against `schema_version` rather than the semantic version.
 
+Schema version 2 changes `summary.code_duplication_percentage` from the fraction of extracted fragments involved in clones to the percentage of analyzed source lines covered by scored clones. It also adds `clone.statistics.duplicated_lines` as the numerator of that percentage.
+
 ## Migrating from 1.29.x { #migrating-from-1-29-x }
 
 Every object key in `pyscn analyze` JSON/YAML is snake_case since 1.30.0. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system` (including `complexity.request` and `dead_code.request`), and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`. The rename is mechanical: convert the old key to snake_case and lowercase acronyms.
@@ -54,7 +56,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
   "diagnostics":   [ /* AnalysisDiagnostic array, omitted when empty */ ],
   "failures":      [ /* AnalysisFailure array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
-  "schema_version": 1,
+  "schema_version": 2,
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
   "version":       "0.14.0"
@@ -76,7 +78,7 @@ JSON and YAML outputs serialize the `AnalyzeResponse` Go struct defined in `doma
 | `diagnostics` | array \| absent   | Project files that could not be read or parsed. See [`AnalysisDiagnostic`](#analysisdiagnostic-object). | stable |
 | `failures`    | array \| absent   | Analyzer execution failures. Partial results may still be present. See [`AnalysisFailure`](#analysisfailure-object). | stable |
 | `summary`     | object            | Always present. See [`summary`](#summary-object).      | stable    |
-| `schema_version` | integer        | Key layout of this report, currently `1`. Incremented only on a breaking change (rename, removal, type change); additive fields do not bump it. | stable |
+| `schema_version` | integer        | Report contract, currently `2`. Incremented when a field changes name, type, or meaning; additive fields do not bump it. | stable |
 | `generated_at`| string (RFC 3339) | Analysis completion time.                              | stable    |
 | `duration_ms` | integer           | Total analysis duration in milliseconds.               | stable    |
 | `version`     | string            | pyscn semantic version.                                | stable    |
@@ -153,7 +155,7 @@ Mirrors `domain.AnalyzeSummary`. All numeric counters default to `0` when the co
 | `total_clones`                | integer | Distinct code fragments identified as clones.             |
 | `clone_pairs`                 | integer | Number of clone pairs.                                    |
 | `clone_groups`                | integer | Number of clone groups.                                   |
-| `code_duplication_percentage` | number  | Estimated duplication ratio, `0`–`100`.                   |
+| `code_duplication_percentage` | number  | Distinct duplicated source lines as a percentage of analyzed source lines, `0`–`100`. |
 
 ### CBO metrics
 
@@ -515,7 +517,8 @@ Mirrors `domain.CloneResponse`. Uses snake_case field names throughout.
 | Field                | Type    | Description                                              |
 | -------------------- | ------- | -------------------------------------------------------- |
 | `total_fragments`    | integer | All extracted fragments (functions, classes, etc.).      |
-| `duplicated_fragments` | integer | Fragments in a detected clone relation, before the `min_similarity`/`max_similarity` output filters. Shares its population with `total_fragments`, and is the numerator of the duplication score. |
+| `duplicated_fragments` | integer | Fragments in a detected clone relation, before the `min_similarity`/`max_similarity` output filters. Shares its population with `total_fragments`. |
+| `duplicated_lines` | integer | Distinct source lines covered by scored clone relations, before similarity output filters; numerator of `code_duplication_percentage`. |
 | `total_clones`       | integer | Fragments classified as clones, after output filtering.  |
 | `total_clone_pairs`  | integer | Number of pairs detected.                                |
 | `total_clone_groups` | integer | Number of groups.                                        |

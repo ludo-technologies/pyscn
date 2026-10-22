@@ -1,6 +1,6 @@
 # Schémas de sortie
 
-Cette spécification définit la forme exacte des sorties JSON, YAML et CSV produites par pyscn. Tous les noms de champs, types et sémantiques documentés ici sont stables d'une version corrective à l'autre au sein d'une même version majeure.
+Cette spécification définit la forme des sorties JSON, YAML et CSV produites par pyscn. La version actuelle du contrat `pyscn analyze` JSON/YAML est `schema_version: 2`. Les noms, types et sémantiques des champs restent stables au sein d'une même version de schéma.
 
 ## Contrat de stabilité
 
@@ -10,7 +10,7 @@ Cette spécification définit la forme exacte des sorties JSON, YAML et CSV prod
 | Peut changer      | ordre des champs au sein d'un objet, ordre des éléments d'un tableau, ajout de nouveaux champs |
 | Incompatible      | suppression ou renommage de champs, modification du type d'un champ, suppression de valeurs d'énumération |
 
-Les changements incompatibles sont limités aux changements de version majeure. Les consommateurs DOIVENT ignorer les champs inconnus.
+Un changement incompatible, y compris un changement de sémantique, incrémente `schema_version`. Les consommateurs DOIVENT ignorer les champs inconnus. En version 2, `summary.code_duplication_percentage` mesure les lignes source distinctes couvertes par les clones, au lieu du ratio de fragments de la version 1.
 
 <!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
@@ -104,7 +104,7 @@ Reflet de `domain.AnalyzeSummary`. Tous les compteurs numériques valent `0` par
 | `total_clones`                | integer | Fragments de code distincts identifiés comme clones.     |
 | `clone_pairs`                 | integer | Nombre de paires de clones.                              |
 | `clone_groups`                | integer | Nombre de groupes de clones.                             |
-| `code_duplication_percentage` | number  | Taux de duplication estimé, `0`–`100`.                   |
+| `code_duplication_percentage` | number  | Pourcentage des lignes source analysées couvertes par des clones, `0`–`100`. |
 
 ### Métriques CBO
 
@@ -421,7 +421,8 @@ Reflet de `domain.CloneResponse`. Utilise des noms de champs en snake_case parto
 | Champ                | Type    | Description                                                |
 | -------------------- | ------- | ---------------------------------------------------------- |
 | `total_fragments`    | integer | Tous les fragments extraits (fonctions, classes, etc.).    |
-| `duplicated_fragments` | integer | Fragments impliqués dans une relation de clone détectée, avant les filtres de sortie `min_similarity`/`max_similarity`. Partage sa population avec `total_fragments` et constitue le numérateur du score de duplication. |
+| `duplicated_fragments` | integer | Fragments impliqués dans une relation de clone détectée, avant les filtres de sortie `min_similarity`/`max_similarity`. Partage sa population avec `total_fragments`. |
+| `duplicated_lines` | integer | Lignes source distinctes couvertes par les clones pris en compte pour le score, avant les filtres de sortie ; numérateur de `code_duplication_percentage`. |
 | `total_clones`       | integer | Fragments classés comme clones, après filtrage de sortie.  |
 | `total_clone_pairs`  | integer | Nombre de paires détectées.                                |
 | `total_clone_groups` | integer | Nombre de groupes.                                         |

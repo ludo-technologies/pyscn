@@ -1,6 +1,6 @@
 # 出力スキーマ
 
-この仕様は、pyscn が生成する JSON、YAML、CSV 出力の正確な構造を定義します。ここに記載されたすべてのフィールド名、型、およびセマンティクスは、同一メジャーバージョン内のパッチリリースにおいて安定しています。
+この仕様は、pyscn が生成する JSON、YAML、CSV 出力の構造を定義します。現在の `pyscn analyze` JSON/YAML 契約は `schema_version: 2` です。フィールド名、型、および意味は同じスキーマバージョン内で安定しています。
 
 ## 安定性契約
 
@@ -10,7 +10,7 @@
 | 変更の可能性あり   | オブジェクト内のフィールド順序、配列要素の順序、新規フィールドの追加              |
 | 破壊的変更         | フィールドの削除またはリネーム、フィールド型の変更、列挙値の削除                  |
 
-破壊的変更はメジャーバージョンアップ時のみ行われます。利用者は未知のフィールドを無視しなければなりません（MUST）。
+意味の変更を含む破壊的変更では `schema_version` を上げます。利用者は未知のフィールドを無視しなければなりません（MUST）。バージョン 2 の `summary.code_duplication_percentage` は、バージョン 1 のフラグメント比率に代わり、クローンが覆う重複のないソース行の割合を示します。
 
 <!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
@@ -104,7 +104,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `total_clones`                | integer | クローンとして識別された個別のコード断片。                |
 | `clone_pairs`                 | integer | クローンペアの数。                                        |
 | `clone_groups`                | integer | クローングループの数。                                    |
-| `code_duplication_percentage` | number  | 推定重複率、`0`–`100`。                                   |
+| `code_duplication_percentage` | number  | 分析済みソース行のうちクローンが覆う行の割合、`0`–`100`。 |
 
 ### CBO メトリクス
 
@@ -421,7 +421,8 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | フィールド            | 型      | 説明                                                     |
 | -------------------- | ------- | -------------------------------------------------------- |
 | `total_fragments`    | integer | 抽出されたすべての断片（関数、クラスなど）。             |
-| `duplicated_fragments` | integer | 検出されたクローン関係に含まれる断片。`min_similarity`/`max_similarity` の出力フィルタ適用前の値。`total_fragments` と同じ母集団を共有し、重複スコアの分子になります。 |
+| `duplicated_fragments` | integer | 検出されたクローン関係に含まれる断片。`min_similarity`/`max_similarity` の出力フィルタ適用前の値。`total_fragments` と同じ母集団を共有します。 |
+| `duplicated_lines` | integer | 出力フィルタ適用前にスコア対象のクローンが覆う重複のないソース行数。`code_duplication_percentage` の分子です。 |
 | `total_clones`       | integer | クローンとして分類された断片（出力フィルタ適用後）。     |
 | `total_clone_pairs`  | integer | 検出されたペアの数。                                     |
 | `total_clone_groups` | integer | グループの数。                                           |

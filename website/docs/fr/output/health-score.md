@@ -120,7 +120,7 @@ Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `Ca
 
 ### Duplication
 
-**Entrées.** `CodeDuplication` (float64). Ce champ est le ratio de fragments : le pourcentage de tous les fragments de code extraits qui participent à une paire ou un groupe de clones. La valeur n'est pas plafonnée ; la formule de pénalité ci-dessous sature d'elle-même à `DuplicationThresholdHigh`.
+**Entrées.** `CodeDuplication` (float64) est le pourcentage de lignes source analysées couvertes par les clones pris en compte pour le score. Les fragments qui se chevauchent ne comptent chaque ligne qu'une fois ; les filtres de sortie par similarité ne changent pas le score. Les clones sous le seuil de détection ne sont pas inclus. La valeur n'est pas plafonnée ; la formule de pénalité sature à `DuplicationThresholdHigh`.
 
 **Formule.**
 
@@ -128,30 +128,30 @@ Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `Ca
 if CodeDuplication <= 0:
     penalty = 0
 else:
-    penalty = min(20, round(CodeDuplication / 30.0 * 20.0))
+    penalty = min(20, round(CodeDuplication / 60.0 * 20.0))
 ```
 
 **Constantes.**
 
 | Nom                          | Valeur | Signification                       |
 | ---------------------------- | ------ | ----------------------------------- |
-| `DuplicationThresholdLow`    | 0.0    | 0 % de fragments clonés = pénalité 0 |
-| `DuplicationThresholdHigh`   | 30.0   | 30 % de fragments clonés = pénalité max |
+| `DuplicationThresholdLow`    | 0.0    | 0 % de lignes source dupliquées = pénalité 0 |
+| `DuplicationThresholdHigh`   | 60.0   | 60 % de lignes source dupliquées = pénalité max |
 | max                          | 20.0   | Plafond de pénalité                 |
 
 **Calcul en amont.** `CodeDuplication` est calculé dans `app/analyze_usecase.go` :
 
 ```
-CodeDuplication = TotalClones / TotalFragments * 100
+CodeDuplication = DuplicatedLines / LinesAnalyzed * 100
 ```
 
-Où `TotalClones` est le nombre de fragments uniques participant à au moins une paire ou un groupe de clones, et `TotalFragments` est le nombre total de fragments de code extraits (`domain/clone.go:128-131`).
+`DuplicatedLines` est l'union des plages de lignes des clones dans chaque fichier, avant les filtres de sortie par similarité. `LinesAnalyzed` compte les lignes source des fichiers analysés. Les nombres de fragments restent disponibles dans les statistiques du détecteur.
 
-**Saturation.** Atteint 20 lorsque `CodeDuplication >= 30.0`.
+**Saturation.** Atteint 20 lorsque `CodeDuplication >= 60.0`.
 
-**Cas limites.** Aucun fragment cloné ou aucun fragment analysé → `CodeDuplication = 0` → pénalité 0. `Validate()` rejette les valeurs hors de `[0, 100]`.
+**Cas limites.** Aucune ligne dupliquée ou aucune ligne analysée → `CodeDuplication = 0` → pénalité 0. `Validate()` rejette les valeurs hors de `[0, 100]`.
 
-Source : `domain/analyze.go:336-350`.
+Source : `service/clone_service.go`, `app/analyze_usecase.go` et `polyscan/core/domain/scoring.go`.
 
 ### Couplage (CBO)
 

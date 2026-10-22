@@ -120,7 +120,7 @@ else:
 
 ### 代码重复
 
-**输入。** `CodeDuplication`（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比。该值不做截断；下方的惩罚公式自身会在 `DuplicationThresholdHigh` 处饱和。
+**输入。** `CodeDuplication`（float64）表示已分析源码行中，被计入评分的克隆覆盖的行数百分比。同一文件中重叠片段的行只计一次；相似度展示过滤器不会改变评分。低于检测大小阈值的克隆不计入。该值不做截断；惩罚公式在 `DuplicationThresholdHigh` 处饱和。
 
 **公式。**
 
@@ -135,23 +135,23 @@ else:
 
 | 名称                         | 值    | 含义                        |
 | ---------------------------- | ----- | --------------------------- |
-| `DuplicationThresholdLow`    | 0.0   | 0% 片段被克隆 = 0 惩罚     |
-| `DuplicationThresholdHigh`   | 60.0  | 60% 片段被克隆 = 最大惩罚  |
+| `DuplicationThresholdLow`    | 0.0   | 0% 源码行重复 = 0 惩罚     |
+| `DuplicationThresholdHigh`   | 60.0  | 60% 源码行重复 = 最大惩罚  |
 | max                          | 20.0  | 惩罚上限                    |
 
 **上游计算。** `CodeDuplication` 本身在 `app/analyze_usecase.go` 中计算：
 
 ```
-CodeDuplication = TotalClones / TotalFragments * 100
+CodeDuplication = DuplicatedLines / LinesAnalyzed * 100
 ```
 
-其中 `TotalClones` 是至少参与一个克隆对或克隆组的唯一片段数量，`TotalFragments` 是提取出的代码片段总数（`domain/clone.go:128-131`）。
+`DuplicatedLines` 是在应用相似度展示过滤器之前，按文件合并克隆源码行区间后的行数。`LinesAnalyzed` 是成功分析的文件中的源码行数。片段数量仍作为检测统计提供。
 
 **饱和。** 当 `CodeDuplication >= 60.0` 时达到 20。
 
-**边界情况。** 无克隆片段或无分析片段 → `CodeDuplication = 0` → 惩罚 0。`Validate()` 拒绝 `[0, 100]` 范围外的值。
+**边界情况。** 无重复行或无已分析行 → `CodeDuplication = 0` → 惩罚 0。`Validate()` 拒绝 `[0, 100]` 范围外的值。
 
-来源：`domain/analyze.go:336-350`。
+来源：`service/clone_service.go`、`app/analyze_usecase.go` 和 `polyscan/core/domain/scoring.go`。
 
 ### 耦合度（CBO）
 

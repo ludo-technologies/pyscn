@@ -120,7 +120,7 @@ Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateH
 
 ### Duplication
 
-**Inputs.** `CodeDuplication` (float64). This field is the fragment ratio: the percentage of all extracted code fragments that participate in clone pairs or groups. The value is not clamped; the penalty formula below saturates on its own at `DuplicationThresholdHigh`.
+**Inputs.** `CodeDuplication` (float64) is the percentage of analyzed source lines covered by scored clone pairs or groups. Overlapping fragments count each line once, and similarity output filters do not change the score. Clones below the configured detection size are not included. The value is not clamped; the penalty formula below saturates on its own at `DuplicationThresholdHigh`.
 
 **Formula.**
 
@@ -135,23 +135,23 @@ else:
 
 | Name                         | Value | Meaning                          |
 | ---------------------------- | ----- | -------------------------------- |
-| `DuplicationThresholdLow`    | 0.0   | 0% fragments cloned = 0 penalty  |
-| `DuplicationThresholdHigh`   | 60.0  | 60% fragments cloned = max penalty |
+| `DuplicationThresholdLow`    | 0.0   | 0% source lines duplicated = 0 penalty  |
+| `DuplicationThresholdHigh`   | 60.0  | 60% source lines duplicated = max penalty |
 | max                          | 20.0  | Penalty cap                      |
 
 **Upstream computation.** `CodeDuplication` itself is computed in `app/analyze_usecase.go`:
 
 ```
-CodeDuplication = TotalClones / TotalFragments * 100
+CodeDuplication = DuplicatedLines / LinesAnalyzed * 100
 ```
 
-Where `TotalClones` is the number of unique fragments that participate in at least one clone pair or group, and `TotalFragments` is the total number of extracted code fragments (`domain/clone.go:128-131`).
+`DuplicatedLines` is the union of clone source-line spans within each file, before similarity output filters. `LinesAnalyzed` counts source lines in successfully analyzed files. Fragment counts remain available as detector statistics.
 
 **Saturation.** Reaches 20 when `CodeDuplication >= 60.0`.
 
-**Edge cases.** No clone fragments or no fragments analyzed → `CodeDuplication = 0` → penalty 0. `Validate()` rejects values outside `[0, 100]`.
+**Edge cases.** No duplicated lines or no analyzed lines → `CodeDuplication = 0` → penalty 0. `Validate()` rejects values outside `[0, 100]`.
 
-Source: `domain/analyze.go:336-350`.
+Source: `service/clone_service.go`, `app/analyze_usecase.go`, and `polyscan/core/domain/scoring.go`.
 
 ### Coupling (CBO)
 
