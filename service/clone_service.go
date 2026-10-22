@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	coreapted "github.com/ludo-technologies/polyscan/core/apted"
@@ -642,8 +643,8 @@ func (s *CloneService) sortResults(clones []*domain.Clone, pairs []*domain.Clone
 // domain statistics attached to the response. The displayed counts come from
 // the filtered pairs and groups so that reported numbers always match what is
 // returned; DuplicatedFragments comes from the unfiltered scored population so
-// that it shares TotalFragments' denominator and the duplication score stays
-// independent of the output filters.
+// that it shares TotalFragments' population. DuplicatedLines covers source
+// lines from the same scored population, independent of output filters.
 func (s *CloneService) buildCloneStatistics(
 	result *analyzer.CloneDetectionResult,
 	pairs []*domain.ClonePair,
@@ -655,6 +656,7 @@ func (s *CloneService) buildCloneStatistics(
 	stats := domain.NewCloneStatistics()
 	stats.TotalFragments = result.Statistics.TotalFragments
 	stats.DuplicatedFragments = countUniqueCloneFragments(scoredPairs, scoredGroups)
+	stats.DuplicatedLines = countDistinctCloneLines(scoredPairs, scoredGroups)
 	stats.TotalClones = countUniqueCloneFragments(pairs, groups)
 	stats.TotalClonePairs = len(pairs)
 	stats.TotalCloneGroups = len(groups)
@@ -690,21 +692,53 @@ func countUniqueCloneFragments(pairs []*domain.ClonePair, groups []*domain.Clone
 		endLine   int
 	}
 	seen := make(map[locKey]struct{})
-	addClone := func(c *domain.Clone) {
-		if c != nil && c.Location != nil {
-			seen[locKey{c.Location.FilePath, c.Location.StartLine, c.Location.EndLine}] = struct{}{}
-		}
-	}
-	for _, p := range pairs {
-		addClone(p.Clone1)
-		addClone(p.Clone2)
-	}
-	for _, g := range groups {
-		for _, c := range g.Clones {
-			addClone(c)
-		}
-	}
+	visitCloneLocations(pairs, groups, func(location *domain.CloneLocation) {
+		seen[locKey{location.FilePath, location.StartLine, location.EndLine}] = struct{}{}
+	})
 	return len(seen)
+}
+
+// countDistinctCloneLines merges overlapping clone spans within each file.
+func countDistinctCloneLines(pairs []*domain.ClonePair, groups []*domain.CloneGroup) int {
+	byFile := make(map[string][]*domain.CloneLocation)
+	visitCloneLocations(pairs, groups, func(location *domain.CloneLocation) {
+		if location.StartLine > 0 && location.EndLine >= location.StartLine {
+			byFile[location.FilePath] = append(byFile[location.FilePath], location)
+		}
+	})
+
+	total := 0
+	for _, locations := range byFile {
+		sort.Slice(locations, func(i, j int) bool {
+			return locations[i].StartLine < locations[j].StartLine
+		})
+		lastEnd := 0
+		for _, location := range locations {
+			start := max(location.StartLine, lastEnd+1)
+			if start <= location.EndLine {
+				total += location.EndLine - start + 1
+				lastEnd = location.EndLine
+			}
+		}
+	}
+	return total
+}
+
+func visitCloneLocations(pairs []*domain.ClonePair, groups []*domain.CloneGroup, visit func(*domain.CloneLocation)) {
+	visitClone := func(clone *domain.Clone) {
+		if clone != nil && clone.Location != nil {
+			visit(clone.Location)
+		}
+	}
+	for _, pair := range pairs {
+		visitClone(pair.Clone1)
+		visitClone(pair.Clone2)
+	}
+	for _, group := range groups {
+		for _, clone := range group.Clones {
+			visitClone(clone)
+		}
+	}
 }
 
 // readFileContent reads the content of a file

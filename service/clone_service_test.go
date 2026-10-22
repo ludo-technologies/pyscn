@@ -735,6 +735,7 @@ func TestCloneService_BuildCloneStatistics(t *testing.T) {
 	assert.NotNil(t, stats)
 	assert.Equal(t, 10, stats.TotalFragments)
 	assert.Equal(t, 3, stats.DuplicatedFragments) // 3 unique fragments in the scored population
+	assert.Equal(t, 30, stats.DuplicatedLines)    // 10 lines in each of three files
 	assert.Equal(t, 3, stats.TotalClones)         // 3 unique fragments from union of pairs and groups
 	assert.Equal(t, 3, stats.TotalClonePairs)
 	assert.Equal(t, 2, stats.TotalCloneGroups)
@@ -755,6 +756,7 @@ func TestCloneService_BuildCloneStatistics(t *testing.T) {
 	statsAllHidden := service.buildCloneStatistics(result, nil, nil, pairs, groups, filesAnalyzed, linesAnalyzed, nodesAnalyzed)
 	assert.Equal(t, 0, statsAllHidden.TotalClones)
 	assert.Equal(t, 3, statsAllHidden.DuplicatedFragments)
+	assert.Equal(t, 30, statsAllHidden.DuplicatedLines)
 }
 
 func TestCloneService_ResponseStructure(t *testing.T) {
@@ -817,6 +819,7 @@ func TestCloneService_OutputFiltersDoNotChangeScoredPopulation(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, baseline.Statistics.TotalClonePairs, "fixture must produce pairs at two different similarities")
 	require.Equal(t, 4, baseline.Statistics.DuplicatedFragments)
+	require.Equal(t, 24, baseline.Statistics.DuplicatedLines, "overlapping fragments must not count source lines twice")
 
 	cases := []struct {
 		name      string
@@ -854,6 +857,7 @@ func TestCloneService_OutputFiltersDoNotChangeScoredPopulation(t *testing.T) {
 			}
 			assert.Equal(t, baseline.Statistics.TotalFragments, response.Statistics.TotalFragments, "the denominator must not move")
 			assert.Equal(t, baseline.Statistics.DuplicatedFragments, response.Statistics.DuplicatedFragments, "the numerator must not move either")
+			assert.Equal(t, baseline.Statistics.DuplicatedLines, response.Statistics.DuplicatedLines, "display filters must not move scored line coverage")
 		})
 	}
 }
