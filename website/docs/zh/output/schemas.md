@@ -29,6 +29,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
   "mock_data":     { /* MockDataResponse, present when enabled */ },
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
+  "schema_version": 2,
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
   "version":       "0.14.0"
@@ -46,6 +47,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `mock_data`   | object \| absent  | 模拟数据检测运行时存在。                               | 稳定      |
 | `suggestions` | array \| absent   | 衍生建议。为空时省略。                                 | 稳定      |
 | `summary`     | object            | 始终存在。见 [`summary`](#summary-object)。            | 稳定      |
+| `schema_version` | integer        | 报告契约版本，当前为 `2`。                          | 稳定      |
 | `generated_at`| string (RFC 3339) | 分析完成时间。                                         | 稳定      |
 | `duration_ms` | integer           | 总分析耗时（毫秒）。                                   | 稳定      |
 | `version`     | string            | pyscn 语义版本号。                                     | 稳定      |

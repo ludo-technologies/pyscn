@@ -29,6 +29,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
   "mock_data":     { /* MockDataResponse, present when enabled */ },
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
+  "schema_version": 2,
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
   "version":       "0.14.0"
@@ -46,6 +47,7 @@ JSON および YAML 出力は、`domain/analyze.go` で定義された `AnalyzeR
 | `mock_data`   | object \| absent  | モックデータ検出が実行された場合に存在します。         | stable    |
 | `suggestions` | array \| absent   | 導出された提案。空の場合は省略されます。               | stable    |
 | `summary`     | object            | 常に存在します。[`summary`](#summary-object) を参照してください。 | stable    |
+| `schema_version` | integer        | レポート契約のバージョン。現在は `2`。              | stable    |
 | `generated_at`| string (RFC 3339) | 分析完了時刻。                                         | stable    |
 | `duration_ms` | integer           | 分析の合計所要時間（ミリ秒）。                         | stable    |
 | `version`     | string            | pyscn のセマンティックバージョン。                     | stable    |

@@ -29,6 +29,7 @@ Les sorties JSON et YAML sérialisent la structure Go `AnalyzeResponse` définie
   "mock_data":     { /* MockDataResponse, present when enabled */ },
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
+  "schema_version": 2,
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
   "version":       "0.14.0"
@@ -46,6 +47,7 @@ Les sorties JSON et YAML sérialisent la structure Go `AnalyzeResponse` définie
 | `mock_data`   | object \| absent  | Présent lorsque la détection de données fictives a été exécutée.  | stable    |
 | `suggestions` | array \| absent   | Suggestions dérivées. Omis lorsque vide.                          | stable    |
 | `summary`     | object            | Toujours présent. Voir [`summary`](#summary-object).               | stable    |
+| `schema_version` | integer        | Version du contrat du rapport, actuellement `2`.                 | stable    |
 | `generated_at`| string (RFC 3339) | Heure de fin d'analyse.                                           | stable    |
 | `duration_ms` | integer           | Durée totale d'analyse en millisecondes.                          | stable    |
 | `version`     | string            | Version sémantique de pyscn.                                      | stable    |
