@@ -120,7 +120,7 @@ Source: `domain/analyze.go:283-296`. Normalization factor derived in `CalculateH
 
 ### Duplication
 
-**Inputs.** `CodeDuplication` (float64) is the percentage of analyzed source lines covered by scored clone pairs or groups. Overlapping fragments count each line once, and similarity output filters do not change the score. Clones below the configured detection size are not included. The value is not clamped; the penalty formula below saturates on its own at `DuplicationThresholdHigh`.
+**Inputs.** `CodeDuplication` (float64) is the percentage of analyzed source lines covered by scored clone pairs or groups. Overlapping fragments count each line once, and similarity output filters do not change the score. Only clone relations retained by detection contribute. The value is not clamped; the penalty formula below saturates on its own at `DuplicationThresholdHigh`.
 
 **Formula.**
 

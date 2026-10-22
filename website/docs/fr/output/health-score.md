@@ -120,7 +120,7 @@ Source : `domain/analyze.go:283-296`. Facteur de normalisation dérivé dans `Ca
 
 ### Duplication
 
-**Entrées.** `CodeDuplication` (float64) est le pourcentage de lignes source analysées couvertes par les clones pris en compte pour le score. Les fragments qui se chevauchent ne comptent chaque ligne qu'une fois ; les filtres de sortie par similarité ne changent pas le score. Les clones sous le seuil de détection ne sont pas inclus. La valeur n'est pas plafonnée ; la formule de pénalité sature à `DuplicationThresholdHigh`.
+**Entrées.** `CodeDuplication` (float64) est le pourcentage de lignes source analysées couvertes par les clones pris en compte pour le score. Les fragments qui se chevauchent ne comptent chaque ligne qu'une fois ; les filtres de sortie par similarité ne changent pas le score. Seules les relations de clones retenues par le détecteur contribuent. La valeur n'est pas plafonnée ; la formule de pénalité sature à `DuplicationThresholdHigh`.
 
 **Formule.**
 
