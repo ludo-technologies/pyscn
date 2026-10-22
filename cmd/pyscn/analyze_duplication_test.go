@@ -60,6 +60,9 @@ func TestAnalyzeDuplicationScoreUsesDistinctSourceLines(t *testing.T) {
 			if stats.TotalFragments != 2 || stats.DuplicatedFragments != 2 || stats.DuplicatedLines != 30 {
 				t.Fatalf("expected two 15-line clone fragments, got %+v", stats)
 			}
+			if wantLines := strings.Count(source.String(), "\n"); stats.LinesAnalyzed != wantLines {
+				t.Fatalf("analyzed lines = %d, want %d physical source lines", stats.LinesAnalyzed, wantLines)
+			}
 			want := float64(30) / float64(stats.LinesAnalyzed) * 100
 			if math.Abs(report.Summary.CodeDuplication-want) > 1e-9 {
 				t.Fatalf("duplication = %.2f%%, want %.2f%%", report.Summary.CodeDuplication, want)

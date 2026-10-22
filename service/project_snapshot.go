@@ -1,12 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -513,5 +513,12 @@ func cancelledProjectFile(path, identityPath string, err error) *ProjectFile {
 }
 
 func countSourceLines(content []byte) int {
-	return len(strings.Split(string(content), "\n"))
+	if len(content) == 0 {
+		return 0
+	}
+	lines := bytes.Count(content, []byte{'\n'})
+	if content[len(content)-1] != '\n' {
+		lines++
+	}
+	return lines
 }
