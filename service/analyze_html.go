@@ -208,10 +208,10 @@ type reportKV struct {
 }
 
 type reportDuplication struct {
-	Percent   float64
-	Fragments int
-	Types     []reportShare
-	Facts     []reportKV
+	Percent float64
+	Lines   int
+	Types   []reportShare
+	Facts   []reportKV
 }
 
 type reportShare struct {
@@ -433,7 +433,7 @@ func buildReportDimensions(response *domain.AnalyzeResponse) []reportDimension {
 	}
 	if s.CloneEnabled {
 		add("Duplication", s.DuplicationScore,
-			fmt.Sprintf("%.1f%% of fragments", s.CodeDuplication),
+			fmt.Sprintf("%.1f%% of source lines", s.CodeDuplication),
 			pluralize(s.CloneGroups, "group", "groups"), "duplication")
 	}
 	if s.CBOEnabled {
@@ -952,7 +952,7 @@ func buildReportDuplication(response *domain.AnalyzeResponse) *reportDuplication
 		return nil
 	}
 	stats := response.Clone.Statistics
-	dup := &reportDuplication{Percent: response.Summary.CodeDuplication, Fragments: stats.TotalFragments}
+	dup := &reportDuplication{Percent: response.Summary.CodeDuplication, Lines: stats.LinesAnalyzed}
 
 	byType := make(map[string]int)
 	files := make(map[string]struct{})
