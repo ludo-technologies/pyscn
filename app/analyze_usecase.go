@@ -995,18 +995,13 @@ func (uc *AnalyzeUseCase) calculateSummary(summary *domain.AnalyzeSummary, respo
 		summary.ClonePairs = response.Clone.Statistics.TotalClonePairs
 		summary.CloneGroups = response.Clone.Statistics.TotalCloneGroups
 
-		// Calculate code duplication based on fragment ratio
-		// Measures what proportion of all code fragments are involved in duplication.
-		// Both sides come from the full analyzed population: TotalClones is
-		// trimmed by min_similarity/max_similarity, which are output filters and
-		// must not move the score.
-		totalFragments := response.Clone.Statistics.TotalFragments
-		duplicatedFragments := response.Clone.Statistics.DuplicatedFragments
-
-		if totalFragments > 0 && duplicatedFragments > 0 {
-			// Store the true ratio; DuplicationPenalty saturates at
-			// DuplicationThresholdHigh on its own, so no clamp is needed here.
-			summary.CodeDuplication = float64(duplicatedFragments) / float64(totalFragments) * 100
+		// Score distinct cloned source lines against every analyzed source line.
+		// Both counts precede similarity output filters, which must not move
+		// the health score. The penalty function handles saturation.
+		linesAnalyzed := response.Clone.Statistics.LinesAnalyzed
+		duplicatedLines := response.Clone.Statistics.DuplicatedLines
+		if linesAnalyzed > 0 && duplicatedLines > 0 {
+			summary.CodeDuplication = float64(duplicatedLines) / float64(linesAnalyzed) * 100
 		}
 	}
 

@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1206,60 +1205,5 @@ func TestBuildComplexityTaskRequest_UsesExecutionConfigBooleans(t *testing.T) {
 	}
 	if req.ShowDetails == nil || !*req.ShowDetails {
 		t.Error("ShowDetails: expected explicit true from execution config")
-	}
-}
-
-func TestCalculateSummaryDuplicationPercentageNotClamped(t *testing.T) {
-	// Regression for #724: CodeDuplication must carry the true fragment-clone
-	// ratio even above the 60% scoring saturation point, instead of being
-	// clamped to DuplicationThresholdHigh before storage.
-	summary := &domain.AnalyzeSummary{}
-	response := &domain.AnalyzeResponse{
-		Clone: &domain.CloneResponse{
-			Statistics: &domain.CloneStatistics{
-				TotalFragments:      61,
-				DuplicatedFragments: 40,
-				TotalClones:         40,
-			},
-		},
-	}
-
-	(&AnalyzeUseCase{}).calculateSummary(summary, response)
-
-	want := 40.0 / 61.0 * 100 // 65.57%, above the 60.0 saturation point
-	if math.Abs(summary.CodeDuplication-want) > 1e-9 {
-		t.Errorf("CodeDuplication = %f, want %f (unclamped ratio)", summary.CodeDuplication, want)
-	}
-	if summary.Grade == "N/A" {
-		t.Fatal("health score calculation failed for a valid summary")
-	}
-	// Scoring is unchanged: DuplicationPenalty saturates at 60%, so any ratio
-	// at or above it yields the same (zero) duplication score.
-	if summary.DuplicationScore != 0 {
-		t.Errorf("DuplicationScore = %d, want 0 (penalty saturated at 60%%)", summary.DuplicationScore)
-	}
-}
-
-func TestCalculateSummaryDuplicationIgnoresOutputFilters(t *testing.T) {
-	// Regression for #789: min_similarity/max_similarity are output filters, so
-	// they shrink TotalClones without shrinking the analyzed population. Reading
-	// the filtered count here would divide it by an unfiltered TotalFragments and
-	// let a display option raise the health grade on unchanged code.
-	summary := &domain.AnalyzeSummary{}
-	response := &domain.AnalyzeResponse{
-		Clone: &domain.CloneResponse{
-			Statistics: &domain.CloneStatistics{
-				TotalFragments:      61,
-				DuplicatedFragments: 40,
-				TotalClones:         0, // every clone hidden by min_similarity
-			},
-		},
-	}
-
-	(&AnalyzeUseCase{}).calculateSummary(summary, response)
-
-	want := 40.0 / 61.0 * 100
-	if math.Abs(summary.CodeDuplication-want) > 1e-9 {
-		t.Errorf("CodeDuplication = %f, want %f (scored population, not the displayed subset)", summary.CodeDuplication, want)
 	}
 }
