@@ -179,7 +179,7 @@ func extractCloneFragments(
 	extraction *fragmentExtraction,
 ) {
 	extraction.filesAnalyzed++
-	extraction.linesAnalyzed += countSourceLines(source)
+	extraction.linesAnalyzed += analyzer.CountSourceLines(source)
 
 	statsVisitor := parser.NewStatisticsVisitor()
 	ast.Accept(statsVisitor)

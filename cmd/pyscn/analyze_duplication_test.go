@@ -32,7 +32,11 @@ func TestAnalyzeDuplicationScoreUsesDistinctSourceLines(t *testing.T) {
 			for i := 0; i < smallFunctions; i++ {
 				fmt.Fprintf(&source, "def small_%d(x):\n    y = x + %d\n    return y * 2\n\n", i, i)
 			}
-			if err := os.WriteFile(filepath.Join(project, "sample.py"), []byte(source.String()), 0o644); err != nil {
+			sourceText := source.String()
+			if smallFunctions == 0 {
+				sourceText = strings.TrimRight(sourceText, "\n")
+			}
+			if err := os.WriteFile(filepath.Join(project, "sample.py"), []byte(sourceText), 0o644); err != nil {
 				t.Fatal(err)
 			}
 
@@ -42,7 +46,7 @@ func TestAnalyzeDuplicationScoreUsesDistinctSourceLines(t *testing.T) {
 				cmd := NewAnalyzeCmd()
 				cmd.SetOut(&output)
 				cmd.SetErr(io.Discard)
-				cmd.SetArgs([]string{"--json", "--output", "-", "--no-open", "--select", "clones", project})
+				cmd.SetArgs([]string{"--json", "--output", "-", "--no-open", "--select", "clones,deps", project})
 				if err := cmd.Execute(); err != nil {
 					t.Fatalf("analyze clones: %v", err)
 				}
@@ -60,8 +64,23 @@ func TestAnalyzeDuplicationScoreUsesDistinctSourceLines(t *testing.T) {
 			if stats.TotalFragments != 2 || stats.DuplicatedFragments != 2 || stats.DuplicatedLines != 30 {
 				t.Fatalf("expected two 15-line clone fragments, got %+v", stats)
 			}
-			if wantLines := strings.Count(source.String(), "\n"); stats.LinesAnalyzed != wantLines {
+			wantLines := strings.Count(sourceText, "\n")
+			if !strings.HasSuffix(sourceText, "\n") {
+				wantLines++
+			}
+			if stats.LinesAnalyzed != wantLines {
 				t.Fatalf("analyzed lines = %d, want %d physical source lines", stats.LinesAnalyzed, wantLines)
+			}
+			if report.System == nil || report.System.DependencyAnalysis == nil {
+				t.Fatal("missing dependency metrics")
+			}
+			if len(report.System.DependencyAnalysis.ModuleMetrics) != 1 {
+				t.Fatalf("expected one module, got %+v", report.System.DependencyAnalysis.ModuleMetrics)
+			}
+			for _, module := range report.System.DependencyAnalysis.ModuleMetrics {
+				if module.LinesOfCode != stats.LinesAnalyzed {
+					t.Fatalf("module lines = %d, clone lines = %d", module.LinesOfCode, stats.LinesAnalyzed)
+				}
 			}
 			want := float64(30) / float64(stats.LinesAnalyzed) * 100
 			if math.Abs(report.Summary.CodeDuplication-want) > 1e-9 {

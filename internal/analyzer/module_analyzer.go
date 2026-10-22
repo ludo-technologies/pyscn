@@ -355,7 +355,7 @@ func (ma *ModuleAnalyzer) analyzeParsedModuleDependencies(graph *DependencyGraph
 	module.ClassCount = facts.classCount
 	module.AbstractClassCount = facts.abstractClassCount
 	module.PublicNames = facts.publicNames
-	module.LineCount = countSourceLines(parsedModule.source)
+	module.LineCount = CountSourceLines(parsedModule.source)
 
 	// Process each import
 	for _, imp := range facts.imports {
@@ -575,16 +575,6 @@ func (ma *ModuleAnalyzer) collectModuleFacts(ast *parser.Node) moduleFacts {
 
 func isPublicName(name string) bool {
 	return name != "" && !strings.HasPrefix(name, "_")
-}
-
-func countSourceLines(content []byte) int {
-	lines := 1
-	for _, b := range content {
-		if b == '\n' {
-			lines++
-		}
-	}
-	return lines
 }
 
 func (ma *ModuleAnalyzer) importsFromNode(node *parser.Node) []*ImportInfo {

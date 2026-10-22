@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -510,15 +509,4 @@ func cancelledProjectFile(path, identityPath string, err error) *ProjectFile {
 		identityPath: identityPath,
 		ReadErr:      fmt.Errorf("analysis cancelled: %w", err),
 	}
-}
-
-func countSourceLines(content []byte) int {
-	if len(content) == 0 {
-		return 0
-	}
-	lines := bytes.Count(content, []byte{'\n'})
-	if content[len(content)-1] != '\n' {
-		lines++
-	}
-	return lines
 }
