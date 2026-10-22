@@ -188,11 +188,10 @@ const (
 	FallbackPenalty             = coredomain.FallbackPenalty
 )
 
-// AnalyzeSchemaVersion identifies the key layout of the analyze JSON/YAML
-// report. Bump it on any breaking change to the documented keys (rename,
-// removal, type change) so consumers can detect the change; additive changes
-// do not bump it.
-const AnalyzeSchemaVersion = 1
+// AnalyzeSchemaVersion identifies the contract of the analyze JSON/YAML report.
+// Bump it when a documented field changes name, type, or meaning; additive
+// fields do not require a bump.
+const AnalyzeSchemaVersion = 2
 
 // AnalyzeResponse represents the combined results of all analyses
 type AnalyzeResponse struct {

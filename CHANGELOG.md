@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### BREAKING
+- Change `analyze.summary.code_duplication_percentage` from a cloned-fragment ratio to the percentage of analyzed source lines covered by clones; `schema_version` is now 2 (#852).
+
+### Added
+- Report distinct `clone.statistics.duplicated_lines` in analysis output (#852).
+
 ## [1.32.5] - 2026-10-16
 
 ### Fixed
