@@ -24,7 +24,7 @@ Penalties are additive. Each category subtracts up to the maximum listed points 
 | Architecture        | Architecture rules compliance ratio (0–1)                                                                                                                | `round((1 - compliance) * 12)`                                                                                         | 12          |
 | Communities         | Module community structure: low modularity Q, share of modules bridging communities, and (when available) package/layer alignment                        | `round(riskRatio * 10)` where `riskRatio` is the weighted risk blend below                                            | 10          |
 
-The duplication penalty curve is owned by polyscan core and shared with the Go and JavaScript analyzers. This change supplies pyscn's source-line density to that existing curve; changing the 60% saturation point requires calibration across all three analyzers.
+The duplication penalty curve is owned by polyscan core and shared with the Go and JavaScript analyzers.
 
 When a category is disabled (e.g., `--skip-clones`), its penalty is zero and the prior score (100) carries forward so the missing analysis does not hurt the overall grade.
 
