@@ -186,7 +186,7 @@
     {{with .Duplication}}
     <div class="card">
       <div class="card-h"><h2>Duplication</h2><a href="#duplication" data-goto="duplication">Details</a></div>
-      <div class="big num">{{printf "%.1f" .Percent}}%<small>of {{.Fragments}} fragments</small></div>
+      <div class="big num">{{printf "%.1f" .Percent}}%<small>of {{.Lines}} analyzed lines</small></div>
       {{if .Types}}
       <div class="stack" role="img" aria-label="Clone fragments by type">{{range .Types}}<i class="{{.Class}}" style="width:{{printf "%.1f" .Percent}}%" title="{{.Label}}"></i>{{end}}</div>
       <div class="legend">{{range .Types}}<span><i class="{{.Class}}"></i>{{.Label}}</span>{{end}}</div>
@@ -436,7 +436,7 @@
   {{if and .Clone .Clone.Statistics}}
   <div class="card">
     <div class="strip">
-      <div class="s"><div class="v num">{{.Clone.Statistics.TotalClones}}<small> / {{.Clone.Statistics.TotalFragments}}</small></div><div class="l">fragments cloned</div></div>
+      <div class="s"><div class="v num">{{.Clone.Statistics.DuplicatedLines}}<small> / {{.Clone.Statistics.LinesAnalyzed}}</small></div><div class="l">source lines duplicated</div></div>
       <div class="s"><div class="v num">{{.Clone.Statistics.TotalCloneGroups}}</div><div class="l">clone groups</div></div>
       <div class="s"><div class="v num">{{.Clone.Statistics.TotalClonePairs}}</div><div class="l">clone pairs</div></div>
       <div class="s"><div class="v num">{{printf "%.2f" .Clone.Statistics.AverageSimilarity}}</div><div class="l">avg similarity</div></div>

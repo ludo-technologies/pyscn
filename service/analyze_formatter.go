@@ -116,7 +116,7 @@ func (f *AnalyzeFormatter) writeText(response *domain.AnalyzeResponse, writer io
 		fmt.Fprint(writer, utils.FormatSectionHeader("CLONE DETECTION"))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Unique Fragments", response.Summary.TotalClones))
 		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Clone Groups", response.Summary.CloneGroups))
-		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Fragments Cloned", utils.FormatPercentage(response.Summary.CodeDuplication)))
+		fmt.Fprint(writer, utils.FormatLabelWithIndent(SectionPadding, "Source Lines Duplicated", utils.FormatPercentage(response.Summary.CodeDuplication)))
 		fmt.Fprint(writer, utils.FormatSectionSeparator())
 	}
 

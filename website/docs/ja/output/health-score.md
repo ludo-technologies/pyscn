@@ -120,7 +120,7 @@ else:
 
 ### 重複
 
-**入力.** `CodeDuplication` (float64)。このフィールドはフラグメント比率で、抽出されたコードフラグメントのうちクローンペアまたはグループに含まれるユニークなフラグメントの割合を表します。この値にクランプはなく、下記のペナルティ計算式自体が `DuplicationThresholdHigh` で飽和します。
+**入力.** `CodeDuplication` (float64) は、分析したソース行のうち、スコア対象のクローンに含まれる行の割合です。同じファイル内で重なるフラグメントの行は一度だけ数えます。類似度の表示フィルターはスコアに影響しません。検出器が保持したクローン関係のみを数えます。値はクランプせず、下記のペナルティ計算式が `DuplicationThresholdHigh` で飽和します。
 
 **計算式.**
 
@@ -135,23 +135,23 @@ else:
 
 | 名前                         | 値    | 意味                          |
 | ---------------------------- | ----- | ----------------------------- |
-| `DuplicationThresholdLow`    | 0.0   | クローン対象 0% = ペナルティ 0 |
-| `DuplicationThresholdHigh`   | 60.0  | クローン対象 60% = 最大ペナルティ |
+| `DuplicationThresholdLow`    | 0.0   | ソース行の重複率 0% = ペナルティ 0 |
+| `DuplicationThresholdHigh`   | 60.0  | ソース行の重複率 60% = 最大ペナルティ |
 | max                          | 20.0  | ペナルティ上限                |
 
 **上流の計算.** `CodeDuplication` 自体は `app/analyze_usecase.go` で計算されます:
 
 ```
-CodeDuplication = TotalClones / TotalFragments * 100
+CodeDuplication = DuplicatedLines / LinesAnalyzed * 100
 ```
 
-ここで `TotalClones` はクローンペアまたはグループに含まれるユニークなフラグメント数、`TotalFragments` は抽出されたコードフラグメントの総数です（`domain/clone.go:128-131`）。
+`DuplicatedLines` は、類似度の表示フィルターを適用する前に、ファイルごとのクローン行範囲を結合した行数です。`LinesAnalyzed` は分析済みファイルのソース行数です。フラグメント数は検出統計として引き続き利用できます。
 
 **飽和.** `CodeDuplication >= 60.0` で 20 に到達します。
 
-**エッジケース.** クローン対象フラグメントなし、または分析対象フラグメントなしの場合 → `CodeDuplication = 0` → ペナルティ 0。`Validate()` は `[0, 100]` の範囲外の値を拒否します。
+**エッジケース.** 重複行または分析済み行がない場合 → `CodeDuplication = 0` → ペナルティ 0。`Validate()` は `[0, 100]` の範囲外の値を拒否します。
 
-ソース: `domain/analyze.go:336-350`。
+ソース: `service/clone_service.go`、`app/analyze_usecase.go`、`polyscan/core/domain/scoring.go`。
 
 ### 結合度（CBO）
 

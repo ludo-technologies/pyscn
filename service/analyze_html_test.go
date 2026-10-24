@@ -119,7 +119,7 @@ func TestBuildReportVerdict_NamesWeakDimensions(t *testing.T) {
 			strong = append(strong, seg.Text)
 		}
 	}
-	assert.Equal(t, "Complexity and dead code are clean. Most of the remaining debt is in duplication (22.3% of fragments, 27 groups) and coupling (avg CBO 2.7, 0 of 0 high).", text.String())
+	assert.Equal(t, "Complexity and dead code are clean. Most of the remaining debt is in duplication (22.3% of source lines, 27 groups) and coupling (avg CBO 2.7, 0 of 0 high).", text.String())
 	assert.Equal(t, []string{"duplication", "coupling"}, strong)
 }
 
