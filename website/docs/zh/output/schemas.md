@@ -1,6 +1,6 @@
 # 输出模式
 
-本规范定义了 pyscn 生成的 JSON、YAML 和 CSV 输出的确切结构。此处记录的所有字段名称、类型和语义在同一主版本内的补丁版本之间保持稳定。
+本规范定义了 pyscn 生成的 JSON、YAML 和 CSV 输出结构。当前的 `pyscn analyze` JSON/YAML 契约为 `schema_version: 2`。字段名称、类型和语义在同一模式版本内保持稳定。
 
 ## 稳定性约定
 
@@ -10,7 +10,7 @@
 | 可能变更           | 对象内的字段顺序、数组元素的顺序、新字段的添加                                    |
 | 破坏性变更         | 字段的删除或重命名、字段类型的更改、枚举值的删除                                  |
 
-破坏性变更仅限于主版本升级。使用方必须忽略未知字段。
+包括语义变更在内的破坏性变更会提升 `schema_version`。使用方必须忽略未知字段。在版本 2 中，`summary.code_duplication_percentage` 表示克隆覆盖的不重复源码行百分比，替代版本 1 的片段比率。
 
 <!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
@@ -29,6 +29,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
   "mock_data":     { /* MockDataResponse, present when enabled */ },
   "suggestions":   [ /* Suggestion array, omitted when empty */ ],
   "summary":       { /* AnalyzeSummary, always present */ },
+  "schema_version": 2,
   "generated_at":  "2026-04-14T10:18:23Z",
   "duration_ms":   2347,
   "version":       "0.14.0"
@@ -46,6 +47,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `mock_data`   | object \| absent  | 模拟数据检测运行时存在。                               | 稳定      |
 | `suggestions` | array \| absent   | 衍生建议。为空时省略。                                 | 稳定      |
 | `summary`     | object            | 始终存在。见 [`summary`](#summary-object)。            | 稳定      |
+| `schema_version` | integer        | 报告契约版本，当前为 `2`。                          | 稳定      |
 | `generated_at`| string (RFC 3339) | 分析完成时间。                                         | 稳定      |
 | `duration_ms` | integer           | 总分析耗时（毫秒）。                                   | 稳定      |
 | `version`     | string            | pyscn 语义版本号。                                     | 稳定      |
@@ -104,7 +106,7 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | `total_clones`                | integer | 被识别为克隆的独立代码片段数。                    |
 | `clone_pairs`                 | integer | 克隆对的数量。                                    |
 | `clone_groups`                | integer | 克隆组的数量。                                    |
-| `code_duplication_percentage` | number  | 估计的代码重复率，`0`–`100`。                     |
+| `code_duplication_percentage` | number  | 已分析源码行中被克隆覆盖的百分比，`0`–`100`。 |
 
 ### CBO 指标
 
@@ -421,7 +423,8 @@ JSON 和 YAML 输出序列化 `domain/analyze.go` 中定义的 `AnalyzeResponse`
 | 字段                 | 类型    | 说明                                             |
 | -------------------- | ------- | ------------------------------------------------ |
 | `total_fragments`    | integer | 提取的所有片段（函数、类等）。                   |
-| `duplicated_fragments` | integer | 参与已检测克隆关系的片段数，在 `min_similarity`/`max_similarity` 输出过滤之前统计。与 `total_fragments` 共享同一总体，是重复度评分的分子。 |
+| `duplicated_fragments` | integer | 参与已检测克隆关系的片段数，在 `min_similarity`/`max_similarity` 输出过滤之前统计。与 `total_fragments` 共享同一总体。 |
+| `duplicated_lines` | integer | 展示过滤之前，计入评分的克隆所覆盖的不重复源码行数；是 `code_duplication_percentage` 的分子。 |
 | `total_clones`       | integer | 被分类为克隆的片段数（输出过滤之后）。           |
 | `total_clone_pairs`  | integer | 检测到的克隆对数。                               |
 | `total_clone_groups` | integer | 组的数量。                                       |

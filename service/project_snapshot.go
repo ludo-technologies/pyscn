@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"sync"
 
 	"github.com/ludo-technologies/pyscn/domain"
@@ -510,8 +509,4 @@ func cancelledProjectFile(path, identityPath string, err error) *ProjectFile {
 		identityPath: identityPath,
 		ReadErr:      fmt.Errorf("analysis cancelled: %w", err),
 	}
-}
-
-func countSourceLines(content []byte) int {
-	return len(strings.Split(string(content), "\n"))
 }

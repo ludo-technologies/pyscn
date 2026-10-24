@@ -288,7 +288,7 @@ func TestAnalyzeFormatter_Write_JSON(t *testing.T) {
 	err = json.Unmarshal(buf.Bytes(), &decoded)
 	require.NoError(t, err)
 
-	assert.Contains(t, buf.String(), `"schema_version": 1`)
+	assert.Contains(t, buf.String(), `"schema_version": 2`)
 	assert.Equal(t, response.Summary.HealthScore, decoded.Summary.HealthScore)
 	assert.Equal(t, response.Summary.Grade, decoded.Summary.Grade)
 	assert.Equal(t, response.Summary.TotalFiles, decoded.Summary.TotalFiles)
@@ -720,6 +720,8 @@ func TestAnalyzeFormatter_Write_CSVPropagatesWriterErrors(t *testing.T) {
 func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	formatter := NewAnalyzeFormatter()
 	response := createTestAnalyzeResponse()
+	response.Clone.Statistics.DuplicatedLines = 17
+	response.Clone.Statistics.LinesAnalyzed = 200
 	var buf bytes.Buffer
 
 	err := formatter.Write(response, domain.OutputFormatHTML, &buf)
@@ -738,6 +740,8 @@ func TestAnalyzeFormatter_Write_HTML(t *testing.T) {
 	assert.Contains(t, output, `data-tab="functions"`)
 	assert.Contains(t, output, `data-tab="duplication"`)
 	assert.Contains(t, output, `data-tab="classes"`)
+	assert.Contains(t, output, "of 200 analyzed lines")
+	assert.Contains(t, output, "17<small> / 200</small>")
 }
 
 func TestAnalyzeFormatter_Write_HTMLLabelsDeadCodeClassScope(t *testing.T) {
