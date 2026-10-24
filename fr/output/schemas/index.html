@@ -4521,7 +4521,7 @@
 
 
 <h1 id="schemas-de-sortie">Schémas de sortie<a class="headerlink" href="#schemas-de-sortie" title="Permanent link">&para;</a></h1>
-<p>Cette spécification définit la forme exacte des sorties JSON, YAML et CSV produites par pyscn. Tous les noms de champs, types et sémantiques documentés ici sont stables d'une version corrective à l'autre au sein d'une même version majeure.</p>
+<p>Cette spécification définit la forme des sorties JSON, YAML et CSV produites par pyscn. La version actuelle du contrat <code>pyscn analyze</code> JSON/YAML est <code>schema_version: 2</code>. Les noms, types et sémantiques des champs restent stables au sein d'une même version de schéma.</p>
 <h2 id="contrat-de-stabilite">Contrat de stabilité<a class="headerlink" href="#contrat-de-stabilite" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -4545,7 +4545,7 @@
 </tr>
 </tbody>
 </table>
-<p>Les changements incompatibles sont limités aux changements de version majeure. Les consommateurs DOIVENT ignorer les champs inconnus.</p>
+<p>Un changement incompatible, y compris un changement de sémantique, incrémente <code>schema_version</code>. Les consommateurs DOIVENT ignorer les champs inconnus. En version 2, <code>summary.code_duplication_percentage</code> mesure les lignes source distinctes couvertes par les clones, au lieu du ratio de fragments de la version 1.</p>
 <!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
 <h2 id="structure-de-premier-niveau-pyscn-analyze">Structure de premier niveau (<code>pyscn analyze</code>)<a class="headerlink" href="#structure-de-premier-niveau-pyscn-analyze" title="Permanent link">&para;</a></h2>
@@ -4560,10 +4560,11 @@
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">"mock_data"</span><span class="p">:</span><span class="w">     </span><span class="p">{</span><span class="w"> </span><span class="cm">/* MockDataResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">"suggestions"</span><span class="p">:</span><span class="w">   </span><span class="p">[</span><span class="w"> </span><span class="cm">/* Suggestion array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="w"> </span><span class="cm">/* AnalyzeSummary, always present */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">}</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -4627,6 +4628,12 @@
 <td><code>summary</code></td>
 <td>object</td>
 <td>Toujours présent. Voir <a href="#summary-object"><code>summary</code></a>.</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>schema_version</code></td>
+<td>integer</td>
+<td>Version du contrat du rapport, actuellement <code>2</code>.</td>
 <td>stable</td>
 </tr>
 <tr>
@@ -4842,7 +4849,7 @@
 <tr>
 <td><code>code_duplication_percentage</code></td>
 <td>number</td>
-<td>Taux de duplication estimé, <code>0</code>–<code>100</code>.</td>
+<td>Pourcentage des lignes source analysées couvertes par des clones, <code>0</code>–<code>100</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -5900,7 +5907,12 @@
 <tr>
 <td><code>duplicated_fragments</code></td>
 <td>integer</td>
-<td>Fragments impliqués dans une relation de clone détectée, avant les filtres de sortie <code>min_similarity</code>/<code>max_similarity</code>. Partage sa population avec <code>total_fragments</code> et constitue le numérateur du score de duplication.</td>
+<td>Fragments impliqués dans une relation de clone détectée, avant les filtres de sortie <code>min_similarity</code>/<code>max_similarity</code>. Partage sa population avec <code>total_fragments</code>.</td>
+</tr>
+<tr>
+<td><code>duplicated_lines</code></td>
+<td>integer</td>
+<td>Lignes source distinctes couvertes par les clones pris en compte pour le score, avant les filtres de sortie ; numérateur de <code>code_duplication_percentage</code>.</td>
 </tr>
 <tr>
 <td><code>total_clones</code></td>

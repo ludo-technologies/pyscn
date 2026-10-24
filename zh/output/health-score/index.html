@@ -3894,7 +3894,7 @@
 <p><code>TotalFiles</code> 也会计入解析失败的文件，因此在存在解析错误的目标上，归一化因子会略大，死代码惩罚会略小于仅按已分析文件计算的结果。该影响是对数级的，与针对同一情况至少扣除 11 分的「解析错误」惩罚相比可以忽略。</p>
 <p>来源：<code>domain/analyze.go:283-296</code>。归一化因子在 <code>CalculateHealthScore()</code> 的 <code>domain/analyze.go:474-477</code> 中计算。</p>
 <h3 id="_8">代码重复<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
-<p><strong>输入。</strong> <code>CodeDuplication</code>（float64）。此字段是片段比率：所有提取出的代码片段中，参与克隆对或克隆组的唯一片段所占百分比。该值不做截断；下方的惩罚公式自身会在 <code>DuplicationThresholdHigh</code> 处饱和。</p>
+<p><strong>输入。</strong> <code>CodeDuplication</code>（float64）表示已分析源码行中，被计入评分的克隆覆盖的行数百分比。同一文件中重叠片段的行只计一次；相似度展示过滤器不会改变评分。只计入检测器保留的克隆关系。该值不做截断；惩罚公式在 <code>DuplicationThresholdHigh</code> 处饱和。</p>
 <p><strong>公式。</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>if CodeDuplication &lt;= 0:
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    penalty = 0
@@ -3914,12 +3914,12 @@
 <tr>
 <td><code>DuplicationThresholdLow</code></td>
 <td>0.0</td>
-<td>0% 片段被克隆 = 0 惩罚</td>
+<td>0% 源码行重复 = 0 惩罚</td>
 </tr>
 <tr>
 <td><code>DuplicationThresholdHigh</code></td>
 <td>60.0</td>
-<td>60% 片段被克隆 = 最大惩罚</td>
+<td>60% 源码行重复 = 最大惩罚</td>
 </tr>
 <tr>
 <td>max</td>
@@ -3929,12 +3929,12 @@
 </tbody>
 </table>
 <p><strong>上游计算。</strong> <code>CodeDuplication</code> 本身在 <code>app/analyze_usecase.go</code> 中计算：</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = TotalClones / TotalFragments * 100
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>CodeDuplication = DuplicatedLines / LinesAnalyzed * 100
 </span></code></pre></div>
-<p>其中 <code>TotalClones</code> 是至少参与一个克隆对或克隆组的唯一片段数量，<code>TotalFragments</code> 是提取出的代码片段总数（<code>domain/clone.go:128-131</code>）。</p>
+<p><code>DuplicatedLines</code> 是在应用相似度展示过滤器之前，按文件合并克隆源码行区间后的行数。<code>LinesAnalyzed</code> 是成功分析的文件中的源码行数。片段数量仍作为检测统计提供。</p>
 <p><strong>饱和。</strong> 当 <code>CodeDuplication &gt;= 60.0</code> 时达到 20。</p>
-<p><strong>边界情况。</strong> 无克隆片段或无分析片段 → <code>CodeDuplication = 0</code> → 惩罚 0。<code>Validate()</code> 拒绝 <code>[0, 100]</code> 范围外的值。</p>
-<p>来源：<code>domain/analyze.go:336-350</code>。</p>
+<p><strong>边界情况。</strong> 无重复行或无已分析行 → <code>CodeDuplication = 0</code> → 惩罚 0。<code>Validate()</code> 拒绝 <code>[0, 100]</code> 范围外的值。</p>
+<p>来源：<code>service/clone_service.go</code>、<code>app/analyze_usecase.go</code> 和 <code>polyscan/core/domain/scoring.go</code>。</p>
 <h3 id="cbo">耦合度（CBO）<a class="headerlink" href="#cbo" title="Permanent link">&para;</a></h3>
 <p><strong>输入。</strong> <code>CBOClasses</code>、<code>HighCouplingClasses</code>（CBO &gt; 7）、<code>MediumCouplingClasses</code>（3 &lt; CBO ≤ 7）。</p>
 <p><strong>公式。</strong></p>

@@ -4521,7 +4521,7 @@
 
 
 <h1 id="_1">出力スキーマ<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
-<p>この仕様は、pyscn が生成する JSON、YAML、CSV 出力の正確な構造を定義します。ここに記載されたすべてのフィールド名、型、およびセマンティクスは、同一メジャーバージョン内のパッチリリースにおいて安定しています。</p>
+<p>この仕様は、pyscn が生成する JSON、YAML、CSV 出力の構造を定義します。現在の <code>pyscn analyze</code> JSON/YAML 契約は <code>schema_version: 2</code> です。フィールド名、型、および意味は同じスキーマバージョン内で安定しています。</p>
 <h2 id="_2">安定性契約<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -4545,7 +4545,7 @@
 </tr>
 </tbody>
 </table>
-<p>破壊的変更はメジャーバージョンアップ時のみ行われます。利用者は未知のフィールドを無視しなければなりません（MUST）。</p>
+<p>意味の変更を含む破壊的変更では <code>schema_version</code> を上げます。利用者は未知のフィールドを無視しなければなりません（MUST）。バージョン 2 の <code>summary.code_duplication_percentage</code> は、バージョン 1 のフラグメント比率に代わり、クローンが覆う重複のないソース行の割合を示します。</p>
 <!-- Field naming note: every object key in `pyscn analyze` JSON/YAML is snake_case. Releases up to 1.29.1 emitted Go-style PascalCase inside `complexity`, `cbo`, `lcom`, and `system`, and lowerCamelCase inside the `config` objects of `cbo`, `lcom`, and `community_analysis`; both were renamed to snake_case. -->
 
 <h2 id="pyscn-analyze">トップレベル構造 (<code>pyscn analyze</code>)<a class="headerlink" href="#pyscn-analyze" title="Permanent link">&para;</a></h2>
@@ -4560,10 +4560,11 @@
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="nt">"mock_data"</span><span class="p">:</span><span class="w">     </span><span class="p">{</span><span class="w"> </span><span class="cm">/* MockDataResponse, present when enabled */</span><span class="w"> </span><span class="p">},</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="nt">"suggestions"</span><span class="p">:</span><span class="w">   </span><span class="p">[</span><span class="w"> </span><span class="cm">/* Suggestion array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="w"> </span><span class="cm">/* AnalyzeSummary, always present */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">}</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">}</span>
 </span></code></pre></div>
 <table>
 <thead>
@@ -4627,6 +4628,12 @@
 <td><code>summary</code></td>
 <td>object</td>
 <td>常に存在します。<a href="#summary-object"><code>summary</code></a> を参照してください。</td>
+<td>stable</td>
+</tr>
+<tr>
+<td><code>schema_version</code></td>
+<td>integer</td>
+<td>レポート契約のバージョン。現在は <code>2</code>。</td>
 <td>stable</td>
 </tr>
 <tr>
@@ -4842,7 +4849,7 @@
 <tr>
 <td><code>code_duplication_percentage</code></td>
 <td>number</td>
-<td>推定重複率、<code>0</code>–<code>100</code>。</td>
+<td>分析済みソース行のうちクローンが覆う行の割合、<code>0</code>–<code>100</code>。</td>
 </tr>
 </tbody>
 </table>
@@ -5900,7 +5907,12 @@
 <tr>
 <td><code>duplicated_fragments</code></td>
 <td>integer</td>
-<td>検出されたクローン関係に含まれる断片。<code>min_similarity</code>/<code>max_similarity</code> の出力フィルタ適用前の値。<code>total_fragments</code> と同じ母集団を共有し、重複スコアの分子になります。</td>
+<td>検出されたクローン関係に含まれる断片。<code>min_similarity</code>/<code>max_similarity</code> の出力フィルタ適用前の値。<code>total_fragments</code> と同じ母集団を共有します。</td>
+</tr>
+<tr>
+<td><code>duplicated_lines</code></td>
+<td>integer</td>
+<td>出力フィルタ適用前にスコア対象のクローンが覆う重複のないソース行数。<code>code_duplication_percentage</code> の分子です。</td>
 </tr>
 <tr>
 <td><code>total_clones</code></td>

@@ -4800,6 +4800,7 @@
 </tbody>
 </table>
 <p>Consumers MUST ignore unknown fields. Breaking changes to the <code>pyscn analyze</code> report increment its top-level <code>schema_version</code> and are listed as <strong>BREAKING</strong> in the <a href="https://github.com/ludo-technologies/pyscn/blob/main/CHANGELOG.md">CHANGELOG</a>. They are not restricted to major version bumps — the snake_case key rename described below shipped in the 1.30.0 minor release — so pin against <code>schema_version</code> rather than the semantic version.</p>
+<p>Schema version 2 changes <code>summary.code_duplication_percentage</code> from the fraction of extracted fragments involved in clones to the percentage of analyzed source lines covered by scored clones. It also adds <code>clone.statistics.duplicated_lines</code> as the numerator of that percentage.</p>
 <h2 id="migrating-from-1-29-x">Migrating from 1.29.x<a class="headerlink" href="#migrating-from-1-29-x" title="Permanent link">&para;</a></h2>
 <p>Every object key in <code>pyscn analyze</code> JSON/YAML is snake_case since 1.30.0. Releases up to 1.29.1 emitted Go-style PascalCase inside <code>complexity</code>, <code>cbo</code>, <code>lcom</code>, and <code>system</code> (including <code>complexity.request</code> and <code>dead_code.request</code>), and lowerCamelCase inside the <code>config</code> objects of <code>cbo</code>, <code>lcom</code>, and <code>community_analysis</code>. The rename is mechanical: convert the old key to snake_case and lowercase acronyms.</p>
 <table>
@@ -4885,7 +4886,7 @@
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="nt">"diagnostics"</span><span class="p">:</span><span class="w">   </span><span class="p">[</span><span class="w"> </span><span class="cm">/* AnalysisDiagnostic array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"failures"</span><span class="p">:</span><span class="w">      </span><span class="p">[</span><span class="w"> </span><span class="cm">/* AnalysisFailure array, omitted when empty */</span><span class="w"> </span><span class="p">],</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="nt">"summary"</span><span class="p">:</span><span class="w">       </span><span class="p">{</span><span class="w"> </span><span class="cm">/* AnalyzeSummary, always present */</span><span class="w"> </span><span class="p">},</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="nt">"schema_version"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span><span class="nt">"generated_at"</span><span class="p">:</span><span class="w">  </span><span class="s2">"2026-04-14T10:18:23Z"</span><span class="p">,</span>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span><span class="nt">"duration_ms"</span><span class="p">:</span><span class="w">   </span><span class="mi">2347</span><span class="p">,</span>
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w">       </span><span class="s2">"0.14.0"</span>
@@ -4982,7 +4983,7 @@
 <tr>
 <td><code>schema_version</code></td>
 <td>integer</td>
-<td>Key layout of this report, currently <code>1</code>. Incremented only on a breaking change (rename, removal, type change); additive fields do not bump it.</td>
+<td>Report contract, currently <code>2</code>. Incremented when a field changes name, type, or meaning; additive fields do not bump it.</td>
 <td>stable</td>
 </tr>
 <tr>
@@ -5262,7 +5263,7 @@
 <tr>
 <td><code>code_duplication_percentage</code></td>
 <td>number</td>
-<td>Estimated duplication ratio, <code>0</code>–<code>100</code>.</td>
+<td>Distinct duplicated source lines as a percentage of analyzed source lines, <code>0</code>–<code>100</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -6449,7 +6450,12 @@
 <tr>
 <td><code>duplicated_fragments</code></td>
 <td>integer</td>
-<td>Fragments in a detected clone relation, before the <code>min_similarity</code>/<code>max_similarity</code> output filters. Shares its population with <code>total_fragments</code>, and is the numerator of the duplication score.</td>
+<td>Fragments in a detected clone relation, before the <code>min_similarity</code>/<code>max_similarity</code> output filters. Shares its population with <code>total_fragments</code>.</td>
+</tr>
+<tr>
+<td><code>duplicated_lines</code></td>
+<td>integer</td>
+<td>Distinct source lines covered by scored clone relations, before similarity output filters; numerator of <code>code_duplication_percentage</code>.</td>
 </tr>
 <tr>
 <td><code>total_clones</code></td>
