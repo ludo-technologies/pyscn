@@ -2,14 +2,18 @@
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-10-24
+
 ### BREAKING
-- Change `analyze.summary.code_duplication_percentage` from a cloned-fragment ratio to the percentage of analyzed source lines covered by clones; `schema_version` is now 2 (#852).
+- Change `analyze.summary.code_duplication_percentage` from a cloned-fragment ratio to the percentage of analyzed source lines covered by clones; `schema_version` is now 2 (#857)
 
 ### Added
-- Report distinct `clone.statistics.duplicated_lines` in analysis output (#852).
+- Report distinct `clone.statistics.duplicated_lines` in analysis output (#857)
 
 ### Fixed
-- Count physical source lines consistently in clone and module statistics, without an extra line for a terminal newline (#852).
+- Count physical source lines consistently in clone and module statistics, without an extra line for a terminal newline (#857)
+- Count conditional expressions in McCabe complexity (#853)
+- Stop auto-detected layers from claiming the root package (#855)
 
 ## [1.32.5] - 2026-10-16
 
