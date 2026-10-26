@@ -195,6 +195,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	// such reads can be recorded as call edges instead of instance variables.
 	propertyNames := a.collectPropertyNames(classNode)
 	protocolDefinitions := collectProtocolDefinitions(classNode)
+	inheritedCalls := a.collectInheritedCalls(classNode, declaredFields)
 
 	for _, node := range classNode.Body {
 		if node == nil {
@@ -231,7 +232,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 				// bare `self.<prop>` read invokes the getter, so it is not an
 				// instance variable. The constructor is out of the graph, so
 				// there is no call edge left to record for it.
-				if propertyNames[name] {
+				if propertyNames[name] || inheritedCalls[name] {
 					continue
 				}
 				excludedVars[name] = true
@@ -242,6 +243,12 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		// Extract self.xxx accesses from method body
 		vars := make(map[string]bool)
 		a.extractInstanceVars(node, vars)
+		// A `self.<name>()` call to a method inherited from a base class is the
+		// same call as `super().<name>()`, which records nothing, so it is not
+		// instance state either.
+		for name := range inheritedCalls {
+			delete(vars, name)
+		}
 		if len(declaredFields) > 0 && a.hasBareSelfAccess(node) {
 			for field := range declaredFields {
 				vars[field] = true
@@ -551,6 +558,112 @@ func (a *LCOMAnalyzer) collectMethodNames(classNode *parser.Node, keep func(*par
 		}
 	}
 	return names
+}
+
+// collectInheritedCalls returns the names a subclass only ever reaches as
+// `self.<name>(...)` and never binds in its own body. Such a name can only be
+// a method inherited from a base class. Any other use of `self.<name>`, such
+// as an assignment or a bare read, keeps it as an instance variable, since the
+// class may then be storing a callable on the instance. A class without bases
+// has nothing to inherit from, so its calls keep counting as before. Declared
+// ctypes fields are instance state even when `_fields_` is assigned outside the
+// class body.
+func (a *LCOMAnalyzer) collectInheritedCalls(classNode *parser.Node, declaredFields map[string]bool) map[string]bool {
+	names := make(map[string]bool)
+	if len(classNode.Bases) == 0 {
+		return names
+	}
+
+	callees := make(map[*parser.Node]bool)
+	var accesses []*parser.Node
+	classNode.WalkDeep(func(node *parser.Node) bool {
+		// A nested class has its own `self` and its own bases.
+		if node != classNode && node.Type == parser.NodeClassDef {
+			return false
+		}
+		switch node.Type {
+		case parser.NodeCall:
+			if callee := nodeValue(node); callee != nil {
+				callees[callee] = true
+			}
+		case parser.NodeAttribute:
+			if a.isSelfAccess(node) && node.Name != "" {
+				accesses = append(accesses, node)
+			}
+		}
+		return true
+	})
+
+	otherUses := make(map[string]bool)
+	for _, access := range accesses {
+		if callees[access] {
+			names[access.Name] = true
+		} else {
+			otherUses[access.Name] = true
+		}
+	}
+
+	bound := a.collectClassBodyBindings(classNode)
+	for name := range names {
+		if otherUses[name] || bound[name] || declaredFields[name] {
+			delete(names, name)
+		}
+	}
+	return names
+}
+
+// collectClassBodyBindings returns the names the class body itself binds or
+// declares as instance attributes. On top of the definitions the protocol
+// rules see, this covers nested classes, bare annotations and `__slots__`
+// entries, which declare an attribute without binding a value.
+func (a *LCOMAnalyzer) collectClassBodyBindings(classNode *parser.Node) map[string]bool {
+	bound := make(map[string]bool)
+	for name := range collectProtocolDefinitions(classNode) {
+		bound[name] = true
+	}
+	for _, node := range classNode.Body {
+		if node == nil {
+			continue
+		}
+		switch node.Type {
+		case parser.NodeClassDef:
+			bound[node.Name] = true
+		case parser.NodeAnnAssign:
+			for _, target := range node.Targets {
+				if target != nil && target.Type == parser.NodeName {
+					bound[target.Name] = true
+				}
+			}
+		}
+		if isAssignmentNode(node) && a.assignmentTargetsName(node, "__slots__") {
+			for _, slot := range slotNames(node.Value) {
+				bound[slot] = true
+			}
+		}
+	}
+	return bound
+}
+
+// slotNames returns the string entries of a `__slots__` value, written either
+// as a single string or as a tuple or list of strings.
+func slotNames(value interface{}) []string {
+	valueNode, ok := value.(*parser.Node)
+	if !ok || valueNode == nil {
+		return nil
+	}
+	if slot, ok := valueNode.Value.(string); ok && valueNode.Type == parser.NodeConstant {
+		return []string{slot}
+	}
+	var slots []string
+	for _, child := range valueNode.Children {
+		if child == nil || child.Type != parser.NodeConstant {
+			continue
+		}
+		if slot, ok := child.Value.(string); ok && slot != "" {
+			slots = append(slots, slot)
+		}
+	}
+	return slots
 }
 
 // isProperty reports whether a method is a @property getter. Like
