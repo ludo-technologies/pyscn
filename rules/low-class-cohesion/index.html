@@ -33,7 +33,7 @@
       
       
       <link rel="icon" href="../../assets/icon.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -41,10 +41,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -3460,6 +3460,7 @@
 <p>Methods decorated with <code>@staticmethod</code>, <code>@classmethod</code>, or <code>@abstractmethod</code> do not reference instance state and are excluded from the graph.</p>
 <p>Constructors (<code>__init__</code>, <code>__new__</code>, and the dataclass <code>__post_init__</code> hook) are excluded too. A constructor typically initializes every attribute of the class, so keeping it in the graph links all of the responsibility clusters it sets up and collapses <code>LCOM4</code> to <code>1</code> for almost any class. The attributes it introduces still count toward <code>instance_variables</code>.</p>
 <p>Methods that touch no instance state and are not connected to any other method by a call are left out of the graph too. They cannot be split from anything, so counting them would only inflate <code>LCOM4</code>.</p>
+<p>In a class with a base class, <code>self.name()</code> is treated as a call to an inherited method, not as instance state, when the class only ever calls <code>name</code> and never assigns or defines it. That makes it the same call as <code>super().name()</code>, and the two spellings get the same result.</p>
 <p>In plain terms: <em>this class is doing unrelated jobs — split it, or make it a module of functions.</em></p>
 <h2 id="why-is-this-a-problem">Why is this a problem?<a class="headerlink" href="#why-is-this-a-problem" title="Permanent link">&para;</a></h2>
 <p>A class is meant to bundle state with the operations that act on it. When the methods don't touch the same state:</p>
@@ -3654,10 +3655,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "header.autohide", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.path", "navigation.top", "navigation.indexes", "navigation.tracking", "header.autohide", "toc.follow", "search.suggest", "search.highlight", "search.share", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.action.edit", "content.tooltips", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>
