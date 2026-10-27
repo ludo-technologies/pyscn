@@ -14,6 +14,8 @@ Constructors (`__init__`, `__new__`, and the dataclass `__post_init__` hook) are
 
 Methods that touch no instance state and are not connected to any other method by a call are left out of the graph too. They cannot be split from anything, so counting them would only inflate `LCOM4`.
 
+In a class with a base class, `self.name()` is treated as a call to an inherited method, not as instance state, when the class only ever calls `name` and never assigns or defines it. That makes it the same call as `super().name()`, and the two spellings get the same result.
+
 In plain terms: *this class is doing unrelated jobs — split it, or make it a module of functions.*
 
 ## Why is this a problem?

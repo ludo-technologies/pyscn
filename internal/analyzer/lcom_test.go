@@ -1380,6 +1380,187 @@ class C:
 	assert.Equal(t, 1, r.LCOM4)
 }
 
+func TestLCOMAnalyzer_InheritedMethodCallsAreNotVariables(t *testing.T) {
+	t.Run("self and super spellings score the same", func(t *testing.T) {
+		viaSelf := analyzeLCOMClass(t, `
+class Scope(NativeScope):
+    def spawn(self, coro):
+        self._track(coro)
+        return coro
+
+    def __enter__(self):
+        self._incr()
+        return self
+
+    def __exit__(self, *exc):
+        self._exit()
+`)
+		viaSuper := analyzeLCOMClass(t, `
+class Scope(NativeScope):
+    def spawn(self, coro):
+        super()._track(coro)
+        return coro
+
+    def __enter__(self):
+        super()._incr()
+        return self
+
+    def __exit__(self, *exc):
+        super()._exit()
+`)
+		for _, r := range []*LCOMResult{viaSelf, viaSuper} {
+			assert.Equal(t, 1, r.LCOM4)
+			assert.Equal(t, 3, r.TotalMethods)
+			assert.Equal(t, 3, r.ExcludedMethods)
+			assert.Equal(t, 0, r.InstanceVariables)
+			assert.Empty(t, r.MethodGroups)
+		}
+	})
+
+	t.Run("inherited calls next to real state", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class BookmarksView(OptionList):
+    def __init__(self):
+        super().__init__()
+        self._setup()
+        self.bookmarks = []
+
+    def update(self):
+        self.clear_options()
+        self.add_options(self.bookmarks)
+
+    def add(self, bookmark):
+        self.bookmarks.append(bookmark)
+
+    def refresh(self):
+        self.clear_options()
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 4, r.TotalMethods)
+		assert.Equal(t, 2, r.ExcludedMethods)
+		assert.Equal(t, 1, r.InstanceVariables, "only self.bookmarks; _setup, clear_options and add_options are inherited")
+		assert.Equal(t, [][]string{{"add", "update"}}, r.MethodGroups)
+	})
+
+	t.Run("callable stored on the instance stays a variable", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Worker(Base):
+    def __init__(self, handler):
+        self.handler = handler
+
+    def run(self):
+        self.handler()
+
+    def stop(self):
+        self.handler()
+`)
+		assert.Equal(t, 1, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"run", "stop"}}, r.MethodGroups)
+	})
+
+	t.Run("name bound in the class body stays a variable", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Hooks(Base):
+    callback = None
+    factory: Callable
+
+    def fire(self):
+        self.callback()
+
+    def build(self):
+        return self.factory()
+`)
+		assert.Equal(t, 2, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"build"}, {"fire"}}, r.MethodGroups)
+	})
+
+	t.Run("names declared in slots stay variables", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Worker(Base):
+    __slots__ = ("handler", "on_stop")
+
+    def run(self):
+        self.handler()
+
+    def stop(self):
+        self.on_stop()
+`)
+		assert.Equal(t, 2, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"run"}, {"stop"}}, r.MethodGroups)
+	})
+
+	t.Run("ctypes callback fields stay variables", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Ops(Structure):
+    def open(self):
+        return self.open_cb()
+
+    def close(self):
+        return self.close_cb()
+
+Ops._fields_ = [("open_cb", CB), ("close_cb", CB)]
+`)
+		assert.Equal(t, 2, r.LCOM4)
+		assert.Equal(t, 2, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"close"}, {"open"}}, r.MethodGroups)
+	})
+
+	t.Run("method defined in the class is not inherited", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Report(Base):
+    @staticmethod
+    def _fmt(value):
+        return str(value)
+
+    def show(self):
+        return self._fmt(1)
+
+    def log(self):
+        return self._fmt(2)
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, 1, r.ExcludedMethods)
+		assert.Equal(t, [][]string{{"log", "show"}}, r.MethodGroups)
+	})
+
+	t.Run("nested class self does not count for the outer class", func(t *testing.T) {
+		parsed, err := parser.New().Parse(context.Background(), []byte(`
+class Connection(Base):
+    class Session(Other):
+        def open(self):
+            self.close = None
+
+    def stop(self):
+        self.close()
+
+    def shutdown(self):
+        self.close()
+`))
+		require.NoError(t, err)
+		results, err := NewLCOMAnalyzer(nil).AnalyzeClasses(parsed.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+
+		r := results[0]
+		require.Equal(t, "Connection", r.ClassName)
+		assert.Equal(t, 0, r.InstanceVariables)
+		assert.Equal(t, 2, r.ExcludedMethods)
+	})
+
+	t.Run("class without bases has nothing to inherit", func(t *testing.T) {
+		r := analyzeLCOMClass(t, `
+class Plain:
+    def start(self):
+        self._callback()
+
+    def stop(self):
+        self._callback()
+`)
+		assert.Equal(t, 1, r.InstanceVariables)
+		assert.Equal(t, [][]string{{"start", "stop"}}, r.MethodGroups)
+	})
+}
+
 func TestLCOMAnalyzer_IterationProtocolConnectsMethods(t *testing.T) {
 	r := analyzeLCOMClass(t, `
 class Iterable:
