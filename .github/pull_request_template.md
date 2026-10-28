@@ -22,7 +22,14 @@ Closes #
 - [ ] `make test` passes locally
 - [ ] `make lint` passes locally
 - [ ] Added tests for new functionality (if applicable)
-- [ ] Manual testing completed (if applicable)
+
+## Verified Against a Real Project
+<!-- Required. Which Python repository did you run the patched pyscn on, and what changed in the output? -->
+<!-- Example: `pyscn analyze ~/src/requests` — duplication went from 12.4% to 8.1%, no new findings elsewhere. -->
+<!-- PRs without this are likely to be closed. -->
+- Repository:
+- Command:
+- Observed before/after:
 
 ## Documentation
 - [ ] Updated godoc comments
