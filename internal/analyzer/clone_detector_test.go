@@ -1999,3 +1999,36 @@ func TestDedupeCoveredCreatedGroups(t *testing.T) {
 		assert.Empty(t, superseded)
 	})
 }
+
+func TestFragmentComplexity(t *testing.T) {
+	source := `
+def load_user(data, strict):
+    if not data:
+        return None
+    result = {}
+    for key, value in data.items():
+        if key.startswith("_"):
+            continue
+        if strict and value is None:
+            raise ValueError(key)
+        result[key] = value
+    return result
+`
+	result, err := parser.New().Parse(context.Background(), []byte(source))
+	require.NoError(t, err)
+
+	config := DefaultCloneDetectorConfig()
+	config.MinLines = 1
+	config.MinNodes = 1
+	fragments := NewCloneDetector(config).ExtractFragmentsWithSource([]*parser.Node{result.AST}, "test.py", []byte(source))
+
+	complexities := map[parser.NodeType]int{}
+	for _, fragment := range fragments {
+		complexities[fragment.ASTNode.Type] = FragmentComplexity(fragment)
+	}
+	assert.Equal(t, 5, complexities[parser.NodeFunctionDef], "same as the complexity analyzer reports for load_user")
+	assert.Equal(t, 4, complexities[parser.NodeFor])
+
+	assert.Equal(t, 0, FragmentComplexity(nil))
+	assert.Equal(t, 0, FragmentComplexity(&CodeFragment{}))
+}
