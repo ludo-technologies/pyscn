@@ -322,9 +322,15 @@ func responsibilitySeverity(
 }
 
 func analyzePackageCohesion(graph *analyzer.DependencyGraph, minCohesion float64) *domain.CohesionAnalysis {
+	packageFor := func(module string) string {
+		if node := graph.Nodes[module]; node != nil && node.IsPackage {
+			return module
+		}
+		return packageNameForModule(module)
+	}
 	stats := make(map[string]*packageCohesionStats)
 	for module := range graph.Nodes {
-		pkg := packageNameForModule(module)
+		pkg := packageFor(module)
 		if pkg == "" {
 			continue
 		}
@@ -335,8 +341,8 @@ func analyzePackageCohesion(graph *analyzer.DependencyGraph, minCohesion float64
 	}
 
 	for _, edge := range graph.Edges {
-		fromPkg := packageNameForModule(edge.From)
-		toPkg := packageNameForModule(edge.To)
+		fromPkg := packageFor(edge.From)
+		toPkg := packageFor(edge.To)
 		if fromPkg == "" || stats[fromPkg] == nil {
 			continue
 		}

@@ -130,6 +130,37 @@ func TestAnalyzeResponsibilityKeepsCohesivePackageClean(t *testing.T) {
 	assert.InDelta(t, 1.0, cohesion.PackageCohesion["app.orders"], 0.01)
 }
 
+func TestAnalyzePackageCohesionAttributesPackageInitToItsOwnPackage(t *testing.T) {
+	graph := analyzer.NewDependencyGraph("/test/project")
+	for name, path := range map[string]string{
+		"app":         "app/__init__.py",
+		"app.cli":     "app/cli.py",
+		"app.config":  "app/config.py",
+		"app.utils":   "app/utils/__init__.py",
+		"app.utils.a": "app/utils/a.py",
+		"app.utils.b": "app/utils/b.py",
+		"app.utils.c": "app/utils/c.py",
+	} {
+		graph.AddModule(name, "/test/project/"+path)
+	}
+	for _, edge := range [][2]string{
+		{"app", "app.config"},
+		{"app.cli", "app.config"},
+		{"app.utils", "app.utils.a"},
+		{"app.utils", "app.utils.b"},
+		{"app.utils", "app.utils.c"},
+		{"app.utils.a", "app.utils.b"},
+		{"app.utils.b", "app.utils.c"},
+	} {
+		graph.AddDependency(edge[0], edge[1], analyzer.DependencyEdgeImport, nil)
+	}
+
+	cohesion := analyzePackageCohesion(graph, defaultMinPackageCohesion)
+	assert.Equal(t, 1.0, cohesion.PackageCohesion["app"])
+	assert.Equal(t, 1.0, cohesion.PackageCohesion["app.utils"])
+	assert.Empty(t, cohesion.LowCohesionPackages)
+}
+
 func TestAnalyzePackageCohesionFlagsScatteredPackage(t *testing.T) {
 	graph := analyzer.NewDependencyGraph("/test/project")
 
