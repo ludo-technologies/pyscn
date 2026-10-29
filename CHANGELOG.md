@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.33.1] - 2026-10-29
+
+### Fixed
+- Attribute package initializer imports to their own package (#863)
+- Exclude isolated modules from coupling averages (#854)
+- Report clone fragment complexity instead of always 0 (#864)
+- Count sibling modules as one concern in SRP analysis (#866)
+- Don't count inherited calls as variables in LCOM4 (#865)
+
 ## [1.33.0] - 2026-10-24
 
 ### BREAKING
