@@ -204,6 +204,40 @@ func TestConcernLabelSkipsGenericSegments(t *testing.T) {
 	assert.Equal(t, "billing", label)
 }
 
+func TestConcernLabelGroupsSiblingModules(t *testing.T) {
+	assert.Equal(t, "mypkg", concernLabel("mypkg._actor", "mypkg._errors"))
+	assert.Equal(t, "unit", concernLabel("engine.unit.unit", "engine.unit.add_leader_buff"))
+	assert.Equal(t, "routers", concernLabel("myapp.core", "myapp.routers.user_router"))
+	assert.Equal(t, "dns", concernLabel("aiomisc.service.dns.service", "aiomisc.service.dns.records"))
+	assert.Equal(t, "", concernLabel("app.utils.dates", "app.utils.strings"))
+}
+
+// Regression for #846: a facade composing private helpers from its own
+// package must count them as one concern, not one per sibling module.
+func TestAnalyzeResponsibilityCountsSiblingModulesAsOneConcern(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	siblings := []string{
+		"mypkg._errors",
+		"mypkg._messages",
+		"mypkg._ref",
+		"mypkg._registry",
+	}
+	graph.AddModule("mypkg._actor", "/test/project/mypkg/_actor.py")
+	for _, module := range siblings {
+		graph.AddModule(module, "/test/project/"+module+".py")
+		graph.AddDependency("mypkg._actor", module, analyzer.DependencyEdgeImport, nil)
+	}
+
+	responsibility, _, violations := service.analyzeResponsibility(graph, defaultResponsibilityOptions())
+
+	require.NotNil(t, responsibility)
+	assert.Equal(t, []string{"mypkg"}, responsibility.ModuleResponsibilities["mypkg._actor"])
+	assert.Empty(t, responsibility.SRPViolations)
+	assert.Empty(t, violations)
+}
+
 func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
 	service := NewSystemAnalysisService()
 	graph := analyzer.NewDependencyGraph("/test/project")

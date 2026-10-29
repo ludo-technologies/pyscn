@@ -175,6 +175,7 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 	// Aggregate metrics
 	var totalFanIn, totalFanOut float64
 	var totalInstability, totalAbstractness, totalDistance float64
+	coupledModules := 0
 
 	for _, metrics := range moduleMetrics {
 		if err := ctx.Err(); err != nil {
@@ -182,8 +183,13 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 		}
 		totalFanIn += float64(metrics.AfferentCoupling)
 		totalFanOut += float64(metrics.EfferentCoupling)
-		totalInstability += metrics.Instability
 		totalAbstractness += metrics.Abstractness
+		// Instability and distance are undefined for isolated modules.
+		if IsIsolatedModule(metrics) {
+			continue
+		}
+		coupledModules++
+		totalInstability += metrics.Instability
 		totalDistance += metrics.Distance
 	}
 
@@ -193,9 +199,11 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 	systemMetrics.AverageFanIn = totalFanIn / moduleCount
 	systemMetrics.AverageFanOut = totalFanOut / moduleCount
 	systemMetrics.DependencyRatio = float64(systemMetrics.TotalDependencies) / moduleCount
-	systemMetrics.AverageInstability = totalInstability / moduleCount
 	systemMetrics.AverageAbstractness = totalAbstractness / moduleCount
-	systemMetrics.MainSequenceDeviation = totalDistance / moduleCount
+	if coupledModules > 0 {
+		systemMetrics.AverageInstability = totalInstability / float64(coupledModules)
+		systemMetrics.MainSequenceDeviation = totalDistance / float64(coupledModules)
+	}
 
 	// Calculate modularity index
 	systemMetrics.ModularityIndex = calc.calculateModularityIndex()
@@ -220,6 +228,13 @@ func (calc *CouplingMetricsCalculator) calculateSystemMetrics(
 	systemMetrics.MainSequence = modulesMatching(moduleMetrics, isOnMainSequence)
 
 	return systemMetrics, nil
+}
+
+// IsIsolatedModule reports whether a module has no in-project imports and no
+// importers (Ca + Ce = 0). Martin's instability Ce/(Ca+Ce) is undefined for
+// such modules, so their instability and distance carry no signal.
+func IsIsolatedModule(metrics *ModuleMetrics) bool {
+	return metrics.AfferentCoupling+metrics.EfferentCoupling == 0
 }
 
 func isStableModule(metrics *ModuleMetrics) bool {
@@ -332,15 +347,18 @@ func (calc *CouplingMetricsCalculator) calculateSystemComplexity(
 
 	// Coupling complexity (variance in instability)
 	var instabilityVariance float64
-	if len(moduleMetrics) > 1 {
-		var sumSquaredDiffs float64
-
-		for _, metrics := range moduleMetrics {
-			diff := metrics.Instability - averageInstability
-			sumSquaredDiffs += diff * diff
+	var sumSquaredDiffs float64
+	coupledModules := 0
+	for _, metrics := range moduleMetrics {
+		if IsIsolatedModule(metrics) {
+			continue
 		}
-
-		instabilityVariance = sumSquaredDiffs / float64(len(moduleMetrics))
+		diff := metrics.Instability - averageInstability
+		sumSquaredDiffs += diff * diff
+		coupledModules++
+	}
+	if coupledModules > 1 {
+		instabilityVariance = sumSquaredDiffs / float64(coupledModules)
 	}
 
 	couplingComplexity := math.Sqrt(instabilityVariance) * 10 // Scale to reasonable range
@@ -364,7 +382,7 @@ func (calc *CouplingMetricsCalculator) identifyRefactoringPriorities(
 		priority := 0.0
 
 		// High priority for poor architectural position
-		if metrics.Distance > 0.5 {
+		if !IsIsolatedModule(metrics) && metrics.Distance > 0.5 {
 			priority += metrics.Distance * 50
 		}
 

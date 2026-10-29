@@ -231,6 +231,8 @@ func (s *CloneService) buildCloneResponse(
 	// Detect clones (detector will automatically use LSH or standard algorithm based on UseLSH setting)
 	detectionResult := detector.DetectClonesWithLSH(ctx, allFragments)
 
+	measureCloneComplexity(detectionResult)
+
 	// Convert to domain objects
 	domainClones, fragmentIDs := s.convertFragmentsToDomainClones(allFragments)
 	allClonePairs := s.convertClonePairsToDomain(detectionResult.Pairs, req.ShouldShowContent(), fragmentIDs)
@@ -375,6 +377,29 @@ func (s *CloneService) createDetectorConfig(req *domain.CloneRequest) *analyzer.
 	}
 }
 
+// measureCloneComplexity fills in the cyclomatic complexity of every fragment
+// that is part of a detected pair or group. Only those fragments are reported,
+// so the rest are left unmeasured.
+func measureCloneComplexity(result *analyzer.CloneDetectionResult) {
+	if result == nil {
+		return
+	}
+	measure := func(fragment *analyzer.CodeFragment) {
+		if fragment != nil && fragment.Complexity == 0 {
+			fragment.Complexity = analyzer.FragmentComplexity(fragment)
+		}
+	}
+	for _, pair := range result.Pairs {
+		measure(pair.Fragment1)
+		measure(pair.Fragment2)
+	}
+	for _, group := range result.Groups {
+		for _, fragment := range group.Fragments {
+			measure(fragment)
+		}
+	}
+}
+
 // convertFragmentsToDomainClones converts analyzer fragments to domain clones.
 //
 // It also returns a fragment -> id map so that the same fragment receives the
@@ -429,9 +454,10 @@ func (s *CloneService) convertClonePairsToDomain(
 				StartCol:  pair.Fragment1.Location.StartCol,
 				EndCol:    pair.Fragment1.Location.EndCol,
 			},
-			Hash:      pair.Fragment1.Hash,
-			Size:      pair.Fragment1.Size,
-			LineCount: pair.Fragment1.LineCount,
+			Hash:       pair.Fragment1.Hash,
+			Size:       pair.Fragment1.Size,
+			LineCount:  pair.Fragment1.LineCount,
+			Complexity: pair.Fragment1.Complexity,
 		}
 		clone2 := &domain.Clone{
 			ID:   fragmentIDs[pair.Fragment2],
@@ -443,9 +469,10 @@ func (s *CloneService) convertClonePairsToDomain(
 				StartCol:  pair.Fragment2.Location.StartCol,
 				EndCol:    pair.Fragment2.Location.EndCol,
 			},
-			Hash:      pair.Fragment2.Hash,
-			Size:      pair.Fragment2.Size,
-			LineCount: pair.Fragment2.LineCount,
+			Hash:       pair.Fragment2.Hash,
+			Size:       pair.Fragment2.Size,
+			LineCount:  pair.Fragment2.LineCount,
+			Complexity: pair.Fragment2.Complexity,
 		}
 		if includeContent {
 			clone1.Content = pair.Fragment1.Content
@@ -536,9 +563,10 @@ func (s *CloneService) convertCloneGroupsToDomain(
 					StartCol:  fragment.Location.StartCol,
 					EndCol:    fragment.Location.EndCol,
 				},
-				Hash:      fragment.Hash,
-				Size:      fragment.Size,
-				LineCount: fragment.LineCount,
+				Hash:       fragment.Hash,
+				Size:       fragment.Size,
+				LineCount:  fragment.LineCount,
+				Complexity: fragment.Complexity,
 			}
 			if includeContent {
 				clone.Content = fragment.Content

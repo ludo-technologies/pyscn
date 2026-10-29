@@ -268,6 +268,12 @@ func concernLabel(module, neighbor string) string {
 	for i < limit && moduleParts[i] == neighborParts[i] {
 		i++
 	}
+	// Sibling modules in the module's own package share one concern named
+	// after that package, so a facade over private helpers is not counted as
+	// mixing one concern per file (#846).
+	if i > 0 && i == len(moduleParts)-1 && len(neighborParts) == len(moduleParts) {
+		return firstMeaningfulSegment(moduleParts[i-1 : i])
+	}
 	if i < len(neighborParts) {
 		return firstMeaningfulSegment(neighborParts[i:])
 	}

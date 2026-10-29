@@ -181,6 +181,20 @@ func (cd *CloneDetector) newFragment(location *CodeLocation, astNode *parser.Nod
 	return fragment
 }
 
+// FragmentComplexity returns the cyclomatic complexity of a fragment's code,
+// measured the same way the complexity analyzer measures it. It is 0 when the
+// fragment has no AST node.
+func FragmentComplexity(fragment *CodeFragment) int {
+	if fragment == nil || fragment.ASTNode == nil {
+		return 0
+	}
+	cfg, err := NewCFGBuilder().Build(fragment.ASTNode)
+	if err != nil {
+		return 0
+	}
+	return CalculateComplexity(cfg).Complexity
+}
+
 // calculateASTSize calculates the number of nodes in an AST
 func calculateASTSize(node *parser.Node) int {
 	if node == nil {

@@ -1,10 +1,12 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/ludo-technologies/pyscn/domain"
 	"github.com/ludo-technologies/pyscn/internal/analyzer"
+	"github.com/ludo-technologies/pyscn/internal/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -178,4 +180,39 @@ func TestCloneService_FilterClonesToReferencedFragments(t *testing.T) {
 	assert.Equal(t, 3, pairs[0].Clone2.ID)
 	assert.Equal(t, domain.Type2Clone, pairs[0].Clone1.Type)
 	assert.Equal(t, domain.Type2Clone, pairs[0].Clone2.Type)
+}
+
+func TestCloneService_ReportsFragmentComplexity(t *testing.T) {
+	service := NewCloneService()
+	src := []byte("def a(x):\n    if x:\n        return 1\n    return 2\n\n\ndef b(x):\n    if x:\n        return 1\n    return 2\n")
+	parsed, err := parser.New().Parse(context.Background(), src)
+	require.NoError(t, err)
+
+	cfg := analyzer.DefaultCloneDetectorConfig()
+	cfg.MinLines = 1
+	cfg.MinNodes = 1
+	fragments := analyzer.NewCloneDetector(cfg).ExtractFragmentsWithSource([]*parser.Node{parsed.AST}, "a.py", src)
+	var funcs []*analyzer.CodeFragment
+	for _, fragment := range fragments {
+		if fragment.ASTNode.Type == parser.NodeFunctionDef {
+			funcs = append(funcs, fragment)
+		}
+	}
+	require.Len(t, funcs, 2)
+
+	result := &analyzer.CloneDetectionResult{
+		Pairs:  []*analyzer.ClonePair{{Fragment1: funcs[0], Fragment2: funcs[1], Similarity: 1.0, CloneType: analyzer.Type2Clone}},
+		Groups: []*analyzer.CloneGroup{{ID: 1, CloneType: analyzer.Type2Clone, Similarity: 1.0, Size: 2, Fragments: funcs}},
+	}
+	measureCloneComplexity(result)
+
+	clones, fragmentIDs := service.convertFragmentsToDomainClones(funcs)
+	pairs := service.convertClonePairsToDomain(result.Pairs, false, fragmentIDs)
+	groups := service.convertCloneGroupsToDomain(result.Groups, false, fragmentIDs)
+
+	require.Len(t, pairs, 1)
+	require.Len(t, groups, 1)
+	for _, clone := range []*domain.Clone{clones[0], clones[1], pairs[0].Clone1, pairs[0].Clone2, groups[0].Clones[0], groups[0].Clones[1]} {
+		assert.Equal(t, 2, clone.Complexity)
+	}
 }

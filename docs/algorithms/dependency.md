@@ -288,7 +288,7 @@ I = Ce / (Ca + Ce)
 | I = 0 | Maximally stable -- only depended upon, depends on nothing |
 | I = 1 | Maximally unstable -- depends on others, nobody depends on it |
 
-If `Ca + Ce = 0` (isolated module), instability defaults to 0.
+If `Ca + Ce = 0` (isolated module), instability is undefined. It is reported as 0, but isolated modules are left out of the system-wide averages (average instability and main sequence deviation), are not refactoring candidates by distance, and are always low risk.
 
 ### Abstractness (A)
 
