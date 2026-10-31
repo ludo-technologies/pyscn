@@ -1935,3 +1935,44 @@ func BenchmarkLargeClassHierarchy(b *testing.B) {
 		}
 	}
 }
+
+func TestCBOAnalyzer_DottedClassReferenceAsCallArgument(t *testing.T) {
+	pythonCode := `
+import pkg.models
+
+class Direct:
+    def check(self, x):
+        return isinstance(x, pkg.models.Frame)
+
+class Wrapped:
+    def check(self, x):
+        return isinstance(x, (pkg.models.Frame,))
+
+class Passed:
+    def check(self, f):
+        return f(pkg.models.Other)
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	results, err := NewCBOAnalyzer(DefaultCBOOptions()).AnalyzeClasses(ast, "user.py")
+	require.NoError(t, err)
+	require.Len(t, results, 3)
+
+	resultMap := make(map[string]*CBOResult)
+	for _, result := range results {
+		resultMap[result.ClassName] = result
+	}
+
+	for className, want := range map[string]string{
+		"Direct":  "pkg.models.Frame",
+		"Wrapped": "pkg.models.Frame",
+		"Passed":  "pkg.models.Other",
+	} {
+		result := resultMap[className]
+		require.NotNil(t, result, "class %s not found", className)
+		assert.Equal(t, []string{want}, result.DependentClasses, "unexpected dependencies for %s", className)
+		assert.Equal(t, 1, result.CouplingCount, "unexpected CBO for %s", className)
+	}
+}
