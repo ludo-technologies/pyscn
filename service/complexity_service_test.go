@@ -366,6 +366,40 @@ def handle(value):
 		assert.Equal(t, 5, handler.Metrics.CognitiveComplexity)
 	})
 
+	t.Run("functions carry the line of their deepest nested block", func(t *testing.T) {
+		tempDir := t.TempDir()
+		filePath := tempDir + "/deep_nesting.py"
+		content := []byte(`def handle(events, a, b, c):
+    """Process events."""
+    total = 0
+    for e in events:
+        if e.kind == 1:
+            if a:
+                if b:
+                    if c:
+                        if e.value > 10:
+                            total += e.value
+                        elif e.value > 5:
+                            total -= 1
+        elif e.kind == 2:
+            total += 2
+    return total
+`)
+		err := os.WriteFile(filePath, content, 0644)
+		require.NoError(t, err)
+
+		req := newDefaultComplexityRequest(filePath)
+
+		response, err := service.Analyze(ctx, req)
+
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		handler := findFunctionComplexity(response.Functions, "handle")
+		require.NotNil(t, handler)
+		assert.Equal(t, 1, handler.StartLine)
+		assert.Equal(t, 9, handler.Metrics.DeepestNestingLine)
+	})
+
 	t.Run("module-level complexity includes cognitive and nesting metrics", func(t *testing.T) {
 		tempDir := t.TempDir()
 		filePath := tempDir + "/module_control_flow.py"
