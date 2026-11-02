@@ -28,14 +28,21 @@ Unsure where to begin contributing? You can start by looking through these `good
 - [Good first issues](https://github.com/ludo-technologies/pyscn/labels/good%20first%20issue) - issues which should only require a few lines of code
 - [Help wanted issues](https://github.com/ludo-technologies/pyscn/labels/help%20wanted) - issues which should be a bit more involved
 
+### Claiming an issue
+
+Issues labeled `auto-filed` come from our own audit runs against real Python projects. Before you start on one, comment on the issue and say which Python project you ran pyscn on. A maintainer will assign you, usually within a day. Pull requests on `auto-filed` issues from anyone who is not assigned are closed automatically. Once you are assigned, reopen yours and it will go through.
+
+We expect you to have run pyscn before you change it. Using AI tools to write the change is fine. Opening a pull request that only restates the issue, without having run the tool against anything, is not, and such PRs are closed without review.
+
 ## Development Process
 
-1. Fork the repo and create your branch from `main`
-2. If you've added code that should be tested, add tests
-3. If you've changed APIs, update the documentation
-4. Ensure the test suite passes
-5. Make sure your code follows the existing style
-6. Issue that pull request!
+1. Pick an issue. If it is labeled `auto-filed`, claim it first (see above)
+2. Fork the repo and create your branch from `main`
+3. If you've added code that should be tested, add tests
+4. If you've changed APIs, update the documentation
+5. Ensure the test suite passes
+6. Make sure your code follows the existing style
+7. Issue that pull request!
 
 ## Setting Up Your Development Environment
 
@@ -110,9 +117,10 @@ Fixes #123
 
 ## Pull Request Process
 
-1. Update the README.md with details of changes if applicable
-2. Update documentation for any changed functionality
-3. The PR will be merged once you have the sign-off of at least one maintainer
+1. Fill in the "Verified Against a Real Project" section of the PR template. Run the patched pyscn on a project other than the one named in the issue and paste the output as printed
+2. Update the README.md with details of changes if applicable
+3. Update documentation for any changed functionality
+4. The PR will be merged once you have the sign-off of at least one maintainer
 
 ## Release Process
 
