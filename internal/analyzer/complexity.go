@@ -26,6 +26,7 @@ type ComplexityResult struct {
 
 	// Nesting depth
 	NestingDepth        int
+	DeepestNestingLine  int
 	CognitiveComplexity int
 
 	// Decision points breakdown
@@ -107,11 +108,14 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 	// Calculate nesting depth and location from the original AST node if available.
 	// The same node feeds CalculateCognitiveComplexity above via cfgSourceNode.
 	nestingDepth := 0
+	deepestNestingLine := 0
 	startLine := 0
 	startCol := 0
 	endLine := 0
 	if sourceNode != nil {
-		nestingDepth = CalculateMaxNestingDepth(sourceNode).MaxDepth
+		nesting := CalculateMaxNestingDepth(sourceNode)
+		nestingDepth = nesting.MaxDepth
+		deepestNestingLine = nesting.DeepestNestingLine
 
 		startLine = sourceNode.Location.StartLine
 		startCol = sourceNode.Location.StartCol
@@ -128,6 +132,7 @@ func CalculateComplexityWithConfig(cfg *CFG, complexityConfig *config.Complexity
 		StartCol:            startCol,
 		EndLine:             endLine,
 		NestingDepth:        nestingDepth,
+		DeepestNestingLine:  deepestNestingLine,
 		CognitiveComplexity: reportedMetrics.CognitiveComplexity,
 		IfStatements:        reportedMetrics.IfStatements,
 		LoopStatements:      reportedMetrics.LoopStatements,

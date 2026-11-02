@@ -181,6 +181,10 @@ type classMethods struct {
 
 	// excluded counts the methods kept out of the graph.
 	excluded int
+
+	// accessorFields maps a participating method whose body has the shape of a
+	// trivial one-field accessor to the instance variable it reads or writes.
+	accessorFields map[string]string
 }
 
 // collectMethods extracts instance methods and their self.xxx variable accesses from a class.
@@ -188,6 +192,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	methods := make(map[string]map[string]bool)
 	calls := make(map[string]map[string]bool)
 	excludedVars := make(map[string]bool)
+	accessorFields := make(map[string]string)
 	excluded := 0
 
 	// A bare `self.<name>` read of a @property is a method invocation via the
@@ -255,6 +260,9 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 			}
 		}
 		methods[node.Name] = vars
+		if field, ok := a.trivialAccessorField(node); ok {
+			accessorFields[node.Name] = field
+		}
 
 		methodCalls := make(map[string]bool)
 		a.extractMethodCalls(node, methodCalls, protocolDefinitions, len(classNode.Bases) == 0)
@@ -274,12 +282,14 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	}
 
 	collected := classMethods{
-		methods:      methods,
-		calls:        calls,
-		excludedVars: excludedVars,
-		excluded:     excluded,
+		methods:        methods,
+		calls:          calls,
+		excludedVars:   excludedVars,
+		excluded:       excluded,
+		accessorFields: accessorFields,
 	}
 	excludeStatelessMethods(&collected)
+	excludeTrivialAccessors(&collected)
 	return collected
 }
 
@@ -305,6 +315,119 @@ func excludeStatelessMethods(collected *classMethods) {
 		delete(collected.calls, name)
 		collected.excluded++
 	}
+}
+
+// excludeTrivialAccessors moves one-field getters and setters out of the graph.
+// Such a method touches a single variable whose other uses are in the
+// constructor, in subclasses or through another receiver, so it always ends up
+// as its own component and inflates LCOM4 without naming anything to split.
+// A method qualifies when its body has the accessor shape (see
+// trivialAccessorField), it touches exactly that one variable, it shares no call
+// edge with another participating method, and no participating non-accessor
+// method touches the variable. Like the stateless pass, the decision is made
+// once against the full set. The variable stays in the InstanceVariables count.
+func excludeTrivialAccessors(collected *classMethods) {
+	candidates := make(map[string]string)
+	for name, field := range collected.accessorFields {
+		vars, ok := collected.methods[name]
+		if !ok || len(vars) != 1 || !vars[field] || methodConnectedByCall(collected.methods, collected.calls, name) {
+			continue
+		}
+		candidates[name] = field
+	}
+	var accessors []string
+	for name, field := range candidates {
+		shared := false
+		for other, vars := range collected.methods {
+			if _, isCandidate := candidates[other]; !isCandidate && vars[field] {
+				shared = true
+				break
+			}
+		}
+		if !shared {
+			accessors = append(accessors, name)
+		}
+	}
+	for _, name := range accessors {
+		collected.excludedVars[candidates[name]] = true
+		delete(collected.methods, name)
+		delete(collected.calls, name)
+		collected.excluded++
+	}
+}
+
+// trivialAccessorField reports whether a method body has the shape of a one-field
+// accessor and returns that field. Every statement must be one of:
+//   - a docstring, or pass
+//   - `self.<field> = <expr without self>`
+//   - `return self.<field>`, `return self`, `return <constant>` or a bare return
+//   - a guard that does not use self: `assert <cond>`, or `if <cond>: raise ...`
+//
+// and the statements must touch exactly one field between them.
+func (a *LCOMAnalyzer) trivialAccessorField(fn *parser.Node) (string, bool) {
+	field := ""
+	use := func(name string) bool {
+		if field == "" {
+			field = name
+		}
+		return name != "" && name == field
+	}
+	for _, stmt := range fn.Body {
+		if stmt == nil {
+			continue
+		}
+		switch stmt.Type {
+		case parser.NodeConstant, parser.NodePass:
+		case parser.NodeAssign:
+			if len(stmt.Targets) != 1 || stmt.Targets[0].Type != parser.NodeAttribute || !isDirectSelfAttribute(stmt.Targets[0]) {
+				return "", false
+			}
+			if mentionsSelf(nodeValue(stmt)) || !use(stmt.Targets[0].Name) {
+				return "", false
+			}
+		case parser.NodeReturn:
+			value := nodeValue(stmt)
+			switch {
+			case value == nil, value.Type == parser.NodeConstant:
+			case value.Type == parser.NodeName && value.Name == "self":
+			case value.Type == parser.NodeAttribute && isDirectSelfAttribute(value):
+				if !use(value.Name) {
+					return "", false
+				}
+			default:
+				return "", false
+			}
+		case parser.NodeAssert:
+			if mentionsSelf(stmt.Test) {
+				return "", false
+			}
+		case parser.NodeIf:
+			if mentionsSelf(stmt.Test) || len(stmt.Orelse) > 0 || len(stmt.Body) == 0 {
+				return "", false
+			}
+			for _, inner := range stmt.Body {
+				if inner == nil || inner.Type != parser.NodeRaise || mentionsSelf(inner) {
+					return "", false
+				}
+			}
+		default:
+			return "", false
+		}
+	}
+	return field, field != ""
+}
+
+// isDirectSelfAttribute reports whether node is `self.<name>` with self as the
+// immediate base, as opposed to `self.a.b` or `other.<name>`.
+func isDirectSelfAttribute(node *parser.Node) bool {
+	if node.Name == "" {
+		return false
+	}
+	base := nodeValue(node)
+	if base == nil {
+		base = node.Left
+	}
+	return base != nil && base.Type == parser.NodeName && base.Name == "self"
 }
 
 // methodConnectedByCall reports whether name calls, or is called by, a
@@ -379,6 +502,9 @@ func raisesNotImplemented(raiseNode *parser.Node) bool {
 }
 
 func mentionsSelf(node *parser.Node) bool {
+	if node == nil {
+		return false
+	}
 	found := false
 	node.WalkDeep(func(n *parser.Node) bool {
 		if n.Type == parser.NodeName && n.Name == "self" {

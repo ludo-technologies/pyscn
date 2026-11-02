@@ -297,6 +297,7 @@ The standalone complexity formatter uses `by_directory` at the report root besid
 | `nodes`                | integer | CFG node count.                         |
 | `edges`                | integer | CFG edge count.                         |
 | `nesting_depth`        | integer | Maximum nesting depth.                  |
+| `deepest_nesting_line` | integer | Line of the deepest nested block.       |
 | `if_statements`        | integer | Count of `if` statements.               |
 | `loop_statements`      | integer | Count of `for`/`while` loops.           |
 | `exception_handlers`   | integer | Count of `except` clauses.              |

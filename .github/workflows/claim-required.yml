@@ -1,0 +1,73 @@
+name: Require Claim on Auto-filed Issues
+
+# PRs that close an `auto-filed` issue are accepted only from the person
+# assigned to that issue. Anyone else is asked to comment on the issue first.
+# See CONTRIBUTING.md, "Claiming an issue".
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+  issues: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.type != 'Bot'
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const { owner, repo } = context.repo;
+            const author = pr.user.login;
+
+            if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(pr.author_association)) {
+              core.info(`${author} is ${pr.author_association}; skipping`);
+              return;
+            }
+
+            const body = pr.body || '';
+            const issueUrl = `https://github\\.com/${owner}/${repo}/issues/`;
+            const re = new RegExp(
+              `\\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\\b[\\s:]*(?:#|${issueUrl})(\\d+)`,
+              'gi'
+            );
+            const numbers = [...new Set([...body.matchAll(re)].map(m => Number(m[1])))];
+            if (numbers.length === 0) {
+              core.info('no closing reference in PR body; skipping');
+              return;
+            }
+
+            const blocked = [];
+            for (const issue_number of numbers) {
+              let issue;
+              try {
+                ({ data: issue } = await github.rest.issues.get({ owner, repo, issue_number }));
+              } catch (e) {
+                if (e.status === 404) continue;
+                throw e;
+              }
+              if (issue.pull_request) continue;
+              const autoFiled = issue.labels.some(l => l.name === 'auto-filed');
+              if (!autoFiled) continue;
+              const assigned = issue.assignees.some(a => a.login === author);
+              core.info(`#${issue_number}: auto-filed, assigned to author = ${assigned}`);
+              if (!assigned) blocked.push(issue_number);
+            }
+            if (blocked.length === 0) return;
+
+            const refs = blocked.map(n => `#${n}`).join(', ');
+            const comment = [
+              `Thanks for the PR. It targets ${refs}, which is an auto-filed issue. PRs for auto-filed issues are accepted only from the person assigned to the issue, so this PR has been closed automatically.`,
+              '',
+              `If you want to work on it: comment on ${refs} first and say which Python project you ran pyscn on. Once a maintainer assigns you, reopen this PR.`,
+              '',
+              'See the "Claiming an issue" section of CONTRIBUTING.md.',
+            ].join('\n');
+
+            await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body: comment });
+            await github.rest.pulls.update({ owner, repo, pull_number: pr.number, state: 'closed' });
+            core.notice(`closed #${pr.number}: ${author} is not assigned to ${refs}`);

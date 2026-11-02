@@ -71,7 +71,7 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 					ScopeKind: AnalysisScopeFunction,
 					FilePath:  "a.py",
 					StartLine: 42,
-					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 5},
+					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 5, DeepestNestingLine: 57},
 				},
 			},
 		},
@@ -94,6 +94,33 @@ func TestGenerateSuggestions_ComplexityNestingDepth(t *testing.T) {
 	}
 	if !strings.Contains(suggestions[0].Steps[1], "guard clauses") {
 		t.Errorf("expected 'guard clauses' in steps for deep nesting, got: %v", suggestions[0].Steps)
+	}
+	if suggestions[0].Steps[0] != "Identify the deepest nested block at line 57" {
+		t.Errorf("expected step to point at the deepest nested block, got: %s", suggestions[0].Steps[0])
+	}
+}
+
+func TestGenerateSuggestions_ComplexityNestingDepthWithoutLine(t *testing.T) {
+	resp := &AnalyzeResponse{
+		Complexity: &ComplexityResponse{
+			Functions: []FunctionComplexity{
+				{
+					Name:      "deep_func",
+					ScopeKind: AnalysisScopeFunction,
+					FilePath:  "a.py",
+					StartLine: 42,
+					Metrics:   ComplexityMetrics{Complexity: 25, NestingDepth: 5},
+				},
+			},
+		},
+	}
+
+	suggestions := GenerateSuggestions(resp)
+	if len(suggestions) != 1 {
+		t.Fatalf("expected 1 suggestion, got %d", len(suggestions))
+	}
+	if suggestions[0].Steps[0] != "Identify the deepest nested block at line 42" {
+		t.Errorf("expected step to fall back to the function's start line, got: %s", suggestions[0].Steps[0])
 	}
 }
 

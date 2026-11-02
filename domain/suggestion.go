@@ -127,8 +127,12 @@ func generateComplexitySuggestions(resp *ComplexityResponse) []Suggestion {
 			desc = fmt.Sprintf("Function '%s' has cyclomatic complexity of %d.", f.Name, complexity)
 			if f.Metrics.NestingDepth > 4 {
 				desc += " Consider using early returns or guard clauses to reduce nesting depth."
+				deepestLine := f.Metrics.DeepestNestingLine
+				if deepestLine == 0 {
+					deepestLine = f.StartLine
+				}
 				steps = []string{
-					fmt.Sprintf("Identify the deepest nested block at line %d", f.StartLine),
+					fmt.Sprintf("Identify the deepest nested block at line %d", deepestLine),
 					"Convert nested conditions to early returns or guard clauses",
 					fmt.Sprintf("Re-run: pyscn analyze %s", f.FilePath),
 				}
