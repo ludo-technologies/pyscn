@@ -19,14 +19,12 @@ class CohesiveClass:
 # Let's make it truly disconnected:
 class TwoGroupClass:
     def get_a(self):
-        return self.a
-
+        return len(self.a)
     def set_a(self, v):
         self.a = v
 
     def get_b(self):
-        return self.b
-
+        return len(self.b)
     def set_b(self, v):
         self.b = v
 
@@ -34,13 +32,11 @@ class TwoGroupClass:
 # LCOM4 = 3: Three disconnected groups
 class ThreeGroupClass:
     def method_x(self):
-        return self.x
-
+        return len(self.x)
     def method_y(self):
-        return self.y
-
+        return len(self.y)
     def method_z(self):
-        return self.z
+        return len(self.z)
 
 
 # LCOM4 = 1: Class with @staticmethod and @classmethod (excluded)

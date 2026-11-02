@@ -80,14 +80,12 @@ class CohesiveClass:
 			pythonCode: `
 class TwoGroupClass:
     def get_a(self):
-        return self.a
-
+        return len(self.a)
     def set_a(self, v):
         self.a = v
 
     def get_b(self):
-        return self.b
-
+        return len(self.b)
     def set_b(self, v):
         self.b = v
 `,
@@ -100,14 +98,11 @@ class TwoGroupClass:
 			pythonCode: `
 class ThreeGroupClass:
     def method_x(self):
-        return self.x
-
+        return len(self.x)
     def method_y(self):
-        return self.y
-
+        return len(self.y)
     def method_z(self):
-        return self.z
-`,
+        return len(self.z)`,
 			expectedCount: 1,
 			expectedLCOM:  map[string]int{"ThreeGroupClass": 3},
 			expectedRisk:  map[string]string{"ThreeGroupClass": "medium"},
@@ -170,8 +165,7 @@ class MyProvider:
         raise NotImplementedError
 
     def status(self):
-        return self.state
-`,
+        return len(self.state)`,
 			expectedCount:    1,
 			expectedLCOM:     map[string]int{"MyProvider": 1},
 			expectedRisk:     map[string]string{"MyProvider": "low"},
@@ -198,11 +192,10 @@ class Generic(typing.Protocol[T]):
 
 class Impl:
     def setup(self):
-        self.ready = True
+        self.ready = not self.ready
 
     def unrelated(self):
-        return self.other
-`,
+        return len(self.other)`,
 			expectedCount: 1,
 			expectedLCOM:  map[string]int{"Impl": 2},
 			expectedRisk:  map[string]string{"Impl": "low"},
@@ -246,17 +239,16 @@ class Handler(protocol.Protocol):
         self.transport.write(self.banner)
 
     def timeout(self):
-        return self.deadline
-
+        return len(self.deadline)
 class Custom(Enum):
-    def a(self): return self.x
-    def b(self): return self.y
-    def c(self): return self.z
+    def a(self): return len(self.x)
+    def b(self): return len(self.y)
+    def c(self): return len(self.z)
 
 class Local(Protocol):
-    def a(self): return self.x
-    def b(self): return self.y
-    def c(self): return self.z
+    def a(self): return len(self.x)
+    def b(self): return len(self.y)
+    def c(self): return len(self.z)
 `,
 			expectedCount: 3,
 			expectedLCOM:  map[string]int{"Handler": 3, "Custom": 3, "Local": 3},
@@ -310,8 +302,7 @@ class Hooks:
         raise NotImplementedError("subclass must implement")
 
     def run(self):
-        return self.state
-
+        return len(self.state)
     def reset(self):
         self.state = None
 `,
@@ -331,8 +322,7 @@ class Partial:
         raise NotImplementedError from self.cause
 
     def run(self):
-        return self.state
-
+        return len(self.state)
     def reset(self):
         self.state = None
 `,
@@ -349,8 +339,7 @@ class Guard:
         raise ValueError("bad")
 
     def run(self):
-        return self.state
-
+        return len(self.state)
     def reset(self):
         self.state = None
 `,
@@ -367,8 +356,7 @@ class Guard:
         raise ValueError(self.reason)
 
     def run(self):
-        return self.state
-
+        return len(self.state)
     def reset(self):
         self.state = None
 `,
@@ -388,8 +376,7 @@ class Registry:
         return cls
 
     def run(self):
-        return self.state
-
+        return len(self.state)
     def reset(self):
         self.state = None
 `,
@@ -492,15 +479,12 @@ class MagicMethodClass:
 			pythonCode: `
 class ClassA:
     def method(self):
-        return self.x
-
+        return len(self.x)
 class ClassB:
     def method1(self):
-        return self.a
-
+        return len(self.a)
     def method2(self):
-        return self.b
-`,
+        return len(self.b)`,
 			expectedCount: 2,
 			expectedLCOM: map[string]int{
 				"ClassA": 1,
@@ -516,18 +500,17 @@ class ClassB:
 			pythonCode: `
 class HighLCOMClass:
     def method1(self):
-        return self.a
+        return len(self.a)
     def method2(self):
-        return self.b
+        return len(self.b)
     def method3(self):
-        return self.c
+        return len(self.c)
     def method4(self):
-        return self.d
+        return len(self.d)
     def method5(self):
-        return self.e
+        return len(self.e)
     def method6(self):
-        return self.f
-`,
+        return len(self.f)`,
 			expectedCount: 1,
 			expectedLCOM:  map[string]int{"HighLCOMClass": 6},
 			expectedRisk:  map[string]string{"HighLCOMClass": "high"},
@@ -554,8 +537,7 @@ class CallConnectedClass:
 			pythonCode: `
 class MixedConnectionClass:
     def get_data(self):
-        return self.data
-
+        return len(self.data)
     def set_data(self, v):
         self.data = v
 
@@ -674,12 +656,11 @@ func TestCalculateLCOMWithConfig(t *testing.T) {
 	code := `
 class TestClass:
     def method_a(self):
-        return self.x
+        return len(self.x)
     def method_b(self):
-        return self.y
+        return len(self.y)
     def method_c(self):
-        return self.z
-`
+        return len(self.z)`
 	result, err := p.Parse(context.Background(), []byte(code))
 	require.NoError(t, err)
 
@@ -699,11 +680,11 @@ func TestLCOMAnalyzer_MethodGroups(t *testing.T) {
 	code := `
 class TwoGroupClass:
     def get_a(self):
-        return self.a
+        return len(self.a)
     def set_a(self, v):
         self.a = v
     def get_b(self):
-        return self.b
+        return len(self.b)
     def set_b(self, v):
         self.b = v
 `
@@ -1116,9 +1097,9 @@ class Point:
 		r := results[0]
 		assert.Equal(t, "Point", r.ClassName)
 		assert.Equal(t, 14, r.TotalMethods)
-		assert.Equal(t, 8, r.ExcludedMethods, "decorators, __init__, and stateless __len__")
+		assert.Equal(t, 9, r.ExcludedMethods, "decorators, __init__, stateless __len__, and the one-field setter ignored")
 		assert.Equal(t, 3, r.InstanceVariables, "self.x, self.y, self.foo")
-		assert.Equal(t, 2, r.LCOM4, "x/y methods and ignored; __len__ is stateless")
+		assert.Equal(t, 1, r.LCOM4, "x/y methods; __len__ is stateless and ignored is a trivial accessor")
 	})
 
 	t.Run("HammettRunner", func(t *testing.T) {
@@ -1132,7 +1113,7 @@ class HammettRunner(TestRunner):
         self.hammett_kwargs = None
 
     def other_method(self):
-        return self.hammett_kwargs
+        return len(self.hammett_kwargs)
 `
 		result, err := p.Parse(context.Background(), []byte(code))
 		require.NoError(t, err)
@@ -1202,18 +1183,17 @@ class ViaNew:
         self.b = 2
         return self
     def uses_a(self):
-        return self.a
+        return len(self.a)
     def uses_b(self):
-        return self.b
-
+        return len(self.b)
 class ViaPostInit:
     def __post_init__(self):
         self.a = 1
         self.b = 2
     def uses_a(self):
-        return self.a
+        return len(self.a)
     def uses_b(self):
-        return self.b
+        return len(self.b)
 `
 	result, err := p.Parse(context.Background(), []byte(code))
 	require.NoError(t, err)
@@ -1249,7 +1229,7 @@ class Holder:
         self.used = 1
         self.only_here = 2
     def read(self):
-        return self.used
+        return len(self.used)
 `
 	result, err := p.Parse(context.Background(), []byte(code))
 	require.NoError(t, err)
@@ -1900,8 +1880,7 @@ class Subject:
     `+tt.disabled+` = None
 
     def `+tt.method+`(self, other=None):
-        return self.state
-
+        return len(self.state)
     def check(self, other):
         return `+tt.expression+"\n")
 			assert.ElementsMatch(t, [][]string{{tt.method}}, r.MethodGroups)
@@ -1942,8 +1921,7 @@ func TestLCOMAnalyzer_AssignmentReplacesProtocolMethod(t *testing.T) {
 			source := `
 class Subject:
     def ` + tt.method + `(self, other=None):
-        return self.state
-
+        return len(self.state)
     ` + tt.method + ` = None
 
     def check(self, other):
@@ -2108,7 +2086,7 @@ class Label:
         return self.__str__()
 
     def __str__(self):
-        return self.name
+        return len(self.name)
 `)
 		assert.Equal(t, 1, r.LCOM4)
 		assert.Equal(t, 2, r.TotalMethods)
@@ -2120,14 +2098,12 @@ class Label:
 		r := analyzeLCOMClass(t, `
 class Split:
     def read_a(self):
-        return self.a
-
+        return len(self.a)
     def write_a(self, v):
         self.a = v
 
     def read_b(self):
-        return self.b
-
+        return len(self.b)
     def label(self):
         return "split"
 `)
@@ -2147,4 +2123,123 @@ func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 	return results[0]
+}
+
+// TestLCOMAnalyzer_TrivialAccessorsExcluded covers one-field getters, setters
+// and properties (issue #872).
+func TestLCOMAnalyzer_TrivialAccessorsExcluded(t *testing.T) {
+	analyze := func(t *testing.T, code string) *LCOMResult {
+		t.Helper()
+		result, err := parser.New().Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+		results, err := NewLCOMAnalyzer(nil).AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+		return results[0]
+	}
+
+	t.Run("issue repro", func(t *testing.T) {
+		r := analyze(t, `
+class Panel:
+    def __init__(self, clock):
+        self._items = []
+        self._clock = clock
+        self._title = ""
+        self._onchange = None
+
+    def add(self, item):
+        self._items.append(item)
+        return self
+
+    def remove(self, item):
+        self._items.remove(item)
+
+    def count(self):
+        return len(self._items)
+
+    def set_onchange(self, callback):
+        assert callable(callback) or callback is None
+        self._onchange = callback
+        return self
+
+    def get_clock(self):
+        return self._clock
+
+    @property
+    def title(self):
+        return self._title
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"add", "count", "remove"}}, r.MethodGroups)
+		assert.Equal(t, 4, r.ExcludedMethods, "__init__ and the three accessors")
+		assert.Equal(t, 4, r.InstanceVariables, "excluded accessors keep their variables counted")
+	})
+
+	t.Run("if-raise guard on parameters", func(t *testing.T) {
+		r := analyze(t, `
+class Widget:
+    def run(self):
+        self._items.append(1)
+
+    def set_sound(self, sound):
+        """Set the sound."""
+        if sound is not None and not callable(sound):
+            raise TypeError("sound must be callable")
+        self._sound = sound
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"run"}}, r.MethodGroups)
+	})
+
+	t.Run("accessor stays when a non-accessor shares its field", func(t *testing.T) {
+		r := analyze(t, `
+class Counter:
+    def get_count(self):
+        return self._count
+
+    def increment(self):
+        self._count += 1
+
+    def reset_log(self):
+        self._log.clear()
+`)
+		assert.Equal(t, 2, r.LCOM4)
+		assert.ElementsMatch(t, [][]string{{"get_count", "increment"}, {"reset_log"}}, r.MethodGroups)
+	})
+
+	t.Run("accessor stays when another method calls it", func(t *testing.T) {
+		r := analyze(t, `
+class Report:
+    def get_title(self):
+        return self._title
+
+    def render(self):
+        return self.get_title() + str(self._rows)
+`)
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"get_title", "render"}}, r.MethodGroups)
+	})
+
+	t.Run("methods that are not accessor-shaped stay", func(t *testing.T) {
+		r := analyze(t, `
+class Shapes:
+    def base(self):
+        self._items.append(0)
+
+    def chained(self):
+        return self._a.b
+
+    def self_in_value(self, v):
+        self._c = v + self._c_offset
+
+    def guard_uses_self(self, v):
+        assert self._ready
+        self._d = v
+
+    def two_fields(self):
+        return self._e, self._f
+`)
+		assert.Equal(t, 5, r.LCOM4)
+		assert.Equal(t, 0, r.ExcludedMethods)
+	})
 }
