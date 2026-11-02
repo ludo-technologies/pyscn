@@ -272,6 +272,7 @@ func (s *ComplexityServiceImpl) calculateScopeComplexities(filePath string, cfgs
 				Nodes:               result.Nodes,
 				Edges:               result.Edges,
 				NestingDepth:        result.NestingDepth,
+				DeepestNestingLine:  result.DeepestNestingLine,
 				IfStatements:        result.IfStatements,
 				LoopStatements:      result.LoopStatements,
 				ExceptionHandlers:   result.ExceptionHandlers,

@@ -128,7 +128,8 @@ type ComplexityMetrics struct {
 	Edges int `json:"edges" yaml:"edges"`
 
 	// Nesting depth
-	NestingDepth int `json:"nesting_depth" yaml:"nesting_depth"`
+	NestingDepth       int `json:"nesting_depth" yaml:"nesting_depth"`
+	DeepestNestingLine int `json:"deepest_nesting_line" yaml:"deepest_nesting_line"`
 
 	// Statement counts
 	IfStatements      int `json:"if_statements" yaml:"if_statements"`
