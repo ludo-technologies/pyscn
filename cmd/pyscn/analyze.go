@@ -602,9 +602,13 @@ func (c *AnalyzeCommand) printSummary(cmd *cobra.Command, response *domain.Analy
 
 	if response.Summary.DepsEnabled {
 		icon := getScoreIcon(response.Summary.DependencyScore)
-		cyclesMsg := fmt.Sprintf("%d cycles", response.Summary.DepsModulesInCycles)
-		if response.Summary.DepsModulesInCycles == 0 {
+		// DepsModulesInCycles counts modules, not cycles (the HTML report says the same).
+		cyclesMsg := fmt.Sprintf("%d modules in cycles", response.Summary.DepsModulesInCycles)
+		switch response.Summary.DepsModulesInCycles {
+		case 0:
 			cyclesMsg = "no cycles"
+		case 1:
+			cyclesMsg = "1 module in cycles"
 		}
 		fmt.Fprintf(cmd.ErrOrStderr(), "  Dependencies:   %3d/100 %s  (%s, depth: %d)\n",
 			response.Summary.DependencyScore, icon,
