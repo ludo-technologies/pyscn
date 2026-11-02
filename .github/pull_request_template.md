@@ -24,12 +24,14 @@ Closes #
 - [ ] Added tests for new functionality (if applicable)
 
 ## Verified Against a Real Project
-<!-- Required. Which Python repository did you run the patched pyscn on, and what changed in the output? -->
-<!-- Example: `pyscn analyze ~/src/requests` — duplication went from 12.4% to 8.1%, no new findings elsewhere. -->
+<!-- Required. Run the patched pyscn on a Python repository OTHER than the one named in the issue. -->
+<!-- Paste the relevant output lines as printed, before and after. Do not paraphrase. -->
+<!-- Example: `pyscn analyze ~/src/requests`, before `Duplication: 12.4%`, after `Duplication: 8.1%`, nothing else changed. -->
 <!-- PRs without this are likely to be closed. -->
-- Repository:
+- Repository (not the one named in the issue):
 - Command:
-- Observed before/after:
+- Output before (as printed):
+- Output after (as printed):
 
 ## Documentation
 - [ ] Updated godoc comments
