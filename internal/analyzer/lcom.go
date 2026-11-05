@@ -199,6 +199,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	// descriptor protocol, not a field access. Collect property names first so
 	// such reads can be recorded as call edges instead of instance variables.
 	propertyNames := a.collectPropertyNames(classNode)
+	propertyProtocol := a.collectPropertyProtocolNames(classNode)
 	protocolDefinitions := collectProtocolDefinitions(classNode)
 	inheritedCalls := a.collectInheritedCalls(classNode, declaredFields)
 
@@ -259,9 +260,32 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 				vars[field] = true
 			}
 		}
-		methods[node.Name] = vars
+		// Two definitions of a property-protocol name share one attribute: a
+		// @property getter and its @<name>.setter (or .deleter) are both live
+		// at runtime. Union the accesses of both instead of letting the last
+		// definition parsed drop the earlier one's, which lost the edges
+		// linking the name to the rest of the class (#879). Plain re-definitions
+		// keep last-wins: only the final def is live Python semantics.
+		if existing, ok := methods[node.Name]; ok && propertyProtocol[node.Name] {
+			for v := range vars {
+				existing[v] = true
+			}
+			vars = existing
+		} else {
+			methods[node.Name] = vars
+		}
+		// The accessor shape is judged per definition. For a merged
+		// property-protocol name the accessor candidacy survives only while
+		// every definition touches the same single field; otherwise the last
+		// definition wins, matching Python's re-definition semantics.
 		if field, ok := a.trivialAccessorField(node); ok {
-			accessorFields[node.Name] = field
+			if prev, seen := accessorFields[node.Name]; seen && propertyProtocol[node.Name] && prev != field {
+				delete(accessorFields, node.Name)
+			} else {
+				accessorFields[node.Name] = field
+			}
+		} else {
+			delete(accessorFields, node.Name)
 		}
 
 		methodCalls := make(map[string]bool)
@@ -278,7 +302,13 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 			}
 		}
 
-		calls[node.Name] = methodCalls
+		if existingCalls, ok := calls[node.Name]; ok && propertyProtocol[node.Name] {
+			for c := range methodCalls {
+				existingCalls[c] = true
+			}
+		} else {
+			calls[node.Name] = methodCalls
+		}
 	}
 
 	collected := classMethods{
@@ -666,6 +696,32 @@ func isExcludedLCOMDecorator(name string) bool {
 // method invocations rather than instance-variable accesses.
 func (a *LCOMAnalyzer) collectPropertyNames(classNode *parser.Node) map[string]bool {
 	return a.collectMethodNames(classNode, a.isProperty)
+}
+
+// collectPropertyProtocolNames returns the set of method names that define
+// more than one live definition: a @property getter and its @<name>.setter or
+// @<name>.deleter all stay bound to the same attribute. Definitions of such a
+// name merge their accesses instead of the last one parsed winning (#879).
+func (a *LCOMAnalyzer) collectPropertyProtocolNames(classNode *parser.Node) map[string]bool {
+	return a.collectMethodNames(classNode, func(node *parser.Node) bool {
+		return a.isProperty(node) || a.hasPropertyMutatorDecorator(node)
+	})
+}
+
+// hasPropertyMutatorDecorator reports whether the method carries an
+// @<name>.setter or @<name>.deleter decorator naming itself, the other half of
+// a property protocol pair.
+func (a *LCOMAnalyzer) hasPropertyMutatorDecorator(funcNode *parser.Node) bool {
+	for _, decorator := range funcNode.Decorator {
+		if decorator == nil {
+			continue
+		}
+		name := a.getDecoratorName(decorator)
+		if name == funcNode.Name+".setter" || name == funcNode.Name+".deleter" {
+			return true
+		}
+	}
+	return false
 }
 
 // collectMethodNames returns the names of the methods defined in the class
