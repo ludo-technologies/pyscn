@@ -193,6 +193,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	calls := make(map[string]map[string]bool)
 	excludedVars := make(map[string]bool)
 	accessorFields := make(map[string]string)
+	rejectedAccessors := make(map[string]bool)
 	excluded := 0
 
 	// A bare `self.<name>` read of a @property is a method invocation via the
@@ -275,17 +276,30 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 			methods[node.Name] = vars
 		}
 		// The accessor shape is judged per definition. For a merged
-		// property-protocol name the accessor candidacy survives only while
-		// every definition touches the same single field; otherwise the last
-		// definition wins, matching Python's re-definition semantics.
-		if field, ok := a.trivialAccessorField(node); ok {
-			if prev, seen := accessorFields[node.Name]; seen && propertyProtocol[node.Name] && prev != field {
-				delete(accessorFields, node.Name)
+		// property-protocol name every definition is live at runtime, so a
+		// rejected shape must stick: a later trivial definition of the same
+		// name must not restore the candidacy, otherwise a getter with a
+		// self-dependent branch paired with a one-line setter gets excluded
+		// as a trivial accessor while the same pair written as plain methods
+		// stays in the graph. Plain re-definitions keep last-wins: only the
+		// final def is live Python semantics.
+		switch {
+		case rejectedAccessors[node.Name] && propertyProtocol[node.Name]:
+			// Sticky rejection for merged property-protocol names.
+		default:
+			if field, ok := a.trivialAccessorField(node); ok {
+				if prev, seen := accessorFields[node.Name]; seen && propertyProtocol[node.Name] && prev != field {
+					delete(accessorFields, node.Name)
+					rejectedAccessors[node.Name] = true
+				} else {
+					accessorFields[node.Name] = field
+				}
 			} else {
-				accessorFields[node.Name] = field
+				delete(accessorFields, node.Name)
+				if propertyProtocol[node.Name] {
+					rejectedAccessors[node.Name] = true
+				}
 			}
-		} else {
-			delete(accessorFields, node.Name)
 		}
 
 		methodCalls := make(map[string]bool)

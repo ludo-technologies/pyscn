@@ -2355,3 +2355,104 @@ class Shapes:
 		assert.Equal(t, 0, r.ExcludedMethods)
 	})
 }
+
+// A property definition that fails the accessor-shape check rejects the name;
+// a later trivial definition of the same name must not restore the candidacy.
+// Without the sticky rejection, a getter whose branch depends on self paired
+// with a one-line setter on the same field got excluded as a trivial accessor
+// while the same pair written as plain methods stayed in the graph (#880).
+func TestLCOMAnalyzer_PropertyAccessorRejectionIsSticky(t *testing.T) {
+	t.Run("branching getter defined before the trivial setter", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Note:
+    def __init__(self):
+        self._title = ""
+
+    @property
+    def title(self):
+        if self._title:
+            return self._title
+        return ""
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"title"}}, r.MethodGroups)
+		assert.Equal(t, 1, r.ExcludedMethods, "only __init__ stays out of the graph")
+		assert.Equal(t, 1, r.InstanceVariables, "_title")
+	})
+
+	t.Run("trivial setter defined before the branching getter", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Note:
+    def __init__(self):
+        self._title = ""
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+
+    @property
+    def title(self):
+        if self._title:
+            return self._title
+        return ""
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"title"}}, r.MethodGroups)
+		assert.Equal(t, 1, r.ExcludedMethods, "only __init__ stays out of the graph")
+		assert.Equal(t, 1, r.InstanceVariables, "_title")
+	})
+
+	t.Run("a genuinely trivial getter and setter pair stays excluded", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Note:
+    def __init__(self):
+        self._title = ""
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4, "no participating method remains; an empty graph is trivially cohesive")
+		assert.Empty(t, r.MethodGroups)
+		assert.Equal(t, 2, r.ExcludedMethods, "__init__ plus the merged trivial accessor")
+		assert.Equal(t, 1, r.InstanceVariables, "_title")
+	})
+}
