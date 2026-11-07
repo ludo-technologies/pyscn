@@ -947,3 +947,45 @@ class Sib2:
 
 	assert.Empty(t, response.ClonePairs, "single-statement overrides are boilerplate, not duplication")
 }
+
+// TestCloneService_GroupTypeIsLoosestBackingPair pins issue #878: one identical
+// pair must not label a group Type-1 when another member only matches it after
+// renames.
+func TestCloneService_GroupTypeIsLoosestBackingPair(t *testing.T) {
+	req := domain.DefaultCloneRequest()
+	dir := "../testdata/python/clone_group_type"
+	req.Paths = []string{filepath.Join(dir, "ninepatch.py"), filepath.Join(dir, "shape.py"), filepath.Join(dir, "sprite.py")}
+	req.OutputFormat = domain.OutputFormatJSON
+
+	response, err := NewCloneService().DetectClones(context.Background(), req)
+	require.NoError(t, err)
+
+	var group *domain.CloneGroup
+	for _, g := range response.CloneGroups {
+		for _, clone := range g.Clones {
+			if filepath.Base(clone.Location.FilePath) == "shape.py" && clone.Location.StartLine == 7 {
+				group = g
+			}
+		}
+	}
+	require.NotNil(t, group, "the three delete() bodies must form a group")
+	require.Equal(t, 3, group.Size)
+
+	members := make(map[int]bool)
+	for _, clone := range group.Clones {
+		members[clone.ID] = true
+	}
+	pairTypes := make(map[domain.CloneType]int)
+	for _, pair := range response.ClonePairs {
+		if members[pair.Clone1.ID] && members[pair.Clone2.ID] {
+			pairTypes[pair.Type]++
+		}
+	}
+	require.Equal(t, map[domain.CloneType]int{domain.Type1Clone: 1, domain.Type2Clone: 2}, pairTypes,
+		"the group must be backed by one identical pair and two renamed pairs")
+
+	assert.Equal(t, domain.Type2Clone, group.Type)
+	for _, clone := range group.Clones {
+		assert.Equal(t, domain.Type2Clone, clone.Type)
+	}
+}
