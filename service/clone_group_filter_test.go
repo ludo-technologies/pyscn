@@ -99,14 +99,14 @@ func TestCloneGroupMetadataRefreshesWithoutMemberRemoval(t *testing.T) {
 	groups := filterCloneGroupsByPairs([]*domain.CloneGroup{parent}, pairs)
 	require.Len(t, groups, 1)
 	assert.InDelta(t, 0.85, groups[0].Similarity, 1e-9)
-	assert.Equal(t, domain.Type1Clone, groups[0].Type, "type comes from the highest-similarity pair")
+	assert.Equal(t, domain.Type4Clone, groups[0].Type, "type comes from the loosest backing pair")
 
 	// Keep the full scored group independent of the displayed group's refresh.
-	visible := filterCloneGroupsByPairs(groups, pairs[1:])
+	visible := filterCloneGroupsByPairs(groups, pairs[:1])
 	require.Len(t, visible, 1)
-	assert.Equal(t, domain.Type4Clone, visible[0].Type)
-	assert.Equal(t, 0.70, visible[0].Similarity)
-	assert.Equal(t, domain.Type1Clone, groups[0].Type)
+	assert.Equal(t, domain.Type1Clone, visible[0].Type)
+	assert.Equal(t, 1.0, visible[0].Similarity)
+	assert.Equal(t, domain.Type4Clone, groups[0].Type)
 	assert.InDelta(t, 0.85, groups[0].Similarity, 1e-9)
 	assert.Len(t, groups[0].Clones, 3)
 }
