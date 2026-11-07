@@ -1327,6 +1327,118 @@ class Probe:
 	assert.Equal(t, 2, r.ExcludedMethods, "__init__ and the stateless property")
 }
 
+// TestLCOMAnalyzer_PropertySetterMergesGetterAccesses pins issue #879: a
+// @property getter and its same-name @<name>.setter are one attribute, so the
+// setter definition must not replace the getter's recorded self.* accesses.
+// Last-wins used to drop the getter's reads, splitting a cohesive class into
+// an extra component.
+func TestLCOMAnalyzer_PropertySetterMergesGetterAccesses(t *testing.T) {
+	t.Run("issue repro", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class PolyLine:
+    def __init__(self, verts, color):
+        self.orig_verts = verts
+        self._color = color
+        self._dirty = False
+
+    def _stroke_indices(self):
+        n = len(self.orig_verts)
+        return list(range(n))
+
+    @property
+    def colors(self):
+        if self._color.shape == (4,):
+            return [self._color] * len(self.orig_verts)
+        return self._color
+
+    @colors.setter
+    def colors(self, value):
+        self._color = value
+        self._dirty = True
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4, "getter and _stroke_indices share orig_verts")
+		assert.Equal(t, [][]string{{"_stroke_indices", "colors"}}, r.MethodGroups)
+		assert.Equal(t, 1, r.ExcludedMethods, "only __init__ stays out of the graph")
+		assert.Equal(t, 3, r.InstanceVariables, "orig_verts, _color, _dirty")
+	})
+
+	t.Run("one-statement setter keeps the name in the graph", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class PolyLine:
+    def __init__(self, verts, color):
+        self.orig_verts = verts
+        self._color = color
+
+    def _stroke_indices(self):
+        n = len(self.orig_verts)
+        return list(range(n))
+
+    @property
+    def colors(self):
+        if self._color.shape == (4,):
+            return [self._color] * len(self.orig_verts)
+        return self._color
+
+    @colors.setter
+    def colors(self, value):
+        self._color = value
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"_stroke_indices", "colors"}}, r.MethodGroups)
+		assert.Equal(t, 1, r.ExcludedMethods, "the merged name spans two fields, so it is not a trivial accessor")
+	})
+
+	t.Run("plain re-definitions stay last-wins", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Panel:
+    def __init__(self):
+        self.width = 1
+        self.height = 2
+
+    def size(self):
+        return self.width + 1
+
+    def width_report(self):
+        return self.width + 2
+
+    def size(self):
+        return self.height + 1
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 2, r.LCOM4, "only the second size is live; it shares nothing with width_report")
+		assert.Len(t, r.MethodGroups, 2)
+	})
+}
+
 // TestLCOMAnalyzer_MethodReferencesAreNotVariables pins issue #678: a
 // `self.<method>` reference names a method defined in the class, not
 // instance state, whether it is called or passed along as a callback.
@@ -2241,5 +2353,106 @@ class Shapes:
 `)
 		assert.Equal(t, 5, r.LCOM4)
 		assert.Equal(t, 0, r.ExcludedMethods)
+	})
+}
+
+// A property definition that fails the accessor-shape check rejects the name;
+// a later trivial definition of the same name must not restore the candidacy.
+// Without the sticky rejection, a getter whose branch depends on self paired
+// with a one-line setter on the same field got excluded as a trivial accessor
+// while the same pair written as plain methods stayed in the graph (#880).
+func TestLCOMAnalyzer_PropertyAccessorRejectionIsSticky(t *testing.T) {
+	t.Run("branching getter defined before the trivial setter", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Note:
+    def __init__(self):
+        self._title = ""
+
+    @property
+    def title(self):
+        if self._title:
+            return self._title
+        return ""
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"title"}}, r.MethodGroups)
+		assert.Equal(t, 1, r.ExcludedMethods, "only __init__ stays out of the graph")
+		assert.Equal(t, 1, r.InstanceVariables, "_title")
+	})
+
+	t.Run("trivial setter defined before the branching getter", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Note:
+    def __init__(self):
+        self._title = ""
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+
+    @property
+    def title(self):
+        if self._title:
+            return self._title
+        return ""
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4)
+		assert.Equal(t, [][]string{{"title"}}, r.MethodGroups)
+		assert.Equal(t, 1, r.ExcludedMethods, "only __init__ stays out of the graph")
+		assert.Equal(t, 1, r.InstanceVariables, "_title")
+	})
+
+	t.Run("a genuinely trivial getter and setter pair stays excluded", func(t *testing.T) {
+		p := parser.New()
+		code := `
+class Note:
+    def __init__(self):
+        self._title = ""
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, value):
+        self._title = value
+`
+		result, err := p.Parse(context.Background(), []byte(code))
+		require.NoError(t, err)
+
+		analyzer := NewLCOMAnalyzer(nil)
+		results, err := analyzer.AnalyzeClasses(result.AST, "test.py")
+		require.NoError(t, err)
+		require.Len(t, results, 1)
+
+		r := results[0]
+		assert.Equal(t, 1, r.LCOM4, "no participating method remains; an empty graph is trivially cohesive")
+		assert.Empty(t, r.MethodGroups)
+		assert.Equal(t, 2, r.ExcludedMethods, "__init__ plus the merged trivial accessor")
+		assert.Equal(t, 1, r.InstanceVariables, "_title")
 	})
 }
