@@ -935,8 +935,13 @@ func (a *CBOAnalyzer) shouldSkipAttributeAccess(node *parser.Node) bool {
 	if node == nil {
 		return true
 	}
-	if node.Parent != nil && node.Parent.Type == parser.NodeCall {
-		return true
+	// Skip only the callee of a call: arguments keep their coupling. The parser
+	// links every positional argument to the call node too, so checking the
+	// parent type alone also dropped isinstance(x, pkg.mod.Cls).
+	if p := node.Parent; p != nil && p.Type == parser.NodeCall {
+		if callee, ok := p.Value.(*parser.Node); ok && callee == node {
+			return true
+		}
 	}
 	if a.isWithinTypeAnnotation(node) || a.isWithinClassBase(node) {
 		return true
