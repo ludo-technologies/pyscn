@@ -37,7 +37,7 @@ jobs:
             wheel_platform: win_amd64
 
           # macOS Apple Silicon
-          - os: macos-14
+          - os: macos-latest
             platform: darwin-arm64
             goos: darwin
             goarch: arm64
