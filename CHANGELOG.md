@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.33.2] - 2026-11-08
+
+### Fixed
+- Label a clone group by its loosest backing pair instead of its best one (#881)
+- Count dotted class references passed as call arguments in CBO (#873)
+- Merge property getter and setter accesses for LCOM4 (#880)
+- Exclude trivial one-field accessors from the LCOM4 graph (#877)
+- Label the dependency summary count as modules in cycles (#875)
+- Point the nesting suggestion at the deepest block in complexity analysis (#874)
+
 ## [1.33.1] - 2026-10-29
 
 ### Fixed
