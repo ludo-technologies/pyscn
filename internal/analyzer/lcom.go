@@ -203,6 +203,7 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 	propertyProtocol := a.collectPropertyProtocolNames(classNode)
 	protocolDefinitions := collectProtocolDefinitions(classNode)
 	inheritedCalls := a.collectInheritedCalls(classNode, declaredFields)
+	classAttributes := a.collectClassAttributes(classNode, protocolDefinitions)
 
 	for _, node := range classNode.Body {
 		if node == nil {
@@ -259,6 +260,17 @@ func (a *LCOMAnalyzer) collectMethods(classNode *parser.Node, declaredFields map
 		if len(declaredFields) > 0 && a.hasBareSelfAccess(node) {
 			for field := range declaredFields {
 				vars[field] = true
+			}
+		}
+		// A computed name such as `getattr(self, self._names[i])` can reach any
+		// field, and the class-level name table it reads is not instance state.
+		// With no instance variable of its own left, the method is stateless,
+		// the same as one whose only access is a literal `getattr(self, "x")`
+		// (#887).
+		if usesComputedSelfAttribute(node) && onlyClassAttributes(vars, classAttributes) {
+			for name := range vars {
+				excludedVars[name] = true
+				delete(vars, name)
 			}
 		}
 		// Two definitions of a property-protocol name share one attribute: a
@@ -838,6 +850,66 @@ func (a *LCOMAnalyzer) collectClassBodyBindings(classNode *parser.Node) map[stri
 		}
 	}
 	return bound
+}
+
+// collectClassAttributes returns the names the class body binds by assignment,
+// such as `__slots__` or a `_names` table, that no method assigns through
+// self. Reading one of them through self reads the class, not instance state.
+func (a *LCOMAnalyzer) collectClassAttributes(classNode *parser.Node, definitions map[string]*parser.Node) map[string]bool {
+	names := make(map[string]bool)
+	for name, definition := range definitions {
+		if isAssignmentNode(definition) {
+			names[name] = true
+		}
+	}
+	classNode.WalkDeep(func(node *parser.Node) bool {
+		// A nested class has its own `self`.
+		if node != classNode && node.Type == parser.NodeClassDef {
+			return false
+		}
+		// subscriptContext classifies any target: assigned, augmented or
+		// deleted through self.
+		if node.Type == parser.NodeAttribute && a.isSelfAccess(node) && subscriptContext(node) != subscriptRead {
+			delete(names, node.Name)
+		}
+		return true
+	})
+	return names
+}
+
+func onlyClassAttributes(vars map[string]bool, classAttributes map[string]bool) bool {
+	for name := range vars {
+		if !classAttributes[name] {
+			return false
+		}
+	}
+	return true
+}
+
+// dynamicAttributeBuiltins are the builtins that take an object and an
+// attribute name.
+var dynamicAttributeBuiltins = map[string]bool{
+	"getattr": true,
+	"setattr": true,
+	"delattr": true,
+	"hasattr": true,
+}
+
+// usesComputedSelfAttribute reports whether a method reaches an attribute of
+// self through getattr, setattr, delattr or hasattr with a name that is not a
+// string literal.
+func usesComputedSelfAttribute(methodNode *parser.Node) bool {
+	found := false
+	methodNode.WalkDeep(func(node *parser.Node) bool {
+		if node.Type == parser.NodeCall && len(node.Args) >= 2 && isSelfName(node.Args[0]) {
+			callee := nodeValue(node)
+			if callee != nil && callee.Type == parser.NodeName && dynamicAttributeBuiltins[callee.Name] && !isStringConstant(node.Args[1]) {
+				found = true
+			}
+		}
+		return !found
+	})
+	return found
 }
 
 // slotNames returns the string entries of a `__slots__` value, written either

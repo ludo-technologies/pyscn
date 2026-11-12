@@ -2227,6 +2227,177 @@ class Split:
 	})
 }
 
+// TestLCOMAnalyzer_ComputedSelfAttributeNames pins
+// https://github.com/ludo-technologies/pyscn/issues/887. A method that reaches
+// its fields through a computed getattr/setattr/delattr name and otherwise only
+// reads a class-level name table is left out of the graph as stateless.
+func TestLCOMAnalyzer_ComputedSelfAttributeNames(t *testing.T) {
+	tests := []struct {
+		name              string
+		source            string
+		lcom4             int
+		excludedMethods   int
+		instanceVariables int
+		groups            [][]string
+	}{
+		{
+			name: "getattr through a class-level name table",
+			source: `
+class Point:
+    _names = dict(enumerate("xy"))
+
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+
+    def __getitem__(self, index):
+        return getattr(self, self._names[index])
+
+    def length_squared(self):
+        return self.x * self.x + self.y * self.y
+`,
+			lcom4:             1,
+			excludedMethods:   2,
+			instanceVariables: 3,
+			groups:            [][]string{{"length_squared"}},
+		},
+		{
+			name: "setattr and delattr over a class-level field list",
+			source: `
+class Key:
+    __fields__ = ("p", "q")
+
+    def __init__(self):
+        for name in self.__fields__:
+            setattr(self, name, 0)
+
+    def clear(self):
+        for name in self.__fields__:
+            delattr(self, name)
+
+    def total(self):
+        return self.p + self.q
+`,
+			lcom4:             1,
+			excludedMethods:   2,
+			instanceVariables: 3,
+			groups:            [][]string{{"total"}},
+		},
+		{
+			name: "getattr through __slots__",
+			source: `
+class Instruction:
+    __slots__ = ("opcode", "args")
+
+    def _from_args(self, opcode, *args):
+        self.opcode = opcode
+        self.args = args
+
+    def __repr__(self):
+        return f"<Instruction {self.opcode}>"
+
+    def __getitem__(self, i):
+        return getattr(self, self.__slots__[i])
+`,
+			lcom4:             1,
+			excludedMethods:   1,
+			instanceVariables: 3,
+			groups:            [][]string{{"__repr__", "_from_args"}},
+		},
+		{
+			name: "a literal getattr next to a computed one",
+			source: `
+class Pair:
+    _names = ("a", "b")
+
+    def __init__(self):
+        self.a = 0
+        self.b = 0
+
+    def get(self, i):
+        return getattr(self, self._names[i]) or getattr(self, "a")
+
+    def total(self):
+        return self.a + self.b
+`,
+			lcom4:             1,
+			excludedMethods:   2,
+			instanceVariables: 3,
+			groups:            [][]string{{"total"}},
+		},
+		{
+			name: "a method that also reads an instance field stays",
+			source: `
+class Record:
+    _names = ("a", "b")
+
+    def __init__(self):
+        self.a = 0
+        self.b = 0
+        self.log = []
+
+    def get(self, i):
+        self.log.append(i)
+        return getattr(self, self._names[i])
+
+    def total(self):
+        return self.a + self.b
+`,
+			lcom4:             2,
+			excludedMethods:   1,
+			instanceVariables: 4,
+			groups:            [][]string{{"get"}, {"total"}},
+		},
+		{
+			name: "a name table assigned through self is instance state",
+			source: `
+class Table:
+    _names = ("a",)
+
+    def rename(self, names):
+        self._names = names
+
+    def get(self, i):
+        return getattr(self, self._names[i])
+`,
+			lcom4:             1,
+			excludedMethods:   0,
+			instanceVariables: 1,
+			groups:            [][]string{{"get", "rename"}},
+		},
+		{
+			name: "a literal getattr name keeps the class-level read",
+			source: `
+class Literal:
+    _names = ("a",)
+
+    def __init__(self):
+        self.a = 0
+
+    def first(self):
+        return getattr(self, "a"), self._names
+
+    def value(self):
+        return self.a * 2
+`,
+			lcom4:             2,
+			excludedMethods:   1,
+			instanceVariables: 2,
+			groups:            [][]string{{"first"}, {"value"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := analyzeLCOMClass(t, tt.source)
+			assert.Equal(t, tt.lcom4, r.LCOM4)
+			assert.Equal(t, tt.excludedMethods, r.ExcludedMethods)
+			assert.Equal(t, tt.instanceVariables, r.InstanceVariables)
+			assert.Equal(t, tt.groups, r.MethodGroups)
+		})
+	}
+}
+
 func analyzeLCOMClass(t *testing.T, source string) *LCOMResult {
 	t.Helper()
 	parsed, err := parser.New().Parse(context.Background(), []byte(source))
