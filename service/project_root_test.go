@@ -143,3 +143,68 @@ func TestFindProjectRoot_MarkerInsidePackageDoesNotMoveRootIntoPackage(t *testin
 
 	assert.Equal(t, root, FindProjectRoot([]string{filepath.Join(pkg, "a.py")}))
 }
+
+func writeProjectTree(t *testing.T, root string, files map[string]string) {
+	t.Helper()
+	require.NoError(t, os.MkdirAll(filepath.Join(root, ".git"), 0o755))
+	for name, content := range files {
+		path := filepath.Join(root, name)
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+	}
+}
+
+func TestFindProjectRoot_RepositoryWithRootInitStaysRoot(t *testing.T) {
+	repo := filepath.Join(t.TempDir(), "myrepo")
+	writeProjectTree(t, repo, map[string]string{
+		"__init__.py":         "",
+		"requirements.txt":    "pygame\n",
+		"engine/core/a.py":    "def f():\n    return 1\n",
+		"engine/game/b.py":    "from engine.core.a import f\n",
+		"main.py":             "from engine.game.b import g\n",
+		"engine/game/data.py": "import os, engine.core.a as core\n",
+	})
+
+	assert.Equal(t, repo, FindProjectRoot([]string{repo}))
+	assert.Equal(t, repo, FindProjectRoot([]string{filepath.Join(repo, "engine", "game", "b.py")}))
+}
+
+func TestFindProjectRoot_RepositoryImportedByOwnNameUsesParent(t *testing.T) {
+	parent := t.TempDir()
+	repo := filepath.Join(parent, "myrepo")
+	writeProjectTree(t, repo, map[string]string{
+		"__init__.py":     "",
+		"sub/__init__.py": "",
+		"sub/a.py":        "def f():\n    return 1\n",
+		"sub/b.py":        "from myrepo.sub.a import f\n",
+	})
+
+	assert.Equal(t, parent, FindProjectRoot([]string{repo}))
+}
+
+func TestFindProjectRoot_RepositoryImportedRelativelyUsesParent(t *testing.T) {
+	parent := t.TempDir()
+	repo := filepath.Join(parent, "addon")
+	writeProjectTree(t, repo, map[string]string{
+		"__init__.py":     "from . import ui\n",
+		"ui.py":           "",
+		"sub/__init__.py": "",
+		"sub/a.py":        "from .b import g\n",
+		"sub/b.py":        "def g():\n    return 1\n",
+	})
+
+	assert.Equal(t, parent, FindProjectRoot([]string{repo}))
+}
+
+func TestFindProjectRoot_RelativeImportClimbingToRepositoryUsesParent(t *testing.T) {
+	parent := t.TempDir()
+	repo := filepath.Join(parent, "addon")
+	writeProjectTree(t, repo, map[string]string{
+		"__init__.py":     "",
+		"ui.py":           "",
+		"sub/__init__.py": "",
+		"sub/a.py":        "from ..ui import draw\n",
+	})
+
+	assert.Equal(t, parent, FindProjectRoot([]string{repo}))
+}
