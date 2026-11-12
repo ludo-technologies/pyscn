@@ -164,6 +164,9 @@ func (s *SystemAnalysisServiceImpl) analyzeResponsibility(
 		node := graph.Nodes[module]
 		responsibilities := inferResponsibilities(module, node)
 		moduleResponsibilities[module] = responsibilities
+		if isReexportPackageInit(module, node) {
+			continue
+		}
 
 		isHub := node.InDegree >= fanInLimit && node.OutDegree >= fanOutLimit && node.InDegree > 0 && node.OutDegree > 0 &&
 			len(responsibilities) >= minHubResponsibilities
@@ -238,6 +241,22 @@ func couplingStdDev(graph *analyzer.DependencyGraph, mean float64, fanIn bool) f
 		sum += diff * diff
 	}
 	return math.Sqrt(sum / float64(len(graph.Nodes)))
+}
+
+// isReexportPackageInit reports whether a package __init__.py only re-exports
+// its own submodules: it defines no functions or classes and every dependency
+// lives inside the package. The submodules already split the package by
+// concern, so the facade is not counted as mixing them (#886).
+func isReexportPackageInit(module string, node *analyzer.ModuleNode) bool {
+	if !node.IsPackage || node.FunctionCount > 0 || node.ClassCount > 0 {
+		return false
+	}
+	for dependency := range node.Dependencies {
+		if !strings.HasPrefix(dependency, module+".") {
+			return false
+		}
+	}
+	return true
 }
 
 // inferResponsibilities derives a module's dependency concerns from its

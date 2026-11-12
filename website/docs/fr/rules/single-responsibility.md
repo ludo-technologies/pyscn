@@ -15,6 +15,8 @@ Un module est signalé lorsqu'au moins une des conditions suivantes est remplie 
 - Il possède plus de `max_responsibilities` préoccupations distinctes.
 - Son fan-in (nombre d'importateurs) et son fan-out (nombre d'imports) sont tous deux au-dessus de la `moyenne + écart-type` du projet, et il possède plus d'une préoccupation.
 
+Un `__init__.py` de paquet qui ne définit ni fonction ni classe et n'importe que depuis ses propres sous-modules n'est pas signalé : ses sous-modules découpent déjà le paquet par préoccupation.
+
 ## Pourquoi est-ce un problème ?
 
 Le principe de responsabilité unique (SRP) concerne les *axes de changement*. Un module qui participe à plusieurs clusters de dépendances sans rapport a plusieurs raisons de changer :

@@ -15,6 +15,8 @@ A module is reported when either condition holds:
 - It owns more than `max_responsibilities` distinct concerns.
 - Both its fan-in (number of importers) and fan-out (number of imports) are above the project's `mean + standard deviation`, and it owns more than one concern.
 
+A package `__init__.py` that defines no functions or classes and only imports from its own submodules is not reported: the submodules already split the package by concern.
+
 ## Why is this a problem?
 
 The Single Responsibility Principle is about *axes of change*. A module that participates in several unrelated dependency clusters has multiple reasons to change:
