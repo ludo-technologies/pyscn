@@ -238,6 +238,125 @@ func TestAnalyzeResponsibilityCountsSiblingModulesAsOneConcern(t *testing.T) {
 	assert.Empty(t, violations)
 }
 
+// Regression for #886: a package __init__.py that only re-exports its own
+// submodules must not be flagged, since the submodules already split the
+// package by concern.
+func TestAnalyzeResponsibilitySkipsReexportPackageInit(t *testing.T) {
+	service := NewSystemAnalysisService()
+	graph := analyzer.NewDependencyGraph("/test/project")
+
+	graph.AddModule("mypkg", "/test/project/mypkg/__init__.py")
+	graph.AddModule("app", "/test/project/app.py")
+	graph.AddDependency("app", "mypkg", analyzer.DependencyEdgeImport, nil)
+	for _, child := range []string{"alpha", "beta", "gamma", "delta"} {
+		module := "mypkg." + child
+		graph.AddModule(module, "/test/project/mypkg/"+child+".py")
+		graph.AddDependency("mypkg", module, analyzer.DependencyEdgeImport, nil)
+	}
+
+	responsibility, _, violations := service.analyzeResponsibility(graph, defaultResponsibilityOptions())
+
+	require.NotNil(t, responsibility)
+	assert.Equal(t, []string{"alpha", "beta", "delta", "gamma"}, responsibility.ModuleResponsibilities["mypkg"])
+	assert.Empty(t, responsibility.SRPViolations)
+	assert.Empty(t, responsibility.OverloadedModules)
+	assert.Empty(t, violations)
+}
+
+func TestAnalyzeResponsibilityStillChecksNonFacadePackageInit(t *testing.T) {
+	tests := []struct {
+		name     string
+		setup    func(graph *analyzer.DependencyGraph)
+		expected []string
+	}{
+		{
+			name: "defines a function",
+			setup: func(graph *analyzer.DependencyGraph) {
+				graph.Nodes["mypkg"].FunctionCount = 1
+			},
+			expected: []string{"alpha", "beta", "delta", "gamma"},
+		},
+		{
+			name: "defines a class",
+			setup: func(graph *analyzer.DependencyGraph) {
+				graph.Nodes["mypkg"].ClassCount = 1
+			},
+			expected: []string{"alpha", "beta", "delta", "gamma"},
+		},
+		{
+			name: "imports from outside the package",
+			setup: func(graph *analyzer.DependencyGraph) {
+				graph.AddModule("config", "/test/project/config.py")
+				graph.AddDependency("mypkg", "config", analyzer.DependencyEdgeImport, nil)
+			},
+			expected: []string{"alpha", "beta", "config", "delta", "gamma"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := NewSystemAnalysisService()
+			graph := analyzer.NewDependencyGraph("/test/project")
+
+			graph.AddModule("mypkg", "/test/project/mypkg/__init__.py")
+			for _, child := range []string{"alpha", "beta", "gamma", "delta"} {
+				module := "mypkg." + child
+				graph.AddModule(module, "/test/project/mypkg/"+child+".py")
+				graph.AddDependency("mypkg", module, analyzer.DependencyEdgeImport, nil)
+			}
+			tt.setup(graph)
+
+			responsibility, _, violations := service.analyzeResponsibility(graph, defaultResponsibilityOptions())
+
+			require.NotNil(t, responsibility)
+			require.Len(t, responsibility.SRPViolations, 1)
+			assert.Equal(t, "mypkg", responsibility.SRPViolations[0].Module)
+			assert.Equal(t, tt.expected, responsibility.SRPViolations[0].Responsibilities)
+			require.Len(t, violations, 1)
+		})
+	}
+}
+
+func TestAnalyzeArchitectureSkipsReexportPackageInit(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(root, "pyproject.toml"), []byte("[project]\nname = \"facade-repro\"\n"), 0o644))
+
+	files := map[string]string{
+		"mypkg/__init__.py":  "from .alpha import alpha_fn\nfrom .beta import beta_fn\nfrom .gamma import gamma_fn\nfrom .delta import delta_fn\n\n__all__ = [\"alpha_fn\", \"beta_fn\", \"gamma_fn\", \"delta_fn\"]\n",
+		"mypkg/alpha.py":     "def alpha_fn():\n    return 1\n",
+		"mypkg/beta.py":      "def beta_fn():\n    return 1\n",
+		"mypkg/gamma.py":     "def gamma_fn():\n    return 1\n",
+		"mypkg/delta.py":     "def delta_fn():\n    return 1\n",
+		"webapp/__init__.py": "from .auth import login\nfrom .billing import charge\nfrom .orders import place\nfrom .reports import export\n\n\ndef create_app():\n    return [login, charge, place, export]\n",
+		"webapp/auth.py":     "def login():\n    return 1\n",
+		"webapp/billing.py":  "def charge():\n    return 1\n",
+		"webapp/orders.py":   "def place():\n    return 1\n",
+		"webapp/reports.py":  "def export():\n    return 1\n",
+		"app.py":             "from mypkg import alpha_fn\nfrom webapp import create_app\n\nprint(alpha_fn(), create_app())\n",
+	}
+
+	paths := make([]string, 0, len(files))
+	for name, content := range files {
+		path := filepath.Join(root, name)
+		require.NoError(t, os.MkdirAll(filepath.Dir(path), 0o755))
+		require.NoError(t, os.WriteFile(path, []byte(content), 0o644))
+		paths = append(paths, path)
+	}
+
+	service := NewSystemAnalysisService()
+	result, err := service.AnalyzeArchitecture(context.Background(), domain.SystemAnalysisRequest{
+		Paths:             paths,
+		IncludeStdLib:     domain.BoolPtr(false),
+		IncludeThirdParty: domain.BoolPtr(false),
+		FollowRelative:    domain.BoolPtr(true),
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, result.ResponsibilityAnalysis)
+	require.Len(t, result.ResponsibilityAnalysis.SRPViolations, 1)
+	assert.Equal(t, "webapp", result.ResponsibilityAnalysis.SRPViolations[0].Module)
+}
+
 func TestAnalyzeResponsibilityForRequestKeepsCohesionIndependent(t *testing.T) {
 	service := NewSystemAnalysisService()
 	graph := analyzer.NewDependencyGraph("/test/project")
