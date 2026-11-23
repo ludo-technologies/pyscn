@@ -1099,10 +1099,12 @@ func dependencyLeafName(className string) string {
 	return className
 }
 
+// isUppercaseConstant reports whether name reads as a constant: its first
+// underscore-separated segment is all upper case. That covers DOTALL and
+// K_ESCAPE as well as mixed-case members such as pygame.K_a, while CapWords
+// names (Rect, Test_Case) stay eligible as classes.
 func isUppercaseConstant(name string) bool {
-	if name == "" {
-		return false
-	}
+	name, _, _ = strings.Cut(strings.TrimLeft(name, "_"), "_")
 	hasLetter := false
 	for _, r := range name {
 		if unicode.IsLetter(r) {
