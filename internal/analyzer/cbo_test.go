@@ -438,6 +438,33 @@ class UsesModuleConstants:
 	assert.Equal(t, 1, results[0].TypeHintDependencies, "Path is annotation-only")
 }
 
+func TestCBOAnalyzer_IgnoresMixedCaseModuleConstants(t *testing.T) {
+	pythonCode := `
+import pygame
+
+class Handler:
+    def on_key(self, event, keys):
+        if keys[pygame.K_a]:
+            return 1
+        if event.key == pygame.K_ESCAPE:
+            return 2
+        return 0
+
+    def area(self):
+        return pygame.Rect
+`
+
+	ast, err := parseCode(pythonCode)
+	require.NoError(t, err)
+
+	analyzer := NewCBOAnalyzer(DefaultCBOOptions())
+	results, err := analyzer.AnalyzeClasses(ast, "test.py")
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+
+	assert.Equal(t, []string{"pygame.Rect"}, results[0].DependentClasses, "K_a is a key code, Rect is a class")
+}
+
 func TestCBOAnalyzer_KeepsUppercaseConstructorDependencies(t *testing.T) {
 	pythonCode := `
 import httpx
