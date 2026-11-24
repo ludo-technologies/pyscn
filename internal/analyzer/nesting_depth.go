@@ -115,7 +115,7 @@ func isNestingNode(node *parser.Node) bool {
 	}
 
 	switch node.Type {
-	case parser.NodeIf, parser.NodeFor, parser.NodeAsyncFor, parser.NodeWhile, parser.NodeWith, parser.NodeAsyncWith, parser.NodeTry, parser.NodeExceptHandler, parser.NodeMatch, parser.NodeMatchCase,
+	case parser.NodeIf, parser.NodeFor, parser.NodeAsyncFor, parser.NodeWhile, parser.NodeWith, parser.NodeAsyncWith, parser.NodeTry, parser.NodeMatch, parser.NodeMatchCase,
 		parser.NodeLambda, parser.NodeListComp, parser.NodeSetComp, parser.NodeDictComp, parser.NodeGeneratorExp:
 		// These nodes increase nesting depth
 		return true
@@ -123,6 +123,11 @@ func isNestingNode(node *parser.Node) bool {
 		// elif/else arms don't add nesting; they're at the same level as the
 		// parent if. The AST builder chains elif arms through Orelse, so
 		// counting them would inflate depth by one per arm (issue #728).
+		return false
+	case parser.NodeExceptHandler:
+		// An except handler is an arm of its try, at the same level as the
+		// try, else and finally bodies. Counting it would put handler code
+		// one level deeper than its siblings (issue #891).
 		return false
 	default:
 		return false

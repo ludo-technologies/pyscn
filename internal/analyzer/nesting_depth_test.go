@@ -177,7 +177,7 @@ func TestCalculateMaxNestingDepth_ForAndWhileLoop(t *testing.T) {
 }
 
 func TestCalculateMaxNestingDepth_TryExcept(t *testing.T) {
-	// Create a function with try-except (depth 2: try + except handler)
+	// Create a function with try-except (depth 1: the handler is an arm of the try)
 	funcNode := &parser.Node{
 		Type: parser.NodeFunctionDef,
 		Name: "try_except_func",
@@ -221,9 +221,80 @@ func TestCalculateMaxNestingDepth_TryExcept(t *testing.T) {
 
 	result := CalculateMaxNestingDepth(funcNode)
 
-	// Try statement is depth 1, except handler is depth 2
-	if result.MaxDepth != 2 {
-		t.Errorf("Expected max depth 2 for try-except, got %d", result.MaxDepth)
+	// The except handler is an arm of the try, not one more level.
+	if result.MaxDepth != 1 {
+		t.Errorf("Expected max depth 1 for try-except, got %d", result.MaxDepth)
+	}
+}
+
+// Regression test for issue #891: code in an except block must sit at the same
+// depth as code in the try, else and finally blocks of the same statement.
+func TestCalculateMaxNestingDepth_TryArmsShareDepth(t *testing.T) {
+	source := `def a_try_body(x):
+    try:
+        if x:
+            x.go()
+    except ValueError:
+        pass
+
+
+def b_except_body(x):
+    try:
+        x.go()
+    except ValueError:
+        if x:
+            x.stop()
+
+
+def c_else_body(x):
+    try:
+        x.go()
+    except ValueError:
+        pass
+    else:
+        if x:
+            x.stop()
+
+
+def d_finally_body(x):
+    try:
+        x.go()
+    finally:
+        if x:
+            x.stop()
+`
+
+	p := parser.New()
+	parseResult, err := p.Parse(context.Background(), []byte(source))
+	if err != nil {
+		t.Fatalf("Failed to parse source: %v", err)
+	}
+
+	wantDeepestLine := map[string]int{
+		"a_try_body":     3,
+		"b_except_body":  13,
+		"c_else_body":    23,
+		"d_finally_body": 31,
+	}
+
+	seen := 0
+	for _, stmt := range parseResult.AST.Body {
+		wantLine, ok := wantDeepestLine[stmt.Name]
+		if stmt.Type != parser.NodeFunctionDef || !ok {
+			continue
+		}
+		seen++
+
+		result := CalculateMaxNestingDepth(stmt)
+		if result.MaxDepth != 2 {
+			t.Errorf("%s: expected max depth 2, got %d", stmt.Name, result.MaxDepth)
+		}
+		if result.DeepestNestingLine != wantLine {
+			t.Errorf("%s: expected deepest nesting line %d, got %d", stmt.Name, wantLine, result.DeepestNestingLine)
+		}
+	}
+	if seen != len(wantDeepestLine) {
+		t.Fatalf("Expected %d functions in parsed AST, found %d", len(wantDeepestLine), seen)
 	}
 }
 
@@ -471,7 +542,7 @@ func TestIsNestingNode(t *testing.T) {
 		{"While loop", parser.NodeWhile, true},
 		{"With statement", parser.NodeWith, true},
 		{"Try statement", parser.NodeTry, true},
-		{"Except handler", parser.NodeExceptHandler, true},
+		{"Except handler", parser.NodeExceptHandler, false},
 		{"Lambda", parser.NodeLambda, true},
 		{"List comprehension", parser.NodeListComp, true},
 		{"Dict comprehension", parser.NodeDictComp, true},
